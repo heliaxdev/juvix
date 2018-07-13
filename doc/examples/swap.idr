@@ -4,5 +4,5 @@ import Prelude
 
 %default total
 
-main : (String, String) -> (String, String)
+main : (a, b) -> (b, a)
 main (param, storage) = (storage, param)

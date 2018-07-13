@@ -34,6 +34,7 @@ Juvix V2
 
 #### References
 
+* https://eb.host.cs.st-andrews.ac.uk/drafts/impldtp.pdf
 * https://ndmitchell.com/downloads/paper-rethinking_supercompilation-29_sep_2010.pdf
 * http://repository.readscheme.org/ftp/papers/pe98-school/D-364.pdf
 * https://themonadreader.files.wordpress.com/2014/04/super-final.pdf
