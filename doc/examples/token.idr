@@ -5,7 +5,7 @@ import Data.SortedMap
 
 %default total
 
-{- Utility -}
+{- Definitions -}
 
 lookupWithDefault : (SortedMap k v) -> k -> v -> v
 lookupWithDefault map key default =
@@ -15,56 +15,51 @@ lookupWithDefault map key default =
 
 record Token where
   constructor MkToken
-  supply: Nat
   balances: SortedMap String Nat
-  allowances: SortedMap (String, String) Nat
-  
-{- Total Supply -}
+
+newToken : (s : String, a : Nat) -> Token
+newToken s a = MkToken (insert s a empty)
 
 totalSupply : Token -> Nat
-totalSupply = supply
-
-{- Balance -}
+totalSupply = foldl (+) 0 . map snd . toList . balances
 
 balanceOf : Token -> String -> Nat
 balanceOf token key = lookupWithDefault (balances token) key 0
 
-{- Allowance -}
-
-allowance : Token -> String -> String -> Nat
-allowance token key spender = lookupWithDefault (allowances token) (key, spender) 0
-
-{- Transfer -}
-
 transfer : Token -> String -> String -> Nat -> (Token, Bool)
 transfer token key dest amount =
   let sourceBalance = balanceOf token key
-  in case isLTE sourceBalance amount of
+  in case isLTE amount sourceBalance of
     Yes prf =>
       let destBalance = balanceOf token dest
-      in (record { balances $= (insert dest (destBalance + amount) . insert key (sourceBalance - amount)) } token, True)
+      in (record { balances $= (insert dest (destBalance + amount) . insert key ((-) sourceBalance amount {smaller = prf})) } token, True)
     No _ => (token, False)
 
--- Prove: transfer reduces balance of source
--- Prove: transfer adds balance to dest
+{- Proofs -}
+
+{- The idea is that you don't care about the implementation. A "token" is defined as any implementation which satisfies these proofs.
+   Then we can use them as *rewrite rules* (whoah) under search-based compilation optimization. -}
+
+-- Prove: new token has correct total supply
+newTotalSupply : (s : String, a : Nat) -> totalSupply (newToken s a) = a
+newTotalSupply = ?newTotalSupply
+
+-- Prove: new token has correct balance
+newBalanceOf : (s : String, a : Nat) -> balanceOf (newToken s a) s = a
+newBalanceOf = ?newBalanceOf
+
+-- Prove: new token has no balance for any other
+newBalanceOfOther : (s : String, o : String, a : Nat) -> Not (s = o) -> balanceOf (newToken s a) o = 0
+newBalanceOfOther = ?newBalanceOfOther
+
+-- Prove: transfer reduces balance of source by amount
+transferBalanceReducesSource : (t : Token, s : String, d : String, a : Nat) => GTE (balanceOf t s) a -> (balanceOf (fst (transfer t s d a)) s + a) = (balanceOf t s)
+transferBalanceReducesSource = ?transferBalanceReducesSource
+
+-- Prove: transfer adds balance of amount to dest
+transferBalanceAddsDest : (t : Token, s : String, d : String, a : Nat) => GTE (balanceOf t s) a -> (balanceOf (fst (transfer t s d a)) d) = (balanceOf t d + a)
+transferBalanceAddsDest = ?transferBalanceAddsDest
+
 -- Prove: transfer preserves total supply
-
-{- Approve -}
-
-approve : Token -> String -> Nat -> Bool
-approve = ?approve
-
--- Prove: approve preserves total supply
--- Prove: approve determines allowance
-
-{- transferFrom -}
-
-transferFrom : Token -> String -> String -> Nat -> Bool
-transferFrom = ?transferFrom
-
--- Prove: approve allows transferFrom
--- Prove: transferFrom fails without approve
--- Prove: transferFrom reduces balance of source
--- Prove: transferFrom adds balance to dest
--- Prove: transferFrom preserves total supply
-
+transferTotalSupplyPreserved : (t : Token, s : String, d : String, a : Nat) => totalSupply t = totalSupply (fst (transfer t s d a))
+transferTotalSupplyPreserved = ?transferTotalSupplyPreserved
