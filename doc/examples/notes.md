@@ -10,7 +10,16 @@ https://github.com/idris-hackers/idris-demos
 - ERC20-esque token contract with verified behavior
 - ERC721-esque token contract with verified behavior
 - ERC??? account verification function standard with verified behavior
+- Implementation of interesting voting system
 - Wyvern reimplementation with verified behavior
+
+Why (assert these are true!)
+> More powerful (possible) compilation
+    Actual optimization
+    Easily multitarget
+    Cross-contract compilation
+> Safer contract-contract interaction
+> Safer user experience
 
 # PoC
 
@@ -26,4 +35,5 @@ https://github.com/idris-hackers/idris-demos
 "It's (somewhat) useful!"
 
 - Backend for Lotion (or similar)
+- Backend for WASM => Cosmos SDK module with JIT WASM interpreter
 - Write a VM, backend for the VM

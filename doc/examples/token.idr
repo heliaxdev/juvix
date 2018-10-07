@@ -1,4 +1,4 @@
-module Swap
+module Token
 
 import Prelude
 import Data.SortedMap
@@ -35,6 +35,20 @@ transfer token key dest amount =
       in (record { balances $= (insert dest (destBalance + amount) . insert key ((-) sourceBalance amount {smaller = prf})) } token, True)
     No _ => (token, False)
 
+{- Aux -}
+
+lookupInsert : (map : SortedMap k v, key : k, def : v, val : v) -> lookupWithDefault (insert key val map) key def = val
+lookupInsert = ?lookupInsert
+
+lookupUnaffected : (map : SortedMap k v, key : k, otherKey : k, val : v, def : v) -> Not (key = otherKey) -> lookupWithDefault (insert otherKey val map) key def = lookupWithDefault map key def
+lookupUnaffected = ?lookupUnaffected
+
+lookupEmpty : (key : k, def : v) -> lookupWithDefault empty key def = def
+lookupEmpty = ?lookupEmpty
+
+lookupEmptyUnaffected : (map : SortedMap k v, key : k, otherKey: k, def: v, val: v) -> Not (key = otherKey) -> lookupWithDefault map key def = def -> lookupWithDefault (insert otherKey val map) key def = def
+lookupEmptyUnaffected map key otherKey def val ne eq = rewrite lookupUnaffected map key otherKey val def ne in rewrite eq in Refl
+
 {- Proofs -}
 
 {- The idea is that you don't care about the implementation. A "token" is defined as any implementation which satisfies these proofs.
@@ -46,11 +60,13 @@ newTotalSupply = ?newTotalSupply
 
 -- Prove: new token has correct balance
 newBalanceOf : (s : String, a : Nat) -> balanceOf (newToken s a) s = a
-newBalanceOf = ?newBalanceOf
+newBalanceOf s a =
+  let prf = lookupInsert empty s 0 a in rewrite prf in Refl
 
 -- Prove: new token has no balance for any other
-newBalanceOfOther : (s : String, o : String, a : Nat) -> Not (s = o) -> balanceOf (newToken s a) o = 0
-newBalanceOfOther = ?newBalanceOfOther
+newBalanceOfOther : (s : String, o : String, a : Nat) -> Not (o = s) -> balanceOf (newToken s a) o = 0
+newBalanceOfOther s o a ne =
+  let prf = lookupEmptyUnaffected empty o s 0 a ne (lookupEmpty o 0) in rewrite prf in Refl
 
 -- Prove: transfer reduces balance of source by amount
 transferBalanceReducesSource : (t : Token, s : String, d : String, a : Nat) => GTE (balanceOf t s) a -> (balanceOf (fst (transfer t s d a)) s + a) = (balanceOf t s)

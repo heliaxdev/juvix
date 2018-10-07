@@ -43,8 +43,14 @@ Juvix V2
 * https://www.microsoft.com/en-us/research/people/simonpj/?from=http%3A%2F%2Fresearch.microsoft.com%2F~simonpj%2Fpapers%2Fsupercompilation
 * https://www.microsoft.com/en-us/research/wp-content/uploads/2016/07/supercomp-by-eval.pdf
 
+* https://www.cs.kent.ac.uk/people/staff/sjt/TTFP/ttfp.pdf
+* http://www.cse.chalmers.se/research/group/logic/book/book.pdf
+
 ### Misc
 
 * https://corecursive.com/006-type-driven-development-and-idris-with-edwin-brady
 * https://www.quora.com/What-is-the-future-of-optimizing-compilers?share=1
 * https://www.michelson-lang.com/contract-a-day.html#sec-1-33
+> http://www.cse.chalmers.se/~peterd/papers/MartinL%C3%B6f1984.pdf
+> https://hal.inria.fr/inria-00076024/document
+> https://plfa.github.io/
