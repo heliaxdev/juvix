@@ -8,3 +8,6 @@ juvix.cabal
 
 # Juvix temporary
 juvix.yaml
+
+# Misc temporary
+tmp/

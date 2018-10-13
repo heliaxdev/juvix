@@ -2,7 +2,7 @@ module Main where
 
 import           Protolude
 
-import           Juvix
+import qualified Juvix.CodeGen
 
 main ∷ IO ()
-main = someFunc
+main = Juvix.CodeGen.main
