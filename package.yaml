@@ -16,6 +16,7 @@ extra-source-files:
 dependencies:
   - base >= 4.7 && < 5
   - protolude
+  - text
 
 default-extensions:
   - NoImplicitPrelude
@@ -37,6 +38,8 @@ ghc-options:
   - -Wall
   - -fno-warn-orphans
   - -fno-warn-name-shadowing
+  - -j4
+  - -O0
 
 library:
   source-dirs: src
@@ -51,6 +54,13 @@ executables:
       - -with-rtsopts=-N
     dependencies:
       - juvix
+      - optparse-applicative
+      - ansi-wl-pprint
+      - raw-strings-qq
+      - yaml
+      - aeson
+      - haskeline
+      - gitrev
 
 tests:
   juvix-test:
@@ -62,3 +72,6 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - juvix
+      - tasty
+      - tasty-hunit
+      - temporary
