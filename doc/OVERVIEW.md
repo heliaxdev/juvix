@@ -54,3 +54,4 @@ Juvix V2
 > http://www.cse.chalmers.se/~peterd/papers/MartinL%C3%B6f1984.pdf
 > https://hal.inria.fr/inria-00076024/document
 > https://plfa.github.io/
+> https://gdijkstra.github.io/thesis.pdf

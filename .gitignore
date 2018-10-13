@@ -1,5 +1,10 @@
+# vim swapfiles
 *.swp
+
+# Haskell temporary
 .ghci
 .stack-work/
+juvix.cabal
+
+# Juvix temporary
 juvix.yaml
-tmp/

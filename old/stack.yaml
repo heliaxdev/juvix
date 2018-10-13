@@ -1,0 +1,10 @@
+flags: {}
+extra-package-dbs: []
+packages:
+- idris-juvix
+- .
+resolver: lts-11.10
+flags:
+  idris:
+    FFI: true
+    GMP: true
