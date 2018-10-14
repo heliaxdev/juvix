@@ -30,16 +30,18 @@ mainLoop func = do
     Nothing → return ()
     Just i  → do
       case i of
-        (':' : special) → handleSpecial (T.pack special) >> mainLoop func
+        (':' : special) →
+          handleSpecial (T.pack special) (mainLoop func)
         inp → do
           H.outputStrLn inp
           mainLoop func
 
-handleSpecial ∷ Text → H.InputT IO ()
-handleSpecial str = do
+handleSpecial ∷ Text → H.InputT IO () → H.InputT IO ()
+handleSpecial str cont = do
   case str of
-    "?" → liftIO (putDoc specialsDoc)
-    _   → H.outputStrLn "Unknown special command"
+    "?"    → liftIO (putDoc specialsDoc) >> cont
+    "exit" → return ()
+    _      → H.outputStrLn "Unknown special command" >> cont
 
 specialsDoc ∷ Doc
 specialsDoc = mconcat [
@@ -55,7 +57,8 @@ specials ∷ [Special]
 specials = [
   Special "?" "Show this help message",
   Special "save" "Dump the interactive state to a file",
-  Special "load" "Load interactive state from a file"
+  Special "load" "Load interactive state from a file",
+  Special "exit" "Quit interactive mode"
   ]
 
 data Special = Special {

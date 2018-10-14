@@ -59,7 +59,7 @@ interactiveDoc = mconcat [
  | |_| | \ V /   /  \| |
   \___/   \_/   /_/\_\_|
 |],
-  mconcat [line, "Juvix interactive alpha. Currently supported backends: Tezos mainnet.", line, "Enter :? for help. Enter :tutorial for an interactive tutorial.", line]
+  mconcat [line, "Juvix interactive alpha. Currently supported backends: Michelson.", line, "Enter :? for help. Enter :tutorial for an interactive tutorial.", line]
   ]
 
 run ∷ Context → Options → IO ()

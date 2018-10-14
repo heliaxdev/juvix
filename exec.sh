@@ -2,4 +2,4 @@
 
 set -xe
 ARGS=$@
-stack exec -- idris --ibcsubdir tmp --codegen juvix $ARGS
+stack exec -- idris -O0 --noprelude --ibcsubdir tmp --codegen juvix $ARGS

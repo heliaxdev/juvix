@@ -1,8 +1,6 @@
 module Juvix.CodeGen where
 
 import           Protolude
-import           System.Environment
-import           System.Exit
 
 import           Idris.AbsSyntax
 import           Idris.ElabDecls
@@ -10,14 +8,12 @@ import           Idris.Main
 import           Idris.Options
 import           IRTS.Compiler
 
-import           Idris.Core.TT
 import           IRTS.CodegenCommon
-import           IRTS.Simplified
-
 
 data Opts = Opts {inputs :: [FilePath],
                   output :: FilePath }
 
+showUsage ∷ IO ()
 showUsage = do putText "A code generator which is intended to be called by the compiler, not by a user."
                putText "Usage: idris-codegen-juvix <ibc-files> [-o <output-file>]"
                exitWith ExitSuccess
@@ -36,21 +32,11 @@ codeGenSdecls ci = do
   let ofn = outputFile ci
   putText $ "outputFile : " <> show ofn
   putText $ "Decls: " <> show (length (simpleDecls ci))
-  putText $ foldl (\x y -> x <> "\n" <> y) "" $ fmap show $ simpleDecls ci
-  --let res = foldl (\x y-> show x <> "\n" <> show y) "" (fmap (\(a,b)->sdecls2str a b) $ simpleDecls ci)
-  --putText res
-
---use IRTS.Simplified decl
--- data SDecl = SFun Name [Name] Int SExp
-sdecls2str ∷ Name → SDecl → Text
-sdecls2str fname aaa@(SFun _ fArgs i fBody) = (show fname) <> "--->" <> (show aaa)
-
-sexp2str ∷ SExp → Text
-sexp2str x = ""
+  putText $ foldl (\x y -> x <> "\n" <> y) "" $ fmap show $ liftDecls ci
 
 sdeclMain ∷ Opts → Idris ()
 sdeclMain opts = do elabPrims
-                    loadInputs (inputs opts) Nothing
+                    _ <- loadInputs (inputs opts) Nothing
                     mainProg <- elabMain
                     ir <- compile (Via IBCFormat "juvix") (output opts) (Just mainProg)
                     runIO $ codeGenSdecls ir
@@ -84,5 +70,4 @@ data CodegenInfo = CodegenInfo {
   }
 
 type CodeGenerator = CodegenInfo -> IO ()
-
 -}
