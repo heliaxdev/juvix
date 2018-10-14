@@ -22,6 +22,9 @@ repl-codegen:
 	stack ghci juvix:exe:idris-codegen-juvix
 
 clean:
+	stack clean
+
+clean-full:
 	stack clean --full
 
-.PHONY: all build install test lint repl-lib repl-exe repl-codegen clean
+.PHONY: all build install test lint repl-lib repl-exe repl-codegen clean clean-full
