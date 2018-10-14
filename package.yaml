@@ -17,6 +17,8 @@ dependencies:
   - base >= 4.7 && < 5
   - protolude
   - text
+  - mtl
+  - containers
 
 default-extensions:
   - NoImplicitPrelude
@@ -28,10 +30,14 @@ default-extensions:
   - GADTs
   - ScopedTypeVariables
   - DeriveGeneric
+  - DeriveAnyClass
+  - DerivingStrategies
   - FlexibleContexts
   - FlexibleInstances
   - DataKinds
   - GeneralizedNewtypeDeriving
+  - DefaultSignatures
+  - QuasiQuotes
 
 ghc-options:
   - -ferror-spans
@@ -45,6 +51,13 @@ library:
   source-dirs: src
   dependencies:
     - idris
+  exposed-modules:
+    - Juvix
+    - Juvix.CodeGen
+    - Juvix.Interpreter
+    - Juvix.Backends
+    - Juvix.Lang
+    - Juvix.Utility
 
 executables:
   juvix:
@@ -56,6 +69,7 @@ executables:
       - -with-rtsopts=-N
     dependencies:
       - juvix
+      - directory
       - optparse-applicative
       - ansi-wl-pprint
       - raw-strings-qq
