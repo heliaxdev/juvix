@@ -3,12 +3,16 @@ module Juvix.CodeGen where
 import           Protolude
 
 import           Idris.AbsSyntax
+import           Idris.Core.TT      hiding (Name)
 import           Idris.ElabDecls
 import           Idris.Main
 import           Idris.Options
-import           IRTS.Compiler
-
 import           IRTS.CodegenCommon
+import           IRTS.Compiler
+import           IRTS.Lang
+
+import           Juvix.Lang
+import           Juvix.Utility
 
 data Opts = Opts {inputs :: [FilePath],
                   output :: FilePath }
@@ -28,11 +32,15 @@ getOpts = do xs <- getArgs
 
 codeGenSdecls ∷ CodeGenerator
 codeGenSdecls ci = do
-  putText "codegen sdecls"
-  let ofn = outputFile ci
-  putText $ "outputFile : " <> show ofn
-  putText $ "Decls: " <> show (length (simpleDecls ci))
-  putText $ foldl (\x y -> x <> "\n" <> y) "" $ fmap show $ liftDecls ci
+  putText $ "Output file : " <> show (outputFile ci)
+  let decls = liftDecls ci
+  putText $ "Number of decls: " <> show (length decls)
+  let main = findMain decls
+  putText $ "Main: " <> show main
+  putText $ "Main PP: " <> prettyPrintValue (snd main)
+
+findMain ∷ [(Name, LDecl)] → (Name, LDecl)
+findMain decls = let Just f = head $ filter (\(name, _) -> name == NS (UN "main") ["Main"]) decls in f
 
 sdeclMain ∷ Opts → Idris ()
 sdeclMain opts = do elabPrims
