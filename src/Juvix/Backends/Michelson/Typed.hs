@@ -64,6 +64,12 @@ data Pair a b       where Pair ∷ (Dynamical a, Dynamical b) ⇒ a → b → Pa
 instance Eq (Pair a b) where
   Pair a b == Pair c d = a == c && b == d
 
+instance (Dynamical a, Dynamical b) ⇒ Dynamical (Pair a b) where
+
+instance (R.Typeable a, R.Typeable b, PrettyPrint a, PrettyPrint b) ⇒ PrettyPrint (Pair a b) where
+  prettyPrintValue (Pair a b) = prettyPrintValue (a, b)
+  prettyPrintType (Pair a b)  = prettyPrintType (a, b)
+
 newtype Map k v     = Map       { unMap ∷ Map.Map k v }               deriving (Eq)
 
 newtype Set a       = Set       { unSet ∷ Set.Set a }                 deriving (Eq)
@@ -74,11 +80,23 @@ data Option a       where Option ∷ (Dynamical a) ⇒ Maybe a → Option a
 instance Eq (Option a) where
   Option x == Option y = x == y
 
+instance (Dynamical a) ⇒ Dynamical (Option a) where
+
+instance (Typeable a, PrettyPrint a) ⇒ PrettyPrint (Option a) where
+  prettyPrintValue (Option v) = prettyPrintValue v
+  prettyPrintType  (Option v) = prettyPrintType v
+
 data Union a b      where Union ∷ (Dynamical a, Dynamical b) ⇒ Either a b → Union a b
   deriving (Typeable)
 
 instance Eq (Union a b) where
   Union a == Union b = a == b
+
+instance (Dynamical a, Dynamical b) ⇒ Dynamical (Union a b) where
+
+instance (Typeable a, PrettyPrint a, Typeable b, PrettyPrint b) ⇒ PrettyPrint (Union a b) where
+  prettyPrintValue  = undefined
+  prettyPrintType   = undefined
 
 newtype List a      = List      { unList ∷ [a] }                      deriving Eq deriving anyclass Dynamical deriving newtype PrettyPrint
 

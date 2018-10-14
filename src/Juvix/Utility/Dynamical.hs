@@ -42,3 +42,15 @@ liftDyn1 func (DynamicValue a) = func a
 
 appDyn1 ∷ ∀ a b m . (Dynamical a, MonadError DynamicError m) ⇒ (a → b) → DynamicValue → m b
 appDyn1 func = (|<<) func . fromDynamicValue
+
+instance Dynamical ()
+instance Dynamical Text
+instance Dynamical Bool
+instance Dynamical Integer
+instance (Dynamical a) ⇒ Dynamical (Maybe a)
+instance (Dynamical a, Dynamical b) ⇒ Dynamical (a, b)
+
+instance (Eq (a → b)) where
+  _ == _ = False
+
+instance (Dynamical a, Dynamical b) ⇒ Dynamical (a → b)

@@ -18,5 +18,18 @@ class PrettyPrint a where
 instance (PrettyPrint a, R.Typeable a) ⇒ PrettyPrint [a] where
   prettyPrintValue l = T.concat ["[", T.intercalate ", " (fmap prettyPrintValue l), "]"]
 
-instance PrettyPrint Text
+instance (PrettyPrint a, PrettyPrint b, R.Typeable a, R.Typeable b) ⇒ PrettyPrint (a, b) where
+  prettyPrintValue (a, b) = T.concat ["(", prettyPrintValue a, ", ", prettyPrintValue b, ")"]
+
+instance (PrettyPrint a, R.Typeable a) ⇒ PrettyPrint (Maybe a) where
+  prettyPrintValue (Just v) = T.concat ["Just ", prettyPrintValue v]
+  prettyPrintValue Nothing  = "Nothing"
+
+instance PrettyPrint ()
+instance PrettyPrint Bool
 instance PrettyPrint Integer
+instance PrettyPrint Text
+
+instance PrettyPrint (a → b) where
+  prettyPrintValue  = const "λ"
+  prettyPrintType   = const "λ"

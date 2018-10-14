@@ -38,6 +38,7 @@ default-extensions:
   - GeneralizedNewtypeDeriving
   - DefaultSignatures
   - QuasiQuotes
+  - TypeOperators
 
 ghc-options:
   - -ferror-spans
@@ -46,6 +47,9 @@ ghc-options:
   - -fno-warn-name-shadowing
   - -j4
   - -O0
+
+#cpp-options:
+# - -DOPTIMIZE
 
 library:
   source-dirs: src
