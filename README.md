@@ -2,6 +2,18 @@
 
 Work in progress.
 
+Install with ([Stack](https://haskellstack.org) required):
+
+```bash
+make
+```
+
+For full optimizations (but slower compile times):
+
+```bash
+make build-opt
+```
+
 Play around with:
 
 ```bash

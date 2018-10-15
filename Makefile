@@ -3,6 +3,9 @@ all: build
 build:
 	stack build --copy-bins --fast
 
+build-js:
+	stack build --compiler ghcjs-0.2.1.9011008_ghc-8.4.1 --fast
+
 build-watch:
 	stack build --copy-bins --fast --file-watch
 
@@ -30,4 +33,4 @@ clean:
 clean-full:
 	stack clean --full
 
-.PHONY: all build build-watch build-opt lint test repl-lib repl-exe repl-codegen clean clean-full
+.PHONY: all build build-js build-watch build-opt lint test repl-lib repl-exe repl-codegen clean clean-full

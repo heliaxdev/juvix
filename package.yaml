@@ -46,7 +46,6 @@ ghc-options:
   - -fno-warn-orphans
   - -fno-warn-name-shadowing
   - -j4
-  - -O0
 
 #cpp-options:
 # - -DOPTIMIZE
