@@ -1,15 +1,17 @@
 module Juvix.Backends.Michelson.Lift where
 
 import           Data.Typeable
-import           Protolude                        hiding (Option (..),
+import           Protolude                        hiding (Const (..),
+                                                   Either (..), Option (..),
                                                    notImplemented)
+import qualified Protolude                        as P
 
 import           Juvix.Backends.Michelson.Typed
 import qualified Juvix.Backends.Michelson.Untyped as U
 import           Juvix.Utility
 
 data TypecheckError
-  = CannotUnify DynamicError
+  = CannotCastAs DynamicError
   | NotImplemented
 
 {-  Lift an untyped Michelson instruction sequence, with an initial stack type, into a typed (GADT) Michelson instruction sequence and return stack type in a typesafe manner.
@@ -31,25 +33,60 @@ liftUntyped ∷ ∀ m . (MonadError TypecheckError m) ⇒ U.Expr → DynamicType
 liftUntyped expr stk@(DynamicType (prx@(Proxy ∷ Proxy stkTy))) str@(DynamicType (Proxy ∷ Proxy storageTy)) = do
 
   let take1 ∷ (MonadError TypecheckError m) ⇒ m (DynamicType, DynamicType)
-      take1 = undefined
+      take1 = case unProduct prx of
+                P.Left e  → cannotCastAs e
+                P.Right r → return r
 
       take2 ∷ (MonadError TypecheckError m) ⇒ m (DynamicType, DynamicType, DynamicType)
-      take2 = undefined
+      take2 = do
+        (x, DynamicType r) ← take1
+        case unProduct r of
+          P.Left e       → cannotCastAs e
+          P.Right (y, z) → return (x, y, z)
 
       take3 ∷ (MonadError TypecheckError m) ⇒ m (DynamicType, DynamicType, DynamicType, DynamicType)
-      take3 = undefined
+      take3 = do
+        (x, y, DynamicType r) ← take2
+        case unProduct r of
+          P.Left e       → cannotCastAs e
+          P.Right (a, b) → return (x, y, a, b)
 
       take4 ∷ (MonadError TypecheckError m) ⇒ m (DynamicType, DynamicType, DynamicType, DynamicType, DynamicType)
-      take4 = undefined
+      take4 = do
+        (x, y, z, DynamicType r) ← take3
+        case unProduct r of
+          P.Left e       → cannotCastAs e
+          P.Right (a, b) → return (x, y, z, a, b)
+
+      take1As ∷ (MonadError TypecheckError m) ⇒ (DynamicType → m b) → m (b, DynamicType)
+      take1As func = do
+        (head, rest) ← take1
+        maybe ← func head
+        return (maybe, rest)
 
       asUnion ∷ (MonadError TypecheckError m) ⇒ DynamicType → m (DynamicType, DynamicType)
-      asUnion = undefined
+      asUnion (DynamicType prx) =
+        case unSum prx of
+          P.Left e  → cannotCastAs e
+          P.Right r → return r
 
       asProduct ∷ (MonadError TypecheckError m) ⇒ DynamicType → m (DynamicType, DynamicType)
-      asProduct = undefined
+      asProduct (DynamicType prx) =
+        case unProduct prx of
+          P.Left e  → cannotCastAs e
+          P.Right r → return r
 
       asArrow ∷ (MonadError TypecheckError m) ⇒ DynamicType → m (DynamicType, DynamicType)
-      asArrow = undefined
+      asArrow (DynamicType prx) =
+        case unArrow prx of
+          P.Left e  → cannotCastAs e
+          P.Right r → return r
+
+      take1Pair ∷ (MonadError TypecheckError m) ⇒ m ((DynamicType, DynamicType), DynamicType)
+      take1Pair = take1As asProduct
+
+      take1Union ∷ (MonadError TypecheckError m) ⇒ m ((DynamicType, DynamicType), DynamicType)
+      take1Union = take1As asUnion
 
   case expr of
 
@@ -65,10 +102,30 @@ liftUntyped expr stk@(DynamicType (prx@(Proxy ∷ Proxy stkTy))) str@(DynamicTyp
       (DynamicType (_ ∷ Proxy a), DynamicType (_ ∷ Proxy b), DynamicType (_ ∷ Proxy c)) ← take2
       return (SomeExpr (Swap ∷ Expr (Stack (a, (b, c))) (Stack (b, (a, c)))), DynamicType (Proxy ∷ Proxy (b, (a, c))))
 
+    U.Const c ->
+      case c of
+        U.Unit      → return (SomeExpr (Const () ∷ Expr (Stack stkTy) (Stack ((), stkTy))), DynamicType (Proxy ∷ Proxy ((), stkTy)))
+        U.String s  → return (SomeExpr (Const s ∷ Expr (Stack stkTy) (Stack (Text, stkTy))), DynamicType (Proxy ∷ Proxy (Text, stkTy)))
+        U.Bool b    → return (SomeExpr (Const b ∷ Expr (Stack stkTy) (Stack (Bool, stkTy))), DynamicType (Proxy ∷ Proxy (Bool, stkTy)))
+        U.Tez t     → return (SomeExpr (Const (Tez t) ∷ Expr (Stack stkTy) (Stack (Tez, stkTy))), DynamicType (Proxy ∷ Proxy (Tez, stkTy)))
+        U.Int i → return (SomeExpr (Const i ∷ Expr (Stack stkTy) (Stack (Integer, stkTy))), DynamicType (Proxy ∷ Proxy (Integer, stkTy)))
+
+    U.ConsPair → do
+      (DynamicType (_ ∷ Proxy a), DynamicType (_ ∷ Proxy b), DynamicType (_ ∷ Proxy c)) ← take2
+      return (SomeExpr (ConsPair ∷ Expr (Stack (a, (b, c))) (Stack (Pair a b, c))), DynamicType (Proxy ∷ Proxy (Pair a b, c)))
+
+    U.Car → do
+      ((DynamicType (_ ∷ Proxy a), DynamicType (_ ∷ Proxy b)), DynamicType (_ ∷ Proxy c)) ← take1Pair
+      return (SomeExpr (Car ∷ Expr (Stack (Pair a b, c)) (Stack (a, c))), DynamicType (Proxy ∷ Proxy (a, c)))
+
+    U.Cdr → do
+      ((DynamicType (_ ∷ Proxy a), DynamicType (_ ∷ Proxy b)), DynamicType (_ ∷ Proxy c)) ← take1Pair
+      return (SomeExpr (Cdr ∷ Expr (Stack (Pair a b, c)) (Stack (b, c))), DynamicType (Proxy ∷ Proxy (b, c)))
+
     _ -> notImplemented
 
-cannotUnify ∷ DynamicError → (MonadError TypecheckError m) ⇒ m a
-cannotUnify = throw . CannotUnify
+cannotCastAs ∷ DynamicError → (MonadError TypecheckError m) ⇒ m a
+cannotCastAs = throw . CannotCastAs
 
 notImplemented ∷ (MonadError TypecheckError m) ⇒ m a
 notImplemented = throw NotImplemented

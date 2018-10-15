@@ -9,14 +9,29 @@ import           Juvix.Utility.Sugar
 
 {-
  - This is a modified version of Data.Dynamic and friends.
- - We want more constraints on the typeclass.
  - I think generics might be a better approach...
  -}
 
 class (Eq a, PrettyPrint a, R.Typeable a) ⇒ Dynamical a where
+  unSum     ∷ ∀ m . (MonadError DynamicError m) ⇒ Proxy a → m (DynamicType, DynamicType)
+  unSum     = throw . NotASumType
+
+  unProduct ∷ ∀ m . (MonadError DynamicError m) ⇒ Proxy a → m (DynamicType, DynamicType)
+  unProduct = throw . NotAProductType
+
+  unOption  ∷ ∀ m . (MonadError DynamicError m) ⇒ Proxy a → m DynamicType
+  unOption  = throw . NotAnOptionType
+
+  unArrow ∷ ∀ m . (MonadError DynamicError m) ⇒ Proxy a → m (DynamicType, DynamicType)
+  unArrow   = throw . NotAnArrowType
 
 data DynamicError where
-  CannotCast ∷ ∀ a . Dynamical a ⇒ DynamicValue → R.TypeRep a → DynamicError
+  CannotCast      ∷ ∀ a . Dynamical a ⇒ DynamicValue → R.TypeRep a → DynamicError
+  CannotUnify     ∷ ∀ a b . (Dynamical a, Dynamical b) ⇒ Proxy a → Proxy b → DynamicError
+  NotAnOptionType ∷ ∀ a . Dynamical a ⇒ Proxy a → DynamicError
+  NotAProductType ∷ ∀ a . Dynamical a ⇒ Proxy a → DynamicError
+  NotASumType     ∷ ∀ a . Dynamical a ⇒ Proxy a → DynamicError
+  NotAnArrowType  ∷ ∀ a . Dynamical a ⇒ Proxy a → DynamicError
 
 data DynamicValue where
   DynamicValue ∷ ∀ a . Dynamical a ⇒ a → DynamicValue
@@ -47,10 +62,18 @@ instance Dynamical ()
 instance Dynamical Text
 instance Dynamical Bool
 instance Dynamical Integer
-instance (Dynamical a) ⇒ Dynamical (Maybe a)
-instance (Dynamical a, Dynamical b) ⇒ Dynamical (a, b)
+
+instance (Dynamical a, Dynamical b) ⇒ Dynamical (Either a b) where
+  unSum (Proxy ∷ Proxy (Either a b)) = return (DynamicType (Proxy ∷ Proxy a), DynamicType (Proxy ∷ Proxy b))
+
+instance (Dynamical a, Dynamical b) ⇒ Dynamical (a, b) where
+  unProduct (Proxy ∷ Proxy (x, y)) = return (DynamicType (Proxy ∷ Proxy a), DynamicType (Proxy ∷ Proxy b))
+
+instance (Dynamical a) ⇒ Dynamical (Maybe a) where
+  unOption (Proxy ∷ Proxy (Maybe a)) = return (DynamicType (Proxy ∷ Proxy a))
 
 instance (Eq (a → b)) where
   _ == _ = False
 
-instance (Dynamical a, Dynamical b) ⇒ Dynamical (a → b)
+instance (Dynamical a, Dynamical b) ⇒ Dynamical (a → b) where
+  unArrow (Proxy ∷ Proxy (a → b)) = return (DynamicType (Proxy ∷ Proxy a), DynamicType (Proxy ∷ Proxy b))

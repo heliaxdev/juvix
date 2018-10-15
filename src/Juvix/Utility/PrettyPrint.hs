@@ -18,6 +18,11 @@ class PrettyPrint a where
 instance (PrettyPrint a, R.Typeable a) ⇒ PrettyPrint [a] where
   prettyPrintValue l = T.concat ["[", T.intercalate ", " (fmap prettyPrintValue l), "]"]
 
+instance (PrettyPrint a, PrettyPrint b, R.Typeable a, R.Typeable b) ⇒ PrettyPrint (Either a b) where
+  prettyPrintValue = \case
+    Right r -> "Right " <> prettyPrintValue r
+    Left l  -> "Left " <> prettyPrintValue l
+
 instance (PrettyPrint a, PrettyPrint b, R.Typeable a, R.Typeable b) ⇒ PrettyPrint (a, b) where
   prettyPrintValue (a, b) = T.concat ["(", prettyPrintValue a, ", ", prettyPrintValue b, ")"]
 
