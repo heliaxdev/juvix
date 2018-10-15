@@ -3,7 +3,7 @@ module Juvix.CodeGen where
 import           Protolude
 
 import           Idris.AbsSyntax
-import           Idris.Core.TT      hiding (Name)
+import           Idris.Core.TT            hiding (Name)
 import           Idris.ElabDecls
 import           Idris.Main
 import           Idris.Options
@@ -11,6 +11,7 @@ import           IRTS.CodegenCommon
 import           IRTS.Compiler
 import           IRTS.Lang
 
+import qualified Juvix.Backends.Michelson as M
 import           Juvix.Lang
 import           Juvix.Utility
 
@@ -36,8 +37,19 @@ codeGenSdecls ci = do
   let decls = liftDecls ci
   putText $ "Number of decls: " <> show (length decls)
   let main = findMain decls
-  putText $ "Main: " <> show main
-  putText $ "Main PP: " <> prettyPrintValue (snd main)
+  putText $ "Main decl print: " <> show main
+  let decl = snd main
+  putText $ "Main decl prettified: " <> prettyPrintValue decl
+  let LFun _ _ args body = decl
+      expr = LLam args body
+  putText $ "Main expr prettified: " <> prettyPrintValue expr
+  case M.transpileToMichelsonSourceFile expr of
+    Right output -> do
+      writeFile (outputFile ci) output
+      putText "Transpilation success!"
+    Left err -> do
+      putText $ "Error during transpilation: " <> show err
+      exitFailure
 
 findMain ∷ [(Name, LDecl)] → (Name, LDecl)
 findMain decls = let Just f = head $ filter (\(name, _) -> name == NS (UN "main") ["Main"]) decls in f
@@ -56,8 +68,6 @@ main = do opts <- getOpts
              else runMain (sdeclMain opts)
 
 {-
-module IRTS.CodegenCommon where
-
 data CodegenInfo = CodegenInfo {
     outputFile    :: String
   , outputType    :: OutputType
@@ -76,6 +86,4 @@ data CodegenInfo = CodegenInfo {
   , exportDecls   :: [ExportIFace]
   , ttDecls       :: [(Name, TTDecl)]
   }
-
-type CodeGenerator = CodegenInfo -> IO ()
 -}

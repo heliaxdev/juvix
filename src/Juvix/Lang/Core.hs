@@ -8,6 +8,11 @@ import qualified IRTS.Lang     as I
 
 import           Juvix.Utility
 
+{-
+ - For now, these types just wrap Idris.Core.TT and friends.
+ - Juvix is expected to diverge from Idris (excellent language though it is!) evenutally.
+ -}
+
 type Term a = I.TT a
 
 type Name = I.Name
@@ -22,7 +27,7 @@ type Prim = I.PrimFn
 
 type Decl = I.LDecl
 
-{- -}
+{- Instances -}
 
 instance PrettyPrint Name
 

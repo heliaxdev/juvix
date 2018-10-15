@@ -104,6 +104,14 @@ emitUntyped expr =
     U.Xor        → "XOR"
     U.Not        → "NOT"
 
+emitFinal ∷ ∀ a b . (R.Typeable a, R.Typeable b) ⇒ Expr a b → Text
+emitFinal expr =
+  let code =
+        case expr of
+          Nop → ""
+          _   → emit expr in
+  T.concat ["{", code, "}"]
+
 emitType ∷ U.Type → T.Text
 emitType U.UnitT         = "unit"
 emitType U.KeyT          = "key"
