@@ -17,7 +17,7 @@ before_install:
 - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
 
 install:
-- travis_wait 30 stack --no-terminal --install-ghc test --only-dependencies
+- travis_wait 60 stack --no-terminal --install-ghc test --only-dependencies
 
 script:
 - stack --no-terminal test --haddock --no-haddock-deps
