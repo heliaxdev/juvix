@@ -48,7 +48,7 @@ codeGenSdecls ci = do
       writeFile (outputFile ci) output
       putText "Transpilation success!"
     Left err -> do
-      putText $ "Error during transpilation: " <> show err
+      putText $ "Error during transpilation: " <> prettyPrintValue err
       exitFailure
 
 findMain ∷ [(Name, LDecl)] → (Name, LDecl)

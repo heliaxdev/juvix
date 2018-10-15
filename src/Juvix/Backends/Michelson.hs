@@ -1,15 +1,16 @@
 module Juvix.Backends.Michelson where
 
-import qualified Data.Text                        as T
+import qualified Data.Text                              as T
 import           Protolude
 
-import qualified Juvix.Backends.Michelson.Emit    as M
-import qualified Juvix.Backends.Michelson.Typed   as M
-import qualified Juvix.Backends.Michelson.Untyped as MU
+import qualified Juvix.Backends.Michelson.Emit          as M
+import qualified Juvix.Backends.Michelson.Transpilation as M
+import qualified Juvix.Backends.Michelson.Typed         as M
+import qualified Juvix.Backends.Michelson.Untyped       as MU
 import           Juvix.Lang
 import           Juvix.Utility
 
-transpileToMichelsonSourceFile ∷ ∀ m . (MonadError () m) ⇒ Expr → m Text
+transpileToMichelsonSourceFile ∷ ∀ m . (MonadError M.TranspilationError m) ⇒ Expr → m Text
 transpileToMichelsonSourceFile expr = do
   (M.SomeExpr code, paramTy, retTy, storageTy) <- transpileToMichelson expr
   return $ T.unlines [
@@ -19,5 +20,5 @@ transpileToMichelsonSourceFile expr = do
     "code " <> M.emitFinal code <> ";"
     ]
 
-transpileToMichelson ∷ ∀ m . (MonadError () m) ⇒ Expr → m (M.SomeExpr, MU.Type, MU.Type, MU.Type)
-transpileToMichelson _ = throw ()
+transpileToMichelson ∷ ∀ m . (MonadError M.TranspilationError m) ⇒ Expr → m (M.SomeExpr, MU.Type, MU.Type, MU.Type)
+transpileToMichelson _ = throw M.NotYetImplemented
