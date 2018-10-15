@@ -1,10 +1,13 @@
-all: build install
+all: build
 
 build:
-	stack build
+	stack build --copy-bins --fast
 
-install: build
-	stack install
+build-watch:
+	stack build --copy-bins --fast --file-watch
+
+build-opt: clean
+	stack build --copy-bins --ghc-options "-O3 -DOPTIMIZE"
 
 lint:
 	stack exec -- hlint app codegen src test
@@ -27,4 +30,4 @@ clean:
 clean-full:
 	stack clean --full
 
-.PHONY: all build install test lint repl-lib repl-exe repl-codegen clean clean-full
+.PHONY: all build build-watch build-opt lint test repl-lib repl-exe repl-codegen clean clean-full
