@@ -1,7 +1,5 @@
 module Juvix.Lang (
-  module Juvix.Lang.Core,
-  module Juvix.Lang.Expr
+  module Juvix.Lang.Core
 ) where
 
 import           Juvix.Lang.Core
-import           Juvix.Lang.Expr

@@ -27,6 +27,7 @@ instance (PrettyPrint a, R.Typeable a) ⇒ PrettyPrint (Maybe a) where
 
 instance PrettyPrint ()
 instance PrettyPrint Bool
+instance PrettyPrint Int
 instance PrettyPrint Integer
 instance PrettyPrint Text
 
