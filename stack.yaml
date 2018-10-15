@@ -3,6 +3,7 @@ packages:
 - .
 extra-deps:
 - idris-1.3.0
+- terminfo-0.4.1.2
 allow-newer: true
 setup-info:
   ghcjs:
