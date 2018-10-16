@@ -1,5 +1,7 @@
 module Juvix.CodeGen where
 
+import           Control.Monad.Except
+import           Control.Monad.Writer
 import           Protolude
 
 import           Idris.AbsSyntax
@@ -43,13 +45,16 @@ codeGenSdecls ci = do
   let LFun _ _ args body = decl
       expr = LLam args body
   putText $ "Main expr prettified: " <> prettyPrintValue expr
-  case M.transpileToMichelsonSourceFile expr of
-    Right output -> do
-      writeFile (outputFile ci) output
-      putText "Transpilation success!"
-    Left err -> do
-      putText $ "Error during transpilation: " <> prettyPrintValue err
-      exitFailure
+  case runWriter $ runExceptT (M.transpileToMichelsonSourceFile expr ∷ (ExceptT M.TranspilationError (Writer [M.TranspilationLog])) Text) of
+    (res, logs) -> do
+      mapM_ (putText . prettyPrintValue) logs
+      case res of
+        Right output -> do
+          writeFile (outputFile ci) output
+          putText "Transpilation success!"
+        Left err -> do
+          putText $ "Error during transpilation: " <> prettyPrintValue err
+          exitFailure
 
 findMain ∷ [(Name, LDecl)] → (Name, LDecl)
 findMain decls = let Just f = head $ filter (\(name, _) -> name == NS (UN "main") ["Main"]) decls in f

@@ -1,17 +1,19 @@
 module Juvix.Backends.Michelson.Transpilation where
 
+import           Control.Monad.Writer
 import qualified Data.Text                                    as T
 import           Protolude                                    hiding (catch)
 
 import qualified Juvix.Backends.Michelson.Emit                as M
 import qualified Juvix.Backends.Michelson.Lift                as M
+import qualified Juvix.Backends.Michelson.Optimization        as M
 import           Juvix.Backends.Michelson.Transpilation.Types
 import qualified Juvix.Backends.Michelson.Typed               as M
 import qualified Juvix.Backends.Michelson.Untyped             as MU
 import           Juvix.Lang
 import           Juvix.Utility
 
-transpileToMichelsonSourceFile ∷ ∀ m . (MonadError TranspilationError m) ⇒ Expr → m Text
+transpileToMichelsonSourceFile ∷ ∀ m . (MonadWriter [TranspilationLog] m, MonadError TranspilationError m) ⇒ Expr → m Text
 transpileToMichelsonSourceFile expr = do
   (M.SomeExpr code, paramTy, retTy, storageTy) <- transpileToMichelson expr
   return $ T.unlines [
@@ -21,7 +23,7 @@ transpileToMichelsonSourceFile expr = do
     "code " <> M.emitFinal code <> ";"
     ]
 
-transpileToMichelson ∷ ∀ m . (MonadError TranspilationError m) ⇒ Expr → m (M.SomeExpr, MU.Type, MU.Type, MU.Type)
+transpileToMichelson ∷ ∀ m . (MonadWriter [TranspilationLog] m, MonadError TranspilationError m) ⇒ Expr → m (M.SomeExpr, MU.Type, MU.Type, MU.Type)
 transpileToMichelson expr = do
   let michelsonExprType = MU.LamT (MU.PairT MU.StringT MU.StringT) (MU.PairT MU.StringT MU.StringT)
   case michelsonExprType of
@@ -35,8 +37,9 @@ transpileToMichelson expr = do
               Right r -> return r
               Left e  -> throw (DidNotTypecheck e)
           case (eqT ∷ Maybe (a :~: (M.Pair paramTyLifted startStorageTyLifted, ())), eqT ∷ Maybe (b :~: (M.Pair retTyLifted endStorageTyLifted, ()))) of
-            (Just Refl, Just Refl) →
-              return (M.SomeExpr expr, paramTy, retTy, startStorageTy)
+            (Just Refl, Just Refl) → do
+              optimized <- M.optimize expr
+              return (M.SomeExpr optimized, paramTy, retTy, startStorageTy)
             _ →
               throw (InternalFault "cannot unify start/end stack types")
     _ -> throw (InvalidInput "invalid type for main function")
