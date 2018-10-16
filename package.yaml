@@ -39,6 +39,7 @@ default-extensions:
   - DefaultSignatures
   - QuasiQuotes
   - TypeOperators
+  - MultiParamTypeClasses
 
 ghc-options:
   - -ferror-spans

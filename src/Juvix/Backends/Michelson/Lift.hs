@@ -122,6 +122,74 @@ liftUntyped expr stk@(DynamicType (prx@(Proxy ∷ Proxy stkTy))) str@(DynamicTyp
       ((DynamicType (_ ∷ Proxy a), DynamicType (_ ∷ Proxy b)), DynamicType (_ ∷ Proxy c)) ← take1Pair
       return (SomeExpr (Cdr ∷ Expr (Stack (Pair a b, c)) (Stack (b, c))), DynamicType (Proxy ∷ Proxy (b, c)))
 
+    U.IfLeft xUT yUT → do
+      -- x ty is wrong
+      ((DynamicType (Proxy ∷ Proxy xT), DynamicType (Proxy ∷ Proxy yT)), DynamicType (_ ∷ Proxy z)) ← take1Union
+      (SomeExpr (x ∷ Expr (Stack xS) (Stack xF)), xEnd) ← liftUntyped xUT (DynamicType (Proxy ∷ Proxy (xT, z))) str
+      (SomeExpr (y ∷ Expr (Stack yS) (Stack yF)), _)    ← liftUntyped yUT (DynamicType (Proxy ∷ Proxy (yT, z))) str
+      case (eqT ∷ Maybe (xF :~: yF), eqT ∷ Maybe (xS :~: (xT, z)), eqT ∷ Maybe (yS :~: (yT, z))) of
+        (Just Refl, Just Refl, Just Refl) → return (SomeExpr (IfLeft x y ∷ Expr (Stack (Union xT yT, z)) (Stack xF)), xEnd)
+        (Nothing, _, _) → cannotCastAs (CannotUnify (Proxy ∷ Proxy xF) (Proxy ∷ Proxy yF))
+        (_, Nothing, _) → cannotCastAs (CannotUnify (Proxy ∷ Proxy xS) (Proxy ∷ Proxy (xT, z)))
+        (_, _, Nothing) → cannotCastAs (CannotUnify (Proxy ∷ Proxy yS) (Proxy ∷ Proxy (yT, z)))
+
+    U.AddIntInt → do
+      (DynamicType (_ ∷ Proxy a), DynamicType (_ ∷ Proxy b), DynamicType (_ ∷ Proxy c)) ← take2
+      case (eqT ∷ Maybe (a :~: Integer), eqT ∷ Maybe (b :~: Integer)) of
+        (Just Refl, Just Refl) → return (SomeExpr (AddIntInt ∷ Expr (Stack (Integer, (Integer, c))) (Stack (Integer, c))), DynamicType (Proxy ∷ Proxy (Integer, c)))
+        (Nothing, _) → cannotCastAs (CannotUnify (Proxy ∷ Proxy a) (Proxy ∷ Proxy Integer))
+        (_, Nothing) → cannotCastAs (CannotUnify (Proxy ∷ Proxy b) (Proxy ∷ Proxy Integer))
+
+    U.MulIntInt → do
+      (DynamicType (_ ∷ Proxy a), DynamicType (_ ∷ Proxy b), DynamicType (_ ∷ Proxy c)) ← take2
+      case (eqT ∷ Maybe (a :~: Integer), eqT ∷ Maybe (b :~: Integer)) of
+        (Just Refl, Just Refl) → return (SomeExpr (MulIntInt ∷ Expr (Stack (Integer, (Integer, c))) (Stack (Integer, c))), DynamicType (Proxy ∷ Proxy (Integer, c)))
+        (Nothing, _) → cannotCastAs (CannotUnify (Proxy ∷ Proxy a) (Proxy ∷ Proxy Integer))
+        (_, Nothing) → cannotCastAs (CannotUnify (Proxy ∷ Proxy b) (Proxy ∷ Proxy Integer))
+
+    U.AddTez → do
+      (DynamicType (_ ∷ Proxy a), DynamicType (_ ∷ Proxy b), DynamicType (_ ∷ Proxy c)) ← take2
+      case (eqT ∷ Maybe (a :~: Tez), eqT ∷ Maybe (b :~: Tez)) of
+        (Just Refl, Just Refl) → return (SomeExpr (AddTez ∷ Expr (Stack (Tez, (Tez, c))) (Stack (Tez, c))), DynamicType (Proxy ∷ Proxy (Tez, c)))
+        (Nothing, _) → cannotCastAs (CannotUnify (Proxy ∷ Proxy a) (Proxy ∷ Proxy Tez))
+        (_, Nothing) → cannotCastAs (CannotUnify (Proxy ∷ Proxy b) (Proxy ∷ Proxy Tez))
+
+    U.Seq xUT yUT → do
+      (SomeExpr (x ∷ Expr (Stack xS) (Stack xF)), xEnd) ← liftUntyped xUT stk str
+      (SomeExpr (y ∷ Expr (Stack yS) (Stack yF)), yEnd) ← liftUntyped yUT xEnd str
+      case eqT ∷ Maybe (xF :~: yS) of
+        Just Refl → return (SomeExpr (Seq x y ∷ Expr (Stack xS) (Stack yF)), yEnd)
+        Nothing   → cannotCastAs (CannotUnify (Proxy ∷ Proxy xF) (Proxy ∷ Proxy yS))
+
+    U.If xUT yUT → do
+      (DynamicType (_ ∷ Proxy a), DynamicType (rest ∷ Proxy b)) ← take1
+      case eqT ∷ Maybe (a :~: Bool) of
+        Nothing → cannotCastAs (CannotUnify (Proxy ∷ Proxy a) (Proxy ∷ Proxy Bool))
+        Just Refl → do
+          (SomeExpr (x ∷ Expr (Stack xS) (Stack xF)), DynamicType (Proxy ∷ Proxy xEndT)) ← liftUntyped xUT (DynamicType rest) str
+          (SomeExpr (y ∷ Expr (Stack yS) (Stack yF)), DynamicType (Proxy ∷ Proxy yEndT)) ← liftUntyped yUT (DynamicType rest) str
+          case (eqT ∷ Maybe (xS :~: yS), eqT ∷ Maybe (xF :~: yF), eqT ∷ Maybe (xEndT :~: yEndT)) of
+            (Just Refl, Just Refl, Just Refl) → return (SomeExpr (If x y), DynamicType (Proxy ∷ Proxy xEndT))
+            (Nothing, _, _) → cannotCastAs (CannotUnify (Proxy ∷ Proxy xS) (Proxy ∷ Proxy yS))
+            (_, Nothing, _) → cannotCastAs (CannotUnify (Proxy ∷ Proxy xF) (Proxy ∷ Proxy yF))
+            (_, _, Nothing) → cannotCastAs (CannotUnify (Proxy ∷ Proxy xEndT) (Proxy ∷ Proxy yEndT))
+
+    U.Dip xUT → do
+      (DynamicType (_ ∷ Proxy a), r@(DynamicType (_ ∷ Proxy b))) ← take1
+      (SomeExpr (x ∷ Expr (Stack xS) (Stack xF)), _) ← liftUntyped xUT r str
+      case eqT ∷ Maybe (xS :~: b) of
+        Just Refl → return (SomeExpr (Dip x ∷ Expr (Stack (a, b)) (Stack (a, xF))), DynamicType (Proxy ∷ Proxy (a, xF)))
+        Nothing   → cannotCastAs (CannotUnify (Proxy ∷ Proxy xS) (Proxy ∷ Proxy b))
+
+    -- Deal with annotations here?
+    U.Fail  → return (SomeExpr (Fail ∷ Expr (Stack stkTy) (Stack ())), stk)
+
+    U.Nop   → return (SomeExpr (Nop ∷ Expr (Stack stkTy) (Stack stkTy)), stk)
+
+    U.Now       → return (SomeExpr (Now ∷ Expr (Stack stkTy) (Stack (Timestamp, stkTy))), DynamicType (Proxy ∷ Proxy (Timestamp, stkTy)))
+    U.Balance   → return (SomeExpr (Balance ∷ Expr (Stack stkTy) (Stack (Tez, stkTy))), DynamicType (Proxy ∷ Proxy (Tez, stkTy)))
+    U.Amount    → return (SomeExpr (Amount ∷ Expr (Stack stkTy) (Stack (Tez, stkTy))), DynamicType (Proxy ∷ Proxy (Tez, stkTy)))
+
     _ -> notImplemented
 
 cannotCastAs ∷ DynamicError → (MonadError TypecheckError m) ⇒ m a
