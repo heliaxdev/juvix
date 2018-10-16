@@ -1,4 +1,3 @@
-module Juvix.Backends (
-) where
+module Juvix.Backends where
 
 import           Juvix.Backends.Michelson

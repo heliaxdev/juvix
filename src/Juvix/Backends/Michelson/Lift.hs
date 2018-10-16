@@ -230,3 +230,8 @@ typeToStack ∷ U.Type → DynamicType
 typeToStack ty =
   case liftType ty of
     DynamicType (Proxy ∷ Proxy t) → DynamicType (Proxy ∷ Proxy (t, ()))
+
+instance PrettyPrint TypecheckError where
+  prettyPrintValue = \case
+    CannotCastAs _   -> "cannot cast"
+    NotImplemented   -> "not yet implemented"

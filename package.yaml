@@ -55,6 +55,11 @@ library:
   source-dirs: src
   dependencies:
     - idris
+    - wasm
+#    - hevm
+    - web3
+    - z3
+    - llvm-hs-pure
   exposed-modules:
     - Juvix
     - Juvix.CodeGen

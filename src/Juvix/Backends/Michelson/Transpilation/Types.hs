@@ -20,7 +20,7 @@ instance PrettyPrint TranspilationError where
     NotYetImplemented -> "not yet implemented"
     InvalidInput m    -> "invalid input: " <> m
     InternalFault m   -> "internal transpilation fault: " <> m <> " - this is a *bug* in Juvix and should be reported"
-    DidNotTypecheck _ -> "did not typecheck"
+    DidNotTypecheck e -> "did not typecheck: " <> prettyPrintValue e
 
 instance PrettyPrint TranspilationLog where
   prettyPrintValue = \case
