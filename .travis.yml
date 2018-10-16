@@ -10,6 +10,7 @@ addons:
   apt:
     packages:
       - libgmp-dev
+      - z3
 
 before_install:
 - mkdir -p ~/.local/bin
