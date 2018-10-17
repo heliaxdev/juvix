@@ -35,6 +35,12 @@ transfer token key dest amount =
       in (record { balances $= (insert dest (destBalance + amount) . insert key ((-) sourceBalance amount {smaller = prf})) } token, True)
     No _ => (token, False)
 
+data Action =
+  Transfer String String Nat
+
+main : (Token, Action) -> (Token, Bool)
+main (token, Transfer from to amount) = transfer token from to amount
+
 {- Aux -}
 
 lookupInsert : (map : SortedMap k v, key : k, def : v, val : v) -> lookupWithDefault (insert key val map) key def = val
@@ -43,8 +49,11 @@ lookupInsert = ?lookupInsert
 lookupUnaffected : (map : SortedMap k v, key : k, otherKey : k, val : v, def : v) -> Not (key = otherKey) -> lookupWithDefault (insert otherKey val map) key def = lookupWithDefault map key def
 lookupUnaffected = ?lookupUnaffected
 
-lookupEmpty : (key : k, def : v) -> lookupWithDefault empty key def = def
-lookupEmpty = ?lookupEmpty
+lookupEmpty : (key : k) -> lookup key empty = Nothing
+lookupEmpty k = ?loookupEmpty
+
+lookupDefaultEmpty : (key : k, def : v) -> lookupWithDefault empty key def = def
+lookupDefaultEmpty k d = ?lookupDefaultEmpty
 
 lookupEmptyUnaffected : (map : SortedMap k v, key : k, otherKey: k, def: v, val: v) -> Not (key = otherKey) -> lookupWithDefault map key def = def -> lookupWithDefault (insert otherKey val map) key def = def
 lookupEmptyUnaffected map key otherKey def val ne eq = rewrite lookupUnaffected map key otherKey val def ne in rewrite eq in Refl
@@ -66,7 +75,7 @@ newBalanceOf s a =
 -- Prove: new token has no balance for any other
 newBalanceOfOther : (s : String, o : String, a : Nat) -> Not (o = s) -> balanceOf (newToken s a) o = 0
 newBalanceOfOther s o a ne =
-  let prf = lookupEmptyUnaffected empty o s 0 a ne (lookupEmpty o 0) in rewrite prf in Refl
+  let prf = lookupEmptyUnaffected empty o s 0 a ne (lookupDefaultEmpty o 0) in rewrite prf in Refl
 
 -- Prove: transfer reduces balance of source by amount
 transferBalanceReducesSource : (t : Token, s : String, d : String, a : Nat) => GTE (balanceOf t s) a -> (balanceOf (fst (transfer t s d a)) s + a) = (balanceOf t s)
@@ -79,3 +88,7 @@ transferBalanceAddsDest = ?transferBalanceAddsDest
 -- Prove: transfer preserves total supply
 transferTotalSupplyPreserved : (t : Token, s : String, d : String, a : Nat) => totalSupply t = totalSupply (fst (transfer t s d a))
 transferTotalSupplyPreserved = ?transferTotalSupplyPreserved
+
+-- A tiny hack for now.
+run__IO : a -> a
+run__IO f = f
