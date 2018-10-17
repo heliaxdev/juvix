@@ -1,5 +1,9 @@
 module Main
 
+-- A tiny hack for now.
+run__IO : a -> a
+run__IO f = f
+
 -- A helper function to add two to any number!
 addTwo : Nat -> Nat
 addTwo n = S (S n)
@@ -8,14 +12,18 @@ addTwo n = S (S n)
 main : (Nat, Nat) -> (Nat, Nat)
 main (x, y) = (y, addTwo x)
 
--- An interesting proof!
---mainAlwaysAdds : (a : Nat, b : Nat) -> GT (snd (main (a, b))) a
---mainAlwaysAdds a b = rewrite (gt a) in Refl
+{- Proof helpers -}
 
--- Proof helper.
---gt : (a : Nat) -> GT (addTwo a) a
---gt a = Refl
+greater : Nat -> Nat -> Bool
+greater Z     _      = False
+greater (S _) Z      = True
+greater (S m) (S n)  = greater m n
 
--- A tiny hack for now.
-run__IO : a -> a
-run__IO f = f
+greater_succ_2 : (a : Nat) -> greater (S (S a)) a = True
+greater_succ_2 Z          = Refl
+greater_succ_2 (S (S n))  = rewrite (greater_succ_2 n) in Refl
+
+{- A nice little proof. -}
+
+mainAlwaysAdds : (a : Nat, b : Nat) -> greater (snd (main (a, b))) a = True
+mainAlwaysAdds a b = rewrite (greater_succ_2 a) in Refl
