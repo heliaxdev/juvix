@@ -7,6 +7,7 @@ import           Protolude                                    hiding (catch)
 import qualified Juvix.Backends.Michelson.Emit                as M
 import qualified Juvix.Backends.Michelson.Lift                as M
 import qualified Juvix.Backends.Michelson.Optimization        as M
+import           Juvix.Backends.Michelson.Transpilation.Expr
 import           Juvix.Backends.Michelson.Transpilation.Types
 import qualified Juvix.Backends.Michelson.Typed               as M
 import qualified Juvix.Backends.Michelson.Untyped             as MU
@@ -25,13 +26,11 @@ transpileToMichelsonSourceFile expr = do
 
 transpileToMichelson ∷ ∀ m . (MonadWriter [TranspilationLog] m, MonadError TranspilationError m) ⇒ Expr → m (M.SomeExpr, MU.Type, MU.Type, MU.Type)
 transpileToMichelson expr = do
-  let michelsonExprType = MU.LamT (MU.PairT MU.StringT MU.StringT) (MU.PairT MU.StringT MU.StringT)
+  (michelsonExpr, michelsonExprType) <- exprToMichelson expr
   case michelsonExprType of
     MU.LamT start@(MU.PairT paramTy startStorageTy) end@(MU.PairT retTy endStorageTy) | startStorageTy == endStorageTy → do
       case (M.liftType paramTy, M.liftType startStorageTy, M.liftType retTy, M.liftType endStorageTy) of
         (DynamicType (Proxy ∷ Proxy paramTyLifted), DynamicType (Proxy ∷ Proxy startStorageTyLifted), DynamicType (Proxy ∷ Proxy retTyLifted), DynamicType (Proxy ∷ Proxy endStorageTyLifted)) → do
-          let michelsonExpr ∷ MU.Expr
-              michelsonExpr = MU.Nop
           (M.SomeExpr (expr ∷ M.Expr (M.Stack a) (M.Stack b)), _) ← do
             case M.liftUntyped michelsonExpr (M.typeToStack start) (DynamicType (Proxy :: Proxy startStorageTyLifted)) of
               Right r -> return r
