@@ -1,3 +1,6 @@
+> https://github.com/maiavictor/formality
+> https://github.com/Gabriel439/Haskell-Morte-Library
+
 Steps, roughly in order
 
 https://github.com/idris-hackers/idris-koans
