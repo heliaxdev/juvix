@@ -10,7 +10,7 @@ import           Juvix.Utility
 
 {-
  - For now, these types just wrap Idris.Core.TT and friends.
- - Juvix is expected to diverge from Idris (excellent language though it is!) evenutally.
+ - Juvix is expected to diverge from Idris (excellent language though it is!) eventually.
  -}
 
 type Term a = I.TT a

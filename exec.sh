@@ -1,6 +1,7 @@
 #!/bin/sh
 
 set -xe
+
 ARGS=$@
 mkdir -p tmp
 rm -f tmp/*.ibc
