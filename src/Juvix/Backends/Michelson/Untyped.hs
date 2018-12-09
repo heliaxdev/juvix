@@ -4,6 +4,14 @@ import           Protolude     hiding (Const (..), Type (..))
 
 import           Juvix.Utility
 
+type Stack = [StackElem]
+
+data StackElem
+  = ConstE Const
+  | VarE Text
+
+  deriving (Show, Eq, PrettyPrint)
+
 data Type
   = UnitT
   | KeyT

@@ -45,7 +45,7 @@ codeGenSdecls ci = do
   let LFun _ _ args body = decl
       expr = LLam args body
   putText $ "Main expr prettified: " <> prettyPrintValue expr
-  case runWriter $ runExceptT (M.transpileToMichelsonSourceFile expr ∷ (ExceptT M.TranspilationError (Writer [M.TranspilationLog])) Text) of
+  case runWriter $ runExceptT (M.transpileToMichelsonSourceFile expr ∷ (ExceptT M.TranspilationError (Writer [M.TranspilationLog]) Text)) of
     (res, logs) -> do
       mapM_ (putText . prettyPrintValue) logs
       case res of

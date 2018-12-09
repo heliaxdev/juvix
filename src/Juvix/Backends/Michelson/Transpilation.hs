@@ -1,5 +1,6 @@
 module Juvix.Backends.Michelson.Transpilation where
 
+import           Control.Monad.State
 import           Control.Monad.Writer
 import qualified Data.Text                                    as T
 import           Protolude                                    hiding (catch)
@@ -26,7 +27,7 @@ transpileToMichelsonSourceFile expr = do
 
 transpileToMichelson ∷ ∀ m . (MonadWriter [TranspilationLog] m, MonadError TranspilationError m) ⇒ Expr → m (M.SomeExpr, MU.Type, MU.Type, MU.Type)
 transpileToMichelson expr = do
-  (michelsonExpr, michelsonExprType) <- exprToMichelson expr
+  ((michelsonExpr, michelsonExprType), _) <- runStateT (exprToMichelson expr) []
   case michelsonExprType of
     MU.LamT start@(MU.PairT paramTy startStorageTy) end@(MU.PairT retTy endStorageTy) | startStorageTy == endStorageTy → do
       case (M.liftType paramTy, M.liftType startStorageTy, M.liftType retTy, M.liftType endStorageTy) of
