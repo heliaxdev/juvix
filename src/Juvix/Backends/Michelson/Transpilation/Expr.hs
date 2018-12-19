@@ -6,6 +6,7 @@ import qualified Data.Text                                    as T
 import           Protolude
 
 import           Juvix.Backends.Michelson.Transpilation.Types
+import           Juvix.Backends.Michelson.Transpilation.Util
 import qualified Juvix.Backends.Michelson.Untyped             as M
 import           Juvix.Lang
 import           Juvix.Utility
@@ -44,8 +45,9 @@ exprToExpr expr = do
 
     -- ∷ (\a → b) a ~ s ⇒ (b, s)
     I.LApp _ func args   -> do
-      -- TODO: Sequence
-      notYetImplemented
+      args <- mapM exprToExpr args -- Check ordering.
+      func <- exprToExpr func
+      return (M.Seq (foldl M.Seq M.Nop args) func)
 
     -- ∷ (\a → b) a ~ s ⇒ (b, s)
     I.LLazyApp func args -> notYetImplemented
@@ -61,6 +63,7 @@ exprToExpr expr = do
 
     -- ∷ \a... → b ~ (a..., s) ⇒ (b, s)
     I.LLam args body     -> do
+      -- Ordering: Treat as \a b -> c ~= \a -> \b -> c, e.g. reverse stack order.
       forM_ args (\a -> modify ((:) (M.VarE $ prettyPrintValue a)))
       exprToExpr body
 

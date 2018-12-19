@@ -40,6 +40,7 @@ default-extensions:
   - QuasiQuotes
   - TypeOperators
   - MultiParamTypeClasses
+  - MultiWayIf
 
 ghc-options:
   - -ferror-spans

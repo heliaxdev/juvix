@@ -61,7 +61,7 @@ lookupEmptyUnaffected map key otherKey def val ne eq = rewrite lookupUnaffected 
 {- Proofs -}
 
 {- The idea is that you don't care about the implementation. A "token" is defined as any implementation which satisfies these proofs.
-   Then we can use them as *rewrite rules* (whoah) under search-based compilation optimization. -}
+   Then we can use them as *rewrite rules* under search-based compilation optimization. -}
 
 -- Prove: new token has correct total supply
 newTotalSupply : (s : String, a : Nat) -> totalSupply (newToken s a) = a

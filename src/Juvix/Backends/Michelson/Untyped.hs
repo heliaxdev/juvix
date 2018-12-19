@@ -9,6 +9,7 @@ type Stack = [StackElem]
 data StackElem
   = ConstE Const
   | VarE Text
+  | FuncResult
 
   deriving (Show, Eq, PrettyPrint)
 
