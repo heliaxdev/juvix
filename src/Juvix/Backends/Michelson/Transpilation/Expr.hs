@@ -40,8 +40,13 @@ exprToExpr expr = do
 
     -- :: a ~ s => (a, s)
     I.LV name            -> do
-      -- TODO: Find variable on stack, rearrange.
-      notYetImplemented
+      stack <- get
+      case position (prettyPrintValue name) stack of
+        Nothing → throwError (NotYetImplemented "variable not in scope")
+        Just i  → do
+          let before  = if i == 0 then M.Nop else rearrange i
+              after   = if i == 0 then M.Nop else M.Dip (unrearrange i)
+          genReturn (M.Seq (M.Seq before M.Dup) after)
 
     -- ∷ (\a → b) a ~ s ⇒ (b, s)
     I.LApp _ func args   -> do
@@ -65,7 +70,9 @@ exprToExpr expr = do
     I.LLam args body     -> do
       -- Ordering: Treat as \a b -> c ~= \a -> \b -> c, e.g. reverse stack order.
       forM_ args (\a -> modify ((:) (M.VarE $ prettyPrintValue a)))
-      exprToExpr body
+      inner <- exprToExpr body
+      after ← genReturn (foldDrop (length args))
+      tellReturn (M.Seq inner after)
 
     -- ??
     I.LProj expr num     -> notYetImplemented

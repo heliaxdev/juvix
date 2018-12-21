@@ -41,5 +41,6 @@ transpileToMichelson expr = do
               optimized <- M.optimize expr
               return (M.SomeExpr optimized, paramTy, retTy, startStorageTy)
             _ →
-              throw (InternalFault "cannot unify start/end stack types")
+              throw (InternalFault ("cannot unify start/end stack types: start " <> prettyPrintType (undefined :: a) <>
+                ", end: " <> prettyPrintType (undefined :: b) <> ", expr: " <> prettyPrintValue michelsonExpr))
     _ -> throw (InvalidInput "invalid type for main function")
