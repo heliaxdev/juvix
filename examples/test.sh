@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -xe
+set -e
 
 examples=$(ls *.idr)
 for example in ${examples[@]}; do

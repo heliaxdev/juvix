@@ -60,8 +60,8 @@ lookupEmptyUnaffected map key otherKey def val ne eq = rewrite lookupUnaffected 
 
 {- Proofs -}
 
-{- The idea is that you don't care about the implementation. A "token" is defined as any implementation which satisfies these proofs.
-   Then we can use them as *rewrite rules* under search-based compilation optimization. -}
+{- In principle, the user need not care about the implementation.
+   A "token" is defined as any implementation which satisfies these proofs. -}
 
 -- Prove: new token has correct total supply
 newTotalSupply : (s : String, a : Nat) -> totalSupply (newToken s a) = a
@@ -78,12 +78,12 @@ newBalanceOfOther s o a ne =
   let prf = lookupEmptyUnaffected empty o s 0 a ne (lookupDefaultEmpty o 0) in rewrite prf in Refl
 
 -- Prove: transfer reduces balance of source by amount
-transferBalanceReducesSource : (t : Token, s : String, d : String, a : Nat) => GTE (balanceOf t s) a -> (balanceOf (fst (transfer t s d a)) s + a) = (balanceOf t s)
-transferBalanceReducesSource = ?transferBalanceReducesSource
+transferBalanceReducesSource : (t : Token, s : String, d : String, a : Nat) => LTE a (balanceOf t s) -> (balanceOf (fst (transfer t s d a)) s + a) = (balanceOf t s)
+transferBalanceReducesSource prf = ?transferBalanceReducesSource
 
 -- Prove: transfer adds balance of amount to dest
-transferBalanceAddsDest : (t : Token, s : String, d : String, a : Nat) => GTE (balanceOf t s) a -> (balanceOf (fst (transfer t s d a)) d) = (balanceOf t d + a)
-transferBalanceAddsDest = ?transferBalanceAddsDest
+transferBalanceAddsDest : (t : Token, s : String, d : String, a : Nat) => LTE a (balanceOf t s) -> (balanceOf (fst (transfer t s d a)) d) = (balanceOf t d + a)
+transferBalanceAddsDest prf = ?transferBalanceAddsDest
 
 -- Prove: transfer preserves total supply
 transferTotalSupplyPreserved : (t : Token, s : String, d : String, a : Nat) => totalSupply t = totalSupply (fst (transfer t s d a))

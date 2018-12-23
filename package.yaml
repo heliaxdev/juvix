@@ -49,15 +49,12 @@ ghc-options:
   - -fno-warn-name-shadowing
   - -j4
 
-#cpp-options:
-# - -DOPTIMIZE
-
 library:
   source-dirs: src
   dependencies:
     - idris
     - wasm
-#    - hevm
+    - hevm
     - web3
     - z3
     - llvm-hs-pure

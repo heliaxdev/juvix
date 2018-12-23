@@ -1,3 +1,6 @@
+> https://bentnib.org/quantitative-type-theory.pdf
+> https://github.com/edwinb/Blodwen
+
 > https://github.com/MaiaVictor/Symmetric-Interaction-Calculus
 > https://github.com/MaiaVictor/Formality
 > https://github.com/MaiaVictor/Cedille-Core

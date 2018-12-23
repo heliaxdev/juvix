@@ -13,3 +13,7 @@ main x = x
 -- A really trivial proof.
 main_test1 : main "xy" = "xy"
 main_test1 = Refl
+
+-- A type-level proof.
+main_test2 : (x : String) -> main x = x
+main_test2 x = Refl
