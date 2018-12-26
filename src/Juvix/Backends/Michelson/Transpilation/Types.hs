@@ -1,5 +1,6 @@
 module Juvix.Backends.Michelson.Transpilation.Types where
 
+import           Control.Monad.Writer
 import           Protolude
 
 import           Juvix.Backends.Michelson.Lift

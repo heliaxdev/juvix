@@ -3,7 +3,7 @@ module Juvix.Backends.Michelson.Transpilation.Expr where
 import           Control.Monad.State
 import           Control.Monad.Writer
 import qualified Data.Text                                    as T
-import           Protolude
+import           Protolude                                    hiding (Const)
 
 import           Juvix.Backends.Michelson.Transpilation.Types
 import           Juvix.Backends.Michelson.Transpilation.Util
@@ -31,7 +31,7 @@ exprToExpr expr = do
       tellReturn ret = tell [ExprToExpr expr ret] >> return ret
 
       notYetImplemented ∷ m M.Expr
-      notYetImplemented = throw (NotYetImplemented $ prettyPrintValue expr)
+      notYetImplemented = throw (NotYetImplemented (prettyPrintValue expr))
 
       failWith ∷ Text → m M.Expr
       failWith = throw . NotYetImplemented
@@ -55,7 +55,7 @@ exprToExpr expr = do
       return (M.Seq (foldl M.Seq M.Nop args) func)
 
     -- ∷ (\a → b) a ~ s ⇒ (b, s)
-    I.LLazyApp func args -> notYetImplemented
+    I.LLazyApp func args -> exprToExpr (I.LApp undefined (I.LV func) args)
 
     -- :: a ~ s => (a, s)
     I.LLazyExp expr      -> exprToExpr expr
@@ -69,7 +69,7 @@ exprToExpr expr = do
     -- ∷ \a... → b ~ (a..., s) ⇒ (b, s)
     I.LLam args body     -> do
       -- Ordering: Treat as \a b -> c ~= \a -> \b -> c, e.g. reverse stack order.
-      forM_ args (\a -> modify ((:) (M.VarE $ prettyPrintValue a)))
+      forM_ args (\a -> modify ((:) (M.VarE (prettyPrintValue a))))
       inner <- exprToExpr body
       after ← genReturn (foldDrop (length args))
       tellReturn (M.Seq inner after)
@@ -78,8 +78,11 @@ exprToExpr expr = do
     I.LProj expr num     -> notYetImplemented
 
     I.LCon _ _ name args -> do
-      -- TODO: Typeconvert into representation type.
-      notYetImplemented
+      args <- mapM exprToExpr args
+      cons <- dataconToExpr name
+      return (M.Seq (foldl M.Seq M.Nop args) cons)
+
+      --throw (NotYetImplemented ("constructor: " <> prettyPrintValue name <> ", args: " <> prettyPrintValue args))
 
     -- ∷ a ~ s ⇒ (a, s)
     I.LCase ct expr alts -> do
@@ -88,18 +91,28 @@ exprToExpr expr = do
 
     -- ∷ a ~ s ⇒ (a, s)
     I.LConst const       -> do
-      -- TODO: Convert.
-      notYetImplemented
+      M.Const |<< constToExpr const
 
     -- (various)
     I.LForeign _ _ _     -> notYetImplemented
 
     -- (various)
-    I.LOp prim exprs     -> notYetImplemented
+    I.LOp prim args      -> do
+      args <- mapM exprToExpr args
+      prim <- primToExpr prim
+      return (M.Seq (foldl M.Seq M.Nop args) prim)
 
     I.LNothing           -> notYetImplemented
 
     I.LError msg         -> failWith (T.pack msg)
+
+dataconToExpr ∷ ∀ m . (MonadWriter [TranspilationLog] m, MonadError TranspilationError m, MonadState M.Stack m) ⇒ Name → m M.Expr
+dataconToExpr name =
+  case prettyPrintValue name of
+    "Builtins.MkPair" -> do
+      modify ((:) M.FuncResult . drop 2)
+      return M.ConsPair
+    _ -> throw (NotYetImplemented ("data con: " <> prettyPrintValue name))
 
 exprToType ∷ ∀ m . (MonadWriter [TranspilationLog] m, MonadError TranspilationError m) ⇒ Expr → m M.Type
 exprToType expr = do
@@ -116,3 +129,14 @@ primToExpr prim = do
     I.LMinus (I.ATInt I.ITBig) -> return M.SubInt
 
     _                          -> notYetImplemented
+
+constToExpr ∷ ∀ m . MonadError TranspilationError m ⇒ Const → m M.Const
+constToExpr const = do
+  let notYetImplemented ∷ m M.Const
+      notYetImplemented = throw (NotYetImplemented (prettyPrintValue const))
+
+  case const of
+    I.I v   -> pure (M.Int (fromIntegral v))
+    I.BI v  -> pure (M.Int v)
+    I.Str s -> pure (M.String (T.pack s))
+    _       -> notYetImplemented

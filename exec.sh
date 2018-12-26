@@ -1,8 +1,11 @@
 #!/bin/sh
 
-set -xe
+set -e
 
 ARGS=$@
 mkdir -p tmp
 rm -f tmp/*.ibc
-stack exec -- idris --ibcsubdir tmp --codegen juvix $ARGS
+
+set -x
+
+stack exec -- idris -p contrib --ibcsubdir tmp --codegen juvix $ARGS
