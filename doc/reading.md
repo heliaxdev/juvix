@@ -14,3 +14,6 @@
 > https://github.com/UlfNorell/insane
 
 > https://www.seas.upenn.edu/~sweirich/papers/congruence-extended.pdf
+
+> http://leodemoura.github.io/files/lean_cade25.pdf
+> https://leanprover.github.io/programming_in_lean/programming_in_lean.pdf

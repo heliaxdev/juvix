@@ -3,6 +3,9 @@
 set -e
 
 files=$(find ./examples -type f -name "*.idr" | sort)
+count=$(echo "$files" | wc -l)
+
+echo "Found $count example contracts"
 
 for file in ${files[@]}; do
   echo "Typechecking $file..."
