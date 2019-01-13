@@ -17,10 +17,9 @@ import           Juvix.Utility
 
 transpileToMichelsonSourceFile ∷ ∀ m . (MonadWriter [TranspilationLog] m, MonadError TranspilationError m) ⇒ Expr → m Text
 transpileToMichelsonSourceFile expr = do
-  (M.SomeExpr code, paramTy, retTy, storageTy) <- transpileToMichelson expr
+  (M.SomeExpr code, paramTy, _, storageTy) <- transpileToMichelson expr
   return $ T.unlines [
     "parameter " <> M.emitType paramTy <> ";",
-    "return " <> M.emitType retTy <> ";",
     "storage " <> M.emitType storageTy <> ";",
     "code " <> M.emitFinal code <> ";"
     ]

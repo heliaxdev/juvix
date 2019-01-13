@@ -55,7 +55,7 @@ data Expr
 
   {- Options -}
 
-    | ConsSome
+  | ConsSome
   | ConsNone
   | IfNone Expr Expr
 

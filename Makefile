@@ -18,6 +18,9 @@ lint:
 test:
 	stack test
 
+test-tezos:
+	./scripts/tezos_test.sh
+
 repl-lib:
 	stack ghci juvix:lib
 
@@ -33,4 +36,4 @@ clean:
 clean-full:
 	stack clean --full
 
-.PHONY: all build build-js build-watch build-opt lint test repl-lib repl-exe repl-codegen clean clean-full
+.PHONY: all build build-js build-watch build-opt lint test test-tezos repl-lib repl-exe repl-codegen clean clean-full

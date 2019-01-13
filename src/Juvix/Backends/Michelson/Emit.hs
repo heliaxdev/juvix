@@ -22,7 +22,11 @@ emit expr =
         _ ->
           case eqT ∷ Maybe (t :~: Integer) of
             Just Refl → T.concat ["PUSH int ", show v]
-            _         → "e"
+            _         →
+              case eqT ∷ Maybe (t :~: T.Text) of
+                Just Refl → T.concat ["PUSH string ", show v]
+                _         → "e"
+
 
     ConsPair → "PAIR"
     Car      → "CAR"
@@ -32,11 +36,10 @@ emit expr =
     Right       → "RIGHT"
     IfLeft a b  → T.concat ["IF_LEFT {", emit a, "} {", emit b, "}"]
 
-
-
     Seq a b  → T.concat ["{", emit a, "; ", emit b, "}"]
     If a b   → T.concat ["IF {", emit a, "} {", emit b, "}"]
     Dip a    → T.concat ["DIP {", emit a, "}"]
+    Exec     → "EXEC"
     Nop      → "NOP"
 
     _        → "e"

@@ -34,11 +34,11 @@ optimize expr = do
 optimize' ∷ (Dynamical a, Dynamical b, MonadWriter [TranspilationLog] m) ⇒ Expr (Stack a) (Stack b) → m (Expr (Stack a) (Stack b))
 optimize' expr =
   case expr of
-#if defined(OPTIMIZE)
     (IfLeft x y)    → optimize' x >>= \x → optimize' y >>= \y → return (IfLeft x y)
 
     (Dip e)         → Dip |<< optimize' e
 
+#if defined(OPTIMIZE)
     (Seq (Seq Dup (Dip e)) Drop) → optimize' e
 
     {- Possibly could move these elsewhere... -}
@@ -56,6 +56,7 @@ optimize' expr =
     (Seq Dup Swap)  → return Dup
     (Seq Dup Drop)  → return Nop
     (Seq Swap Swap) → return Nop
+#endif
 
     (Seq e Nop)     → optimize' e
     (Seq Nop e)     → optimize' e
@@ -65,6 +66,3 @@ optimize' expr =
     (If x y)        → optimize' x >>= \x → optimize' y >>= \y → return (If x y)
 
     expr            → return expr
-#else
-    e -> return e
-#endif

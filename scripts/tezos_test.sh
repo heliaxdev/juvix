@@ -16,7 +16,7 @@ TMP=$(mktemp -d)
 
 for file in ${files[@]}; do
   echo "Compiling $file..."
-  ./exec.sh $file -o $TMP/test.tz
+  ./scripts/tezos_compile.sh $file -o $TMP/test.tz
   test -f $TMP/test.tz
 done
 
