@@ -11,3 +11,6 @@ juvix.yaml
 
 # Misc temporary
 tmp/
+
+# Idris temporary
+*.ibc
