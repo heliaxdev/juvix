@@ -1,31 +1,31 @@
-module Juvix.Backends.Michelson.Transpilation where
+module Juvix.Backends.Michelson.Compilation where
 
 import           Control.Monad.State
 import           Control.Monad.Writer
-import qualified Data.Text                                    as T
-import           Protolude                                    hiding (catch)
+import qualified Data.Text                                  as T
+import           Protolude                                  hiding (catch)
 
-import qualified Juvix.Backends.Michelson.Emit                as M
-import qualified Juvix.Backends.Michelson.Lift                as M
-import qualified Juvix.Backends.Michelson.Optimization        as M
-import           Juvix.Backends.Michelson.Transpilation.Expr
-import           Juvix.Backends.Michelson.Transpilation.Types
-import qualified Juvix.Backends.Michelson.Typed               as M
-import qualified Juvix.Backends.Michelson.Untyped             as MU
+import           Juvix.Backends.Michelson.Compilation.Expr
+import           Juvix.Backends.Michelson.Compilation.Types
+import qualified Juvix.Backends.Michelson.Emit              as M
+import qualified Juvix.Backends.Michelson.Lift              as M
+import qualified Juvix.Backends.Michelson.Optimization      as M
+import qualified Juvix.Backends.Michelson.Typed             as M
+import qualified Juvix.Backends.Michelson.Untyped           as MU
 import           Juvix.Lang
 import           Juvix.Utility
 
-transpileToMichelsonSourceFile ∷ ∀ m . (MonadWriter [TranspilationLog] m, MonadError TranspilationError m) ⇒ Expr → m Text
-transpileToMichelsonSourceFile expr = do
-  (M.SomeExpr code, paramTy, _, storageTy) <- transpileToMichelson expr
+compileToMichelsonSourceFile ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m) ⇒ Expr → m Text
+compileToMichelsonSourceFile expr = do
+  (M.SomeExpr code, paramTy, _, storageTy) <- compileToMichelson expr
   return $ T.unlines [
     "parameter " <> M.emitType paramTy <> ";",
     "storage " <> M.emitType storageTy <> ";",
     "code " <> M.emitFinal code <> ";"
     ]
 
-transpileToMichelson ∷ ∀ m . (MonadWriter [TranspilationLog] m, MonadError TranspilationError m) ⇒ Expr → m (M.SomeExpr, MU.Type, MU.Type, MU.Type)
-transpileToMichelson expr = do
+compileToMichelson ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m) ⇒ Expr → m (M.SomeExpr, MU.Type, MU.Type, MU.Type)
+compileToMichelson expr = do
   ((michelsonExpr, michelsonExprType), _) <- runStateT (exprToMichelson expr) []
   case michelsonExprType of
     MU.LamT start@(MU.PairT paramTy startStorageTy) end@(MU.PairT retTy endStorageTy) | startStorageTy == endStorageTy → do

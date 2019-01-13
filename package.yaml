@@ -3,7 +3,7 @@ version:             0.3.0.0
 github:              "cwgoes/juvix"
 license:             GPL-3
 homepage:            https://github.com/cwgoes/juvix#readme
-synopsis:            Juvix smart contract transpiler & toolkit
+synopsis:            Juvix smart contract compiler & toolkit
 category:            Web3
 description:         Please see the README on GitHub at <https://github.com/cwgoes/juvix#readme>
 author:              Christopher Goes

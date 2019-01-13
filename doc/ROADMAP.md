@@ -5,8 +5,8 @@ Roadmap
 
 **General**
 
-* Improved typing (have GHC verify more of the invariants upon which transpiler correctness depends; see source code for some notes on this)
-* Internal architecture changes (related to above; also change transpilation structure for easier optimization / analysis)
+* Improved typing (have GHC verify more of the invariants upon which compiler correctness depends; see source code for some notes on this)
+* Internal architecture changes (related to above; also change compilation structure for easier optimization / analysis)
 * Improved output Michelson code - annotate with function call stack, case statement position, etc.
 * Test coverage (currently quite lacking) 
 * Better optimization (see source code for ideas)

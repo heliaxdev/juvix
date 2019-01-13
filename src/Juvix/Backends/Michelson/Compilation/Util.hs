@@ -1,22 +1,22 @@
-module Juvix.Backends.Michelson.Transpilation.Util where
+module Juvix.Backends.Michelson.Compilation.Util where
 
 import           Control.Monad.State
 import           Control.Monad.Writer
-import           Data.List                                    (elemIndex)
-import qualified Data.Text                                    as T
+import           Data.List                                  (elemIndex)
+import qualified Data.Text                                  as T
 import           Protolude
 
-import           Juvix.Backends.Michelson.Transpilation.Types
-import qualified Juvix.Backends.Michelson.Untyped             as M
+import           Juvix.Backends.Michelson.Compilation.Types
+import qualified Juvix.Backends.Michelson.Untyped           as M
 import           Juvix.Lang
 import           Juvix.Utility
 
-pack ∷ forall m . MonadError TranspilationError m ⇒ M.Type → m M.Expr
+pack ∷ forall m . MonadError CompilationError m ⇒ M.Type → m M.Expr
 pack M.UnitT = return (M.Const M.Unit)
 pack ty      = throw (NotYetImplemented ("pack: " `T.append` prettyPrintValue ty))
 
 -- Start with value to unpack at top of stack. len (filter Just binds) will be dropped at the end.
-unpack ∷ forall m . (MonadError TranspilationError m, MonadState M.Stack m) ⇒ M.Type → [Maybe T.Text] → m M.Expr
+unpack ∷ forall m . (MonadError CompilationError m, MonadState M.Stack m) ⇒ M.Type → [Maybe T.Text] → m M.Expr
 unpack ty []          | ty `elem` unitaryTypes = do
   genReturn M.Drop
 unpack ty [Nothing]   | ty `elem` unitaryTypes = do
@@ -40,7 +40,7 @@ unpack ty@(M.PairT _ _) binds =
     _ → throw (NotYetImplemented (T.concat ["unpack: ", prettyPrintValue ty, " ~ ", T.intercalate ", " (fmap prettyPrintValue binds)]))
 unpack ty binds = throw (NotYetImplemented (T.concat ["unpack: ", prettyPrintValue ty, " ~ ", T.intercalate ", " (fmap prettyPrintValue binds)]))
 
-unpackDrop ∷ forall m . (MonadError TranspilationError m, MonadState M.Stack m) ⇒ [Maybe T.Text] → m M.Expr
+unpackDrop ∷ forall m . (MonadError CompilationError m, MonadState M.Stack m) ⇒ [Maybe T.Text] → m M.Expr
 unpackDrop binds = genReturn (foldDrop (length (filter isJust binds)))
 
 rearrange ∷ Int → M.Expr
@@ -67,12 +67,12 @@ foldDrop n = M.Dip (foldl M.Seq M.Nop (replicate n M.Drop))
 unitaryTypes ∷ [M.Type]
 unitaryTypes = [M.UnitT, M.IntT, M.TezT, M.KeyT]
 
-genReturn ∷ forall m . (MonadError TranspilationError m, MonadState M.Stack m) ⇒ M.Expr → m M.Expr
+genReturn ∷ forall m . (MonadError CompilationError m, MonadState M.Stack m) ⇒ M.Expr → m M.Expr
 genReturn expr = do
   modify =<< genFunc expr
   return expr
 
-genFunc ∷ forall m . MonadError TranspilationError m ⇒ M.Expr → m (M.Stack → M.Stack)
+genFunc ∷ forall m . MonadError CompilationError m ⇒ M.Expr → m (M.Stack → M.Stack)
 genFunc expr = if
 
   | expr `elem` [M.Nop] → return (\x -> x)

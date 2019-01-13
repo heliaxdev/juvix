@@ -34,7 +34,7 @@ disclaimerDoc = mconcat [
 
 aboutDoc ∷ Doc
 aboutDoc = mconcat [
-  text "Juvix smart contract transpiler & toolkit",
+  text "Juvix smart contract compiler & toolkit",
   line,
   text "(c) Christopher Goes 2018-2019 • https://juvix.org",
   line,

@@ -3,10 +3,9 @@
 module Juvix.Backends.Michelson.Optimization where
 
 import           Control.Monad.Writer
-import           Protolude                                    hiding
-                                                               (Const (..))
+import           Protolude                                  hiding (Const (..))
 
-import           Juvix.Backends.Michelson.Transpilation.Types
+import           Juvix.Backends.Michelson.Compilation.Types
 import           Juvix.Backends.Michelson.Typed
 import           Juvix.Utility
 
@@ -22,7 +21,7 @@ optimizeNoLogs = fst . runWriter . optimize
       - then choose the one with the fewest instructions (or based on some other preference function, depending on how Tezos ends up pricing contract execution).
     This optimization function is typed in the Expr GADT, so it cannot produce invalid output Michelson. However, the typesystem does not enforce computation correctness; that would require dependent types. -}
 
-optimize ∷ (Dynamical a, Dynamical b, MonadWriter [TranspilationLog] m) ⇒ Expr (Stack a) (Stack b) → m (Expr (Stack a) (Stack b))
+optimize ∷ (Dynamical a, Dynamical b, MonadWriter [CompilationLog] m) ⇒ Expr (Stack a) (Stack b) → m (Expr (Stack a) (Stack b))
 optimize expr = do
   let tellReturn ret = tell [Optimized (SomeExpr expr) (SomeExpr ret)] >> return ret
       inner e = do
@@ -31,7 +30,7 @@ optimize expr = do
         if one == two then tellReturn two else inner two
   inner expr
 
-optimize' ∷ (Dynamical a, Dynamical b, MonadWriter [TranspilationLog] m) ⇒ Expr (Stack a) (Stack b) → m (Expr (Stack a) (Stack b))
+optimize' ∷ (Dynamical a, Dynamical b, MonadWriter [CompilationLog] m) ⇒ Expr (Stack a) (Stack b) → m (Expr (Stack a) (Stack b))
 optimize' expr =
   case expr of
     (IfLeft x y)    → optimize' x >>= \x → optimize' y >>= \y → return (IfLeft x y)
