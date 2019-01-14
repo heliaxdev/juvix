@@ -17,8 +17,9 @@ import qualified Juvix.Backends.Michelson as M
 import           Juvix.Lang
 import           Juvix.Utility
 
-data Opts = Opts {inputs :: [FilePath],
-                  output :: FilePath }
+data Opts = Opts {inputs    :: [FilePath],
+                  interface :: Bool,
+                  output    :: FilePath }
 
 showUsage ∷ IO ()
 showUsage = do putText "A code generator which is intended to be called by the compiler, not by a user."
@@ -27,11 +28,12 @@ showUsage = do putText "A code generator which is intended to be called by the c
 
 getOpts ∷ IO Opts
 getOpts = do xs <- getArgs
-             return $ process (Opts [] "main.jvx") xs
+             return $ process (Opts [] False "main.jvx") xs
   where
-    process opts ("-o":o:xs) = process (opts { output = o }) xs
-    process opts (x:xs)      = process (opts { inputs = x:inputs opts }) xs
-    process opts []          = opts
+    process opts ("-o":o:xs)        = process (opts { output = o }) xs
+    process opts ("--interface":xs) = process (opts { interface = True }) xs
+    process opts (x:xs)             = process (opts { inputs = x:inputs opts }) xs
+    process opts []                 = opts
 
 codeGenSdecls ∷ CodeGenerator
 codeGenSdecls ci = do
@@ -62,8 +64,8 @@ findMain decls = let Just f = head $ filter (\(name, _) -> name == NS (UN "main"
 sdeclMain ∷ Opts → Idris ()
 sdeclMain opts = do elabPrims
                     _ <- loadInputs (inputs opts) Nothing
-                    mainProg <- elabMain
-                    ir <- compile (Via IBCFormat "juvix") (output opts) (Just mainProg)
+                    mainProg <- if interface opts then liftM Just elabMain else return Nothing
+                    ir <- compile (Via IBCFormat "juvix") (output opts) mainProg
                     runIO $ codeGenSdecls ir
 
 main ∷ IO ()

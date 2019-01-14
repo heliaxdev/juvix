@@ -3,6 +3,7 @@ package tezos
 brief       = "Tezos built-ins for Juvix"
 license     = GPL3
 
-modules     = Tezos
+modules     = Tezos,
+              Tezos.Prim
 sourcedir   = src
 opts        = "--interface"
