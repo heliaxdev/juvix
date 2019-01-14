@@ -6,4 +6,4 @@ license     = GPL3
 modules     = Tezos,
               Tezos.Prim
 sourcedir   = src
-opts        = "--interface"
+opts        = "--noprelude"

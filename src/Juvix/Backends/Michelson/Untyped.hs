@@ -21,6 +21,7 @@ data Type
   | TezT
   | BoolT
   | StringT
+  | OperationT
   | EitherT Type Type
   | OptionT Type
   | ListT Type
@@ -68,7 +69,7 @@ data Expr
   {- Lists -}
 
   | ConsList
-  | Nil
+  | Nil Type
   | IfCons Expr Expr
   | ListMap
   | ListReduce

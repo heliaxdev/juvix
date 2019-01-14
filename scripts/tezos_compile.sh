@@ -10,4 +10,4 @@ cd ..
 
 set -x
 
-stack exec -- idris --interface --nobuiltins --noprelude -p tezos --ibcsubdir tmp --codegen juvix $ARGS
+stack exec -- idris --interface --noprelude -p tezos --ibcsubdir tmp --codegen juvix $ARGS

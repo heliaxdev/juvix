@@ -9,7 +9,7 @@ echo "Found $count example contracts"
 
 for file in ${files[@]}; do
   echo "Typechecking $file..."
-  stack exec -- idris --nobuiltins --noprelude -p tezos --check $file
+  stack exec -- idris --noprelude -p tezos --check $file
 done
 
 TMP=$(mktemp -d)

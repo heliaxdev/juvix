@@ -123,7 +123,7 @@ liftUntyped expr stk@(DynamicType (prx@(Proxy ∷ Proxy stkTy))) str@(DynamicTyp
       return (SomeExpr (Cdr ∷ Expr (Stack (Pair a b, c)) (Stack (b, c))), DynamicType (Proxy ∷ Proxy (b, c)))
 
     U.IfLeft xUT yUT → do
-      -- x ty is wrong
+      -- x ty is wrong?
       ((DynamicType (Proxy ∷ Proxy xT), DynamicType (Proxy ∷ Proxy yT)), DynamicType (_ ∷ Proxy z)) ← take1Union
       (SomeExpr (x ∷ Expr (Stack xS) (Stack xF)), xEnd) ← liftUntyped xUT (DynamicType (Proxy ∷ Proxy (xT, z))) str
       (SomeExpr (y ∷ Expr (Stack yS) (Stack yF)), _)    ← liftUntyped yUT (DynamicType (Proxy ∷ Proxy (yT, z))) str
@@ -186,6 +186,10 @@ liftUntyped expr stk@(DynamicType (prx@(Proxy ∷ Proxy stkTy))) str@(DynamicTyp
 
     U.Nop   → return (SomeExpr (Nop ∷ Expr (Stack stkTy) (Stack stkTy)), stk)
 
+    U.Nil ty  → do
+      (DynamicType (_ ∷ Proxy tyL)) <- return (liftType ty)
+      return (SomeExpr (Nil ∷ Expr (Stack stkTy) (Stack (List tyL, stkTy))), DynamicType (Proxy ∷ Proxy (List tyL, stkTy)))
+
     U.Now       → return (SomeExpr (Now ∷ Expr (Stack stkTy) (Stack (Timestamp, stkTy))), DynamicType (Proxy ∷ Proxy (Timestamp, stkTy)))
     U.Balance   → return (SomeExpr (Balance ∷ Expr (Stack stkTy) (Stack (Tez, stkTy))), DynamicType (Proxy ∷ Proxy (Tez, stkTy)))
     U.Amount    → return (SomeExpr (Amount ∷ Expr (Stack stkTy) (Stack (Tez, stkTy))), DynamicType (Proxy ∷ Proxy (Tez, stkTy)))
@@ -208,6 +212,7 @@ liftType U.IntT           = toDynamicType (Proxy ∷ Proxy Integer)
 liftType U.TezT           = toDynamicType (Proxy ∷ Proxy Tez)
 liftType U.BoolT          = toDynamicType (Proxy ∷ Proxy Bool)
 liftType U.StringT        = toDynamicType (Proxy ∷ Proxy Text)
+liftType U.OperationT     = toDynamicType (Proxy ∷ Proxy Operation)
 liftType (U.EitherT a b)  =
   case (liftType a, liftType b) of
     (DynamicType (Proxy ∷ Proxy a), DynamicType (Proxy ∷ Proxy b)) → toDynamicType (Proxy ∷ Proxy (Union a b))

@@ -36,6 +36,9 @@ emit expr =
     Right       → "RIGHT"
     IfLeft a b  → T.concat ["IF_LEFT {", emit a, "} {", emit b, "}"]
 
+    -- TODO
+    Nil      → "NIL operation"
+
     Seq a b  → T.concat ["{", emit a, "; ", emit b, "}"]
     If a b   → T.concat ["IF {", emit a, "} {", emit b, "}"]
     Dip a    → T.concat ["DIP {", emit a, "}"]
@@ -70,7 +73,7 @@ emitUntyped expr =
     U.IfLeft a b → T.concat ["IF_LEFT {", emitUntyped a, "} {", emitUntyped b, "}"]
 
     U.ConsList   → "CONS"
-    U.Nil        → "NIL"
+    U.Nil ty     → "NIL " <> emitType ty
     U.IfCons a b → T.concat ["IF_CONS {", emitUntyped a, "} {", emitUntyped b, "}"]
     U.ListMap    → "MAP"
     U.ListReduce → "REDUCE"
@@ -123,6 +126,7 @@ emitType U.IntT          = "int"
 emitType U.TezT          = "tez"
 emitType U.BoolT         = "bool"
 emitType U.StringT       = "string"
+emitType U.OperationT    = "operation"
 emitType (U.EitherT a b) = T.concat ["(or ", emitType a, " ", emitType b, ")"]
 emitType (U.PairT a b)   = T.concat ["(pair ", emitType a, " ", emitType b, ")"]
 emitType (U.OptionT a)   = T.concat ["(option ", emitType a, ")"]

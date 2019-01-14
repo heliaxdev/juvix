@@ -97,6 +97,10 @@ exprToExpr expr = do
     I.LForeign _ _ _     -> notYetImplemented
 
     -- (various)
+    I.LOp (I.LExternal (I.NS (I.UN "prim__tezosNil") ["Prim", "Tezos"])) [_] -> do
+      modify ((:) M.FuncResult)
+      return $ M.Nil M.OperationT
+
     I.LOp prim args      -> do
       args <- mapM exprToExpr args
       prim <- primToExpr prim
@@ -108,16 +112,18 @@ exprToExpr expr = do
 
 dataconToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Name → m M.Expr
 dataconToExpr name =
-  case prettyPrintValue name of
-    "Builtins.MkPair" -> do
+  case name of
+    I.NS (I.UN "Operation") ["Tezos"] -> do
+      throw (NotYetImplemented "tezos.operation")
+    I.NS (I.UN "MkPair") ["Builtins"] -> do
       modify ((:) M.FuncResult . drop 2)
-      return M.ConsPair
+      return (M.Seq M.Swap M.ConsPair)
     _ -> throw (NotYetImplemented ("data con: " <> prettyPrintValue name))
 
 exprToType ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m) ⇒ Expr → m M.Type
 exprToType expr = do
   -- TODO: Lookup type from Idris. May need to inject before type erasure.
-  return (M.LamT (M.PairT M.StringT M.StringT) (M.PairT M.StringT M.StringT))
+  return (M.LamT (M.PairT M.StringT M.StringT) (M.PairT (M.ListT M.OperationT) M.StringT))
 
 primToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Prim → m M.Expr
 primToExpr prim = do

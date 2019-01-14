@@ -116,6 +116,8 @@ data Contract a b where
 
   deriving (R.Typeable)
 
+newtype Operation = Operation { unOperation ∷ () }                    deriving Eq deriving anyclass Dynamical deriving newtype PrettyPrint
+
 data Expr a b where
 
   {- Stack Operations -}

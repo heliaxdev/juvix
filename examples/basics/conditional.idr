@@ -1,18 +1,22 @@
 module Main
 
+import Tezos
+
+%default total
+
 -- A tiny hack for now.
 run__IO : a -> a
 run__IO f = f
 
 -- The main function.
-main : (Bool, Bool) -> (Bool, Bool)
+main : (Bool, Bool) -> (List Operation, Bool)
 main (storage, param) =
-  case (storage, param) of
-    (True, False) => (True, True)
-    (False, True) => (True, True)
-    _ => (False, False)
+  case storage of
+    True  => (nil, True)
+    False => (nil, False)
 
--- Some very trivial proofs.
+{-
+
 proofOne : main (True, False) = (True, True)
 proofOne = Refl
 
@@ -24,3 +28,5 @@ proofThree = Refl
 
 proofFour : main (True, True) = (False, False)
 proofFour = Refl
+
+-}

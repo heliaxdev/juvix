@@ -1,7 +1,6 @@
 module Main
 
-import Prelude
-import Data.SortedMap
+import Tezos
 
 %default total
 
@@ -11,37 +10,36 @@ run__IO f = f
 
 record Token where
   constructor MkToken
-  minter : String
-  tokens : SortedMap Nat String
+  tokens : Map Integer String
 
-newToken : (s : String) -> Token
-newToken s = MkToken s empty
+newToken : Token
+newToken = MkToken Map.empty
 
-totalSupply : Token -> Nat
-totalSupply = Prelude.List.length . toList . tokens
+totalSupply : Token -> Integer
+totalSupply t = Map.size (tokens t)
 
-exists : Token -> Nat -> Bool
-exists t n = isJust $ Data.SortedMap.lookup n (tokens t)
+exists : Token -> Integer -> Bool
+exists t n = Map.member n (tokens t)
 
-ownerOf : Token -> Nat -> Maybe String
-ownerOf t n = Data.SortedMap.lookup n (tokens t)
+ownerOf : Token -> Integer -> Maybe String
+ownerOf t n = Map.get n (tokens t)
 
-mint : Token -> String -> Nat -> (Token, Bool)
+mint : Token -> String -> Integer -> (Token, Bool)
 mint token to which =
   if exists token which then
     (token, False)
   else
-    (record { tokens $= (insert which to) } token, True)
+    (record { tokens $= (Map.update which (Just to)) } token, True)
 
-transfer : Token -> String -> String -> Nat -> (Token, Bool)
+transfer : Token -> String -> String -> Integer -> (Token, Bool)
 transfer token from to which =
   if ownerOf token which == Just from then
-    (record { tokens $= (insert which to) } token, True)
+    (record { tokens $= (Map.update which (Just to)) } token, True)
   else (token, False)
 
 data Action
-  = Mint String Nat
-  | Transfer String String Nat
+  = Mint String Integer
+  | Transfer String String Integer
 
 -- Main contract function.
 main : (Token, Action) -> (Token, Bool)

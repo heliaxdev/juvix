@@ -1,27 +1,28 @@
 module Token
 
-import Prelude
-import Data.SortedMap
+import Tezos
 
 %default total
 
 {- Definitions -}
 
-lookupWithDefault : (SortedMap k v) -> k -> v -> v
+lookupWithDefault : (Map k v) -> k -> v -> v
 lookupWithDefault map key default =
-  case lookup key map of
+  case Map.get key map of
     Just val  => val
     Nothing   => default
 
 record Token where
   constructor MkToken
-  balances: SortedMap String Nat
+  balances: Map String Nat
 
 newToken : (s : String, a : Nat) -> Token
-newToken s a = MkToken (insert s a empty)
+newToken s a = MkToken (Map.update s (Just a) Map.empty)
 
-totalSupply : Token -> Nat
-totalSupply = foldl (+) 0 . map snd . toList . balances
+-- totalSupply : Token -> Nat
+-- totalSupply = foldl (+) 0 . map snd . toList . balances
+
+{-
 
 balanceOf : Token -> String -> Nat
 balanceOf token key = lookupWithDefault (balances token) key 0
@@ -35,13 +36,15 @@ transfer token key dest amount =
       in (record { balances $= (insert dest (destBalance + amount) . insert key ((-) sourceBalance amount {smaller = prf})) } token, True)
     No _ => (token, False)
 
+-}
+
 data Action =
   Transfer String String Nat
 
-main : (Token, Action) -> (Token, Bool)
-main (token, Transfer from to amount) = transfer token from to amount
+main : (Token, Action) -> (List Operation, Token)
+main (token, Transfer from to amount) = (nil, token)
 
-{- Aux -}
+{-
 
 lookupInsert : (map : SortedMap k v, key : k, def : v, val : v) -> lookupWithDefault (insert key val map) key def = val
 lookupInsert = ?lookupInsert
@@ -57,11 +60,6 @@ lookupDefaultEmpty k d = ?lookupDefaultEmpty
 
 lookupEmptyUnaffected : (map : SortedMap k v, key : k, otherKey: k, def: v, val: v) -> Not (key = otherKey) -> lookupWithDefault map key def = def -> lookupWithDefault (insert otherKey val map) key def = def
 lookupEmptyUnaffected map key otherKey def val ne eq = rewrite lookupUnaffected map key otherKey val def ne in rewrite eq in Refl
-
-{- Proofs -}
-
-{- In principle, the user need not care about the implementation.
-   A "token" is defined as any implementation which satisfies these proofs. -}
 
 -- Prove: new token has correct total supply
 newTotalSupply : (s : String, a : Nat) -> totalSupply (newToken s a) = a
@@ -88,6 +86,8 @@ transferBalanceAddsDest prf = ?transferBalanceAddsDest
 -- Prove: transfer preserves total supply
 transferTotalSupplyPreserved : (t : Token, s : String, d : String, a : Nat) => totalSupply t = totalSupply (fst (transfer t s d a))
 transferTotalSupplyPreserved = ?transferTotalSupplyPreserved
+
+-}
 
 -- A tiny hack for now.
 run__IO : a -> a

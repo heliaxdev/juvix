@@ -1,20 +1,22 @@
 module Main
 
+import Tezos
+
+%default total
+
 -- A tiny hack for now.
 run__IO : a -> a
 run__IO f = f
 
 -- The main function.
-main : (Nat, Nat) -> (Nat, Nat)
-main (storage, param) = (storage, param * storage)
+main : (Integer, Integer) -> (List Operation, Integer)
+main (storage, param) = (nil, param * storage)
 
-{- Proof helpers. -}
+{-
 
 mulByZero : (n : Nat) -> n * 0 = 0
 mulByZero Z     = Refl
 mulByZero (S m) = rewrite mulByZero m in Refl
-
-{- Some very trivial proofs. -}
 
 proofThreeTimesFive : main (3, 5) = (3, 15)
 proofThreeTimesFive = Refl
@@ -24,3 +26,5 @@ proofMulZero n = rewrite mulByZero n in Refl
 
 proofConstantStorage : (s : Nat, p : Nat) -> fst (main (s, p)) = s
 proofConstantStorage s p = Refl
+
+-}
