@@ -1,6 +1,8 @@
 # Juvix
 
-Work in progress.
+[Idris](https://idris-lang.org) to [Michelson](https://tezos.gitlab.io/mainnet/whitedoc/michelson.html) compiler.
+
+Work in progress. Do not expect API stability. This is experimental software and no warranty is provided or implied.
 
 Install with ([Stack](https://haskellstack.org) required):
 

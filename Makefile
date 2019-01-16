@@ -1,4 +1,7 @@
-all: lib-tezos build
+all: setup lib-tezos build
+
+setup:
+	stack build --only-dependencies
 
 build:
 	stack build --copy-bins --fast
@@ -39,4 +42,4 @@ clean-full:
 lib-tezos:
 	$(MAKE) -C ./lib/tezos
 
-.PHONY: all build build-js build-watch build-opt lint test test-tezos repl-lib repl-exe repl-codegen clean clean-full lib-tezos
+.PHONY: all setup build build-js build-watch build-opt lint test test-tezos repl-lib repl-exe repl-codegen clean clean-full lib-tezos
