@@ -5,6 +5,7 @@ import           Control.Monad.Writer
 import           Protolude
 
 import           Idris.AbsSyntax
+import           Idris.Core.Evaluate
 import           Idris.Core.TT            hiding (Name)
 import           Idris.ElabDecls
 import           Idris.Main
@@ -12,6 +13,7 @@ import           Idris.Options
 import           IRTS.CodegenCommon
 import           IRTS.Compiler
 import           IRTS.Lang
+import           IRTS.Simplified
 
 import qualified Juvix.Backends.Michelson as M
 import           Juvix.Lang
@@ -60,6 +62,9 @@ codeGenSdecls ci = do
 
 findMain ∷ [(Name, LDecl)] → (Name, LDecl)
 findMain decls = let Just f = head $ filter (\(name, _) -> name == NS (UN "main") ["Main"]) decls in f
+
+findMain2 ∷ [(Name, TTDecl)] → (Name, TTDecl)
+findMain2 decls = let Just f = head $ filter (\(name, _) -> name == NS (UN "main") ["Main"]) decls in f
 
 sdeclMain ∷ Opts → Idris ()
 sdeclMain opts = do elabPrims

@@ -86,8 +86,35 @@ exprToExpr expr = do
 
     -- ∷ a ~ s ⇒ (a, s)
     I.LCase ct expr alts -> do
-      -- TODO: Case switch.
-      notYetImplemented
+      -- Do we care about the case type?
+      -- Generate switch on native repr (never constructor tag except for e.g. data Ord = A | B | C)
+      -- Unpack necessary variables in fixed pattern according to desired bindings
+      -- Rewrite case with more than two alternatives to nested version.
+
+      start <- get
+
+      let invariant = do
+            end <- get
+            unless (drop 1 end == start) (throw (NotYetImplemented $ "Case compilation violated stack invariant: start " <> prettyPrintValue start <> ", end " <> prettyPrintValue end))
+
+      -- Evaluate the scrutinee.
+      scrutinee <- exprToExpr expr
+
+      evaluand <-
+        case alts of
+          [I.LConCase _ con@(I.NS (I.UN "MkPair") ["Builtins"]) binds@[a, b] expr] -> do
+            let unpackA = M.Seq M.Dup M.Car
+            let unpackB = M.Dip M.Cdr
+            modify ((:) (M.VarE (prettyPrintValue b)) . (:) (M.VarE (prettyPrintValue a)) . drop 1)
+            expr <- exprToExpr expr
+            let unpackDrop = M.Seq M.Drop M.Drop
+            modify (drop 2)
+            return $ M.Seq (M.Seq unpackA unpackB) (M.Seq expr unpackDrop)
+          _ -> throw (NotYetImplemented ("case switch: expr " <> prettyPrintValue expr <> " alts " <> T.intercalate ", " (fmap prettyPrintValue alts)))
+
+      invariant
+
+      return evaluand
 
     -- ∷ a ~ s ⇒ (a, s)
     I.LConst const       -> do
@@ -97,9 +124,10 @@ exprToExpr expr = do
     I.LForeign _ _ _     -> notYetImplemented
 
     -- (various)
-    I.LOp (I.LExternal (I.NS (I.UN "prim__tezosNil") ["Prim", "Tezos"])) [_] -> do
+    I.LOp (I.LExternal (I.NS (I.UN "prim__tezosNil") ["Prim", "Tezos"])) [expr] -> do
       modify ((:) M.FuncResult)
-      return $ M.Nil M.OperationT
+      ty <- exprToType expr
+      return $ M.Nil M.OperationT -- TODOM.VarE (prettyPrintValue a))
 
     I.LOp prim args      -> do
       args <- mapM exprToExpr args
@@ -121,9 +149,10 @@ dataconToExpr name =
     _ -> throw (NotYetImplemented ("data con: " <> prettyPrintValue name))
 
 exprToType ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m) ⇒ Expr → m M.Type
-exprToType expr = do
-  -- TODO: Lookup type from Idris. May need to inject before type erasure.
-  return (M.LamT (M.PairT M.StringT M.StringT) (M.PairT (M.ListT M.OperationT) M.StringT))
+exprToType expr =
+  case expr of
+    I.LV (I.NS (I.UN "Operation") ["Prim", "Tezos"]) -> return M.OperationT
+    _ -> return (M.LamT (M.PairT M.StringT M.StringT) (M.PairT (M.ListT M.OperationT) M.StringT))
 
 primToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Prim → m M.Expr
 primToExpr prim = do

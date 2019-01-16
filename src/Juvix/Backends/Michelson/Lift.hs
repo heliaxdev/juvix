@@ -236,7 +236,11 @@ typeToStack ty =
   case liftType ty of
     DynamicType (Proxy ∷ Proxy t) → DynamicType (Proxy ∷ Proxy (t, ()))
 
+instance PrettyPrint DynamicError where
+  prettyPrintValue (CannotCast (DynamicValue v) t) = prettyPrintValue v <> " to "
+  prettyPrintValue (CannotUnify (Proxy :: Proxy a) (Proxy :: Proxy b)) = "cannot unify " <> prettyPrintType (undefined :: a) <> " with " <> prettyPrintType (undefined :: b)
+
 instance PrettyPrint TypecheckError where
   prettyPrintValue = \case
-    CannotCastAs _   -> "cannot cast"
+    CannotCastAs e   -> "cannot cast: " <> prettyPrintValue e
     NotImplemented   -> "not yet implemented"

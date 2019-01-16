@@ -22,6 +22,8 @@ data InterpretError =
 
   deriving (Show, Eq)
 
+instance PrettyPrint InterpretError
+
 data OriginationNonce = OriginationNonce {
   hash  ∷ (),
   index ∷ Int32
