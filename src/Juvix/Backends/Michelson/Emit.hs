@@ -39,6 +39,8 @@ emit expr =
     -- TODO
     Nil      → "NIL operation"
 
+    AddIntInt -> "ADD"
+
     Amount   → "AMOUNT"
 
     Seq a b  → T.concat ["{", emit a, "; ", emit b, "}"]

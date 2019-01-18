@@ -1,0 +1,52 @@
+version: 2.1
+
+jobs:
+  setup-dependencies:
+    docker:
+      - image: fpco/stack-build:lts
+    steps:
+      - checkout
+      - restore_cache:
+          name: Restore cached dependencies
+          keys:
+            - juvix-cache-{{ checksum "package.yaml" }}
+      - run:
+          name: Build software
+          command: make
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - .stack-work
+      - save_cache:
+          name: Cache dependencies
+          key: juvix-cache-{{ checksum "package.yaml" }}
+          paths:
+            - ".stack-work"
+ 
+  test-suite:
+     steps:
+        - attach_workspace:
+            - at: /tmp/workspace
+        - run:
+            name: Run tests
+            command: make test
+
+  test-tezos:
+    steps:
+      - attach_workspace:
+          - at: /tmp/workspace
+      - run:
+          name: Run Tezos tests
+          command: make test-tezos
+
+workflows:
+  version: 2.1
+  test-suite:
+    jobs:
+      - setup_dependencies
+      - test-suite:
+          requires:
+            - setup_dependencies
+      - test-tezos:
+          requires:
+            - setup_dependencies

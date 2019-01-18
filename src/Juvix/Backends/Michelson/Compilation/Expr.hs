@@ -178,4 +178,9 @@ primToExpr prim args =
       modify ((:) M.FuncResult)
       ty <- exprToType expr
       return $ M.Nil M.OperationT -- TODOM.VarE (prettyPrintValue a))
+    ("prim__tezosAddIntInt", [a, b]) -> do
+      a <- exprToExpr a
+      b <- exprToExpr b
+      modify ((:) M.FuncResult . drop 2)
+      return (foldSeq [a, b, M.AddIntInt])
     _ -> throw (NotYetImplemented ("primitive: " <> prim))
