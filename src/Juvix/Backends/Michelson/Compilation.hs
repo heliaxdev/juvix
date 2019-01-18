@@ -28,14 +28,14 @@ compileToMichelson ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError Compi
 compileToMichelson expr ty = do
   ((michelsonExpr, michelsonExprType), _) <- runStateT (exprToMichelson expr ty) []
   case michelsonExprType of
-    MU.LamT start@(MU.PairT startStorageTy paramTy) end@(MU.PairT retTy endStorageTy) | startStorageTy == endStorageTy → do
+    MU.LamT start@(MU.PairT paramTy startStorageTy) end@(MU.PairT retTy endStorageTy) | startStorageTy == endStorageTy → do
       case (M.liftType paramTy, M.liftType startStorageTy, M.liftType retTy, M.liftType endStorageTy) of
         (DynamicType (Proxy ∷ Proxy paramTyLifted), DynamicType (Proxy ∷ Proxy startStorageTyLifted), DynamicType (Proxy ∷ Proxy retTyLifted), DynamicType (Proxy ∷ Proxy endStorageTyLifted)) → do
           (M.SomeExpr (expr ∷ M.Expr (M.Stack a) (M.Stack b)), _) ← do
             case M.liftUntyped michelsonExpr (M.typeToStack start) (DynamicType (Proxy :: Proxy startStorageTyLifted)) of
               Right r -> return r
               Left e  -> throw (DidNotTypecheck e)
-          case (eqT ∷ Maybe (a :~: (M.Pair startStorageTyLifted paramTyLifted, ())), eqT ∷ Maybe (b :~: (M.Pair retTyLifted endStorageTyLifted, ()))) of
+          case (eqT ∷ Maybe (a :~: (M.Pair paramTyLifted startStorageTyLifted, ())), eqT ∷ Maybe (b :~: (M.Pair retTyLifted endStorageTyLifted, ()))) of
             (Just Refl, Just Refl) → do
               optimized <- M.optimize expr
               return (M.SomeExpr optimized, paramTy, retTy, startStorageTy)

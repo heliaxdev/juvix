@@ -62,7 +62,7 @@ dropFirst _ []     = []
 
 foldDrop ∷ Int → M.Expr
 foldDrop 0 = M.Nop
-foldDrop n = M.Dip (foldl M.Seq M.Nop (replicate n M.Drop))
+foldDrop n = M.Dip (foldSeq (replicate n M.Drop))
 
 foldSeq ∷ [M.Expr] → M.Expr
 foldSeq []     = M.Nop
@@ -87,6 +87,8 @@ genFunc expr = if
 
   | expr `elem` [M.Amount] → return ((:) M.FuncResult)
 
+  | isNilList expr -> return ((:) M.FuncResult)
+
   | expr `elem` [M.Fail, M.Left, M.Right, M.DefaultAccount, M.Car, M.Cdr, M.Eq, M.Le, M.Not] → return ((:) M.FuncResult . drop 1)
 
   | expr `elem` [M.MapGet, M.AddIntNat, M.AddNatInt, M.AddNatNat, M.AddIntInt, M.AddTez, M.SubInt, M.SubTez, M.MulIntInt, M.ConsPair] → return ((:) M.FuncResult . drop 2)
@@ -108,3 +110,7 @@ genFunc expr = if
         M.Const _ → return ((:) (M.FuncResult))
 
         _ → throw (NotYetImplemented (T.concat ["genFunc: ", prettyPrintValue expr]))
+
+isNilList ∷ M.Expr → Bool
+isNilList (M.Nil _) = True
+isNilList _         = False

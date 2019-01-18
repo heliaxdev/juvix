@@ -39,6 +39,11 @@ data DynamicValue where
 data DynamicType where
   DynamicType ∷ ∀ a . (Dynamical a) ⇒ Proxy a → DynamicType
 
+instance PrettyPrint DynamicType where
+  prettyPrintValue v = prettyPrintType v
+
+  prettyPrintType (DynamicType (Proxy :: Proxy a)) = prettyPrintType (undefined :: a)
+
 toDynamicType ∷ ∀ a . (Dynamical a) ⇒ Proxy a → DynamicType
 toDynamicType = DynamicType
 

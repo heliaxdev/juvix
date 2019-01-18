@@ -65,6 +65,7 @@ instance Eq (Pair a b) where
   Pair a b == Pair c d = a == c && b == d
 
 instance (Dynamical a, Dynamical b) ⇒ Dynamical (Pair a b) where
+  unProduct (Proxy :: Proxy (Pair a b)) = return (DynamicType (Proxy :: Proxy a), DynamicType (Proxy :: Proxy b))
 
 instance (R.Typeable a, R.Typeable b, PrettyPrint a, PrettyPrint b) ⇒ PrettyPrint (Pair a b) where
   prettyPrintValue (Pair a b) = prettyPrintValue (a, b)

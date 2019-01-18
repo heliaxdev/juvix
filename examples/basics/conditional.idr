@@ -10,7 +10,7 @@ run__IO f = f
 
 -- The main function.
 main : (Bool, Bool) -> (List Operation, Bool)
-main (storage, param) =
+main (param, storage) =
   case storage of
     True  => (nil, False)
     False => (nil, True)
