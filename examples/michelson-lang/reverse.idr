@@ -9,8 +9,8 @@ run__IO : a -> a
 run__IO f = f
 
 -- Main contract function.
-main : (String, String) -> (List Operation, String)
-main (storage, _) = (nil, storage)
+main : (List String, List String) -> (List Operation, List String)
+main (storage, param) = (nil, storage)
 
 -- Reverse a list of strings.
 -- Ref https://www.michelson-lang.com/contract-a-day.html#sec-1-31

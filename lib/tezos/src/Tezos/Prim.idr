@@ -35,7 +35,7 @@ data Maybe : (v : Type) -> Type where
 
 -- Primitives
 
-%extern prim__tezosAmount : Integer
+%extern prim__tezosAmount : Tez
 
 %extern prim__tezosNil : List a
 
@@ -57,6 +57,20 @@ data Maybe : (v : Type) -> Type where
 
 %extern prim__tezosMulIntInt : Integer -> Integer -> Integer
 
+%extern prim__tezosEqInt : Integer -> Integer -> Bool
+
+%extern prim__tezosLessThanInt : Integer -> Integer -> Bool
+
+%extern prim__tezosGreaterThanInt : Integer -> Integer -> Bool
+
+%extern prim__tezosEqTez : Tez -> Tez -> Bool
+
+%extern prim__tezosLessThanTez : Tez -> Tez -> Bool
+
+%extern prim__tezosGreaterThanTez : Tez -> Tez -> Bool
+
 %extern prim__tezosEqString : String -> String -> Bool
+
+%extern prim__tezosFail : a
 
 -- Syntax rules

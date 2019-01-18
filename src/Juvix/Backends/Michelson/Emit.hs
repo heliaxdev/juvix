@@ -39,6 +39,8 @@ emit expr =
     -- TODO
     Nil      → "NIL operation"
 
+    Amount   → "AMOUNT"
+
     Seq a b  → T.concat ["{", emit a, "; ", emit b, "}"]
     If a b   → T.concat ["IF {", emit a, "} {", emit b, "}"]
     Dip a    → T.concat ["DIP {", emit a, "}"]

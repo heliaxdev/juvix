@@ -237,8 +237,12 @@ typeToStack ty =
     DynamicType (Proxy ∷ Proxy t) → DynamicType (Proxy ∷ Proxy (t, ()))
 
 instance PrettyPrint DynamicError where
-  prettyPrintValue (CannotCast (DynamicValue v) t) = prettyPrintValue v <> " to "
+  --prettyPrintValue (CannotCast v (t :: TypeRep)) = "cannot cast " <> prettyPrintValue v <> " to " <> prettyPrintType (undefined :: t)
   prettyPrintValue (CannotUnify (Proxy :: Proxy a) (Proxy :: Proxy b)) = "cannot unify " <> prettyPrintType (undefined :: a) <> " with " <> prettyPrintType (undefined :: b)
+  prettyPrintValue (NotAnOptionType (Proxy :: Proxy a)) = "not an option type: " -- <> prettyPrintType (undefined :: a)
+  prettyPrintValue (NotAProductType (Proxy :: Proxy a)) = "not a product type: " -- <> prettyPrintType (undefined :: a)
+  prettyPrintValue (NotASumType (Proxy :: Proxy a))     = "not a sum type: " -- <> prettyPrintType (undefined :: a)
+  prettyPrintValue (NotAnArrowType (Proxy :: Proxy a))  = "not an arrow type: " -- <> prettyPrintType (undefined :: a)
 
 instance PrettyPrint TypecheckError where
   prettyPrintValue = \case

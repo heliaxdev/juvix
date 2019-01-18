@@ -1,7 +1,7 @@
 module Juvix.Lang.Core where
 
 import qualified Data.Text     as T
-import           Protolude     hiding (Alt (..), Const (..))
+import           Protolude     hiding (Alt (..), Const (..), Type)
 
 import qualified Idris.Core.TT as I
 import qualified IRTS.Lang     as I
@@ -27,9 +27,17 @@ type Prim = I.PrimFn
 
 type Decl = I.LDecl
 
+type Type = I.Type
+
+type Binder a = I.Binder a
+
 {- Instances -}
 
 instance PrettyPrint Name
+
+instance PrettyPrint Type
+
+instance PrettyPrint (Binder (Term Name))
 
 instance PrettyPrint Expr where
   prettyPrintValue = \case

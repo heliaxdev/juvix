@@ -9,8 +9,8 @@ run__IO : a -> a
 run__IO f = f
 
 -- Main contract function.
-main : (String, String) -> (List Operation, String)
-main (storage, _) = (nil, storage)
+main : (Tez, ()) -> (List Operation, Tez)
+main (storage, _) = if amount < storage then fail else (nil, amount)
 
 -- Reject txs below a threshold.
 -- Ref https://www.michelson-lang.com/contract-a-day.html#sec-1-32.

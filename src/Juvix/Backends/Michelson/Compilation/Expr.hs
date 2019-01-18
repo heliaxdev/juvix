@@ -3,9 +3,10 @@ module Juvix.Backends.Michelson.Compilation.Expr where
 import           Control.Monad.State
 import           Control.Monad.Writer
 import qualified Data.Text                                  as T
-import           Protolude                                  hiding (Const)
+import           Protolude                                  hiding (Const, Type)
 
 import           Juvix.Backends.Michelson.Compilation.Types
+import           Juvix.Backends.Michelson.Compilation.Type
 import           Juvix.Backends.Michelson.Compilation.Util
 import qualified Juvix.Backends.Michelson.Untyped           as M
 import           Juvix.Lang
@@ -14,8 +15,8 @@ import           Juvix.Utility
 import qualified Idris.Core.TT                              as I
 import qualified IRTS.Lang                                  as I
 
-exprToMichelson ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Expr → m (M.Expr, M.Type)
-exprToMichelson expr = (,) <$> exprToExpr expr <*> exprToType expr
+exprToMichelson ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Expr → Type → m (M.Expr, M.Type)
+exprToMichelson expr ty = (,) <$> exprToExpr expr <*> typeToType ty
 
 {-
  - Transform core expression to Michelson instruction sequence.
@@ -39,10 +40,13 @@ exprToExpr expr = do
   case expr of
 
     -- :: a ~ s => (a, s)
+    I.LV (I.NS (I.UN prim) ["Prim", "Tezos"]) -> primToExpr prim []
+
+    -- :: a ~ s => (a, s)
     I.LV name            -> do
       stack <- get
       case position (prettyPrintValue name) stack of
-        Nothing → throwError (NotYetImplemented "variable not in scope")
+        Nothing → throwError (NotYetImplemented ("variable not in scope: " <> prettyPrintValue name))
         Just i  → do
           let before  = if i == 0 then M.Nop else rearrange i
               after   = if i == 0 then M.Nop else M.Dip (unrearrange i)
@@ -103,13 +107,10 @@ exprToExpr expr = do
       evaluand <-
         case alts of
           [I.LConCase _ con@(I.NS (I.UN "MkPair") ["Builtins"]) binds@[a, b] expr] -> do
-            let unpackA = M.Seq M.Dup M.Car
-            let unpackB = M.Dip M.Cdr
-            modify ((:) (M.VarE (prettyPrintValue b)) . (:) (M.VarE (prettyPrintValue a)) . drop 1)
+            unpack <- unpack (M.PairT M.StringT M.StringT) (map (Just . prettyPrintValue) binds)
             expr <- exprToExpr expr
-            let unpackDrop = M.Seq M.Drop M.Drop
-            modify (drop 2)
-            return $ M.Seq (M.Seq unpackA unpackB) (M.Seq expr unpackDrop)
+            unpackDrop <- unpackDrop (map (Just . prettyPrintValue) binds)
+            return $ foldSeq [scrutinee, unpack, expr, unpackDrop]
           _ -> throw (NotYetImplemented ("case switch: expr " <> prettyPrintValue expr <> " alts " <> T.intercalate ", " (fmap prettyPrintValue alts)))
 
       invariant
@@ -124,14 +125,11 @@ exprToExpr expr = do
     I.LForeign _ _ _     -> notYetImplemented
 
     -- (various)
-    I.LOp (I.LExternal (I.NS (I.UN "prim__tezosNil") ["Prim", "Tezos"])) [expr] -> do
-      modify ((:) M.FuncResult)
-      ty <- exprToType expr
-      return $ M.Nil M.OperationT -- TODOM.VarE (prettyPrintValue a))
+    I.LOp (I.LExternal (I.NS (I.UN prim) ["Prim", "Tezos"])) args -> primToExpr prim args
 
     I.LOp prim args      -> do
       args <- mapM exprToExpr args
-      prim <- primToExpr prim
+      prim <- primExprToExpr prim
       return (M.Seq (foldl M.Seq M.Nop args) prim)
 
     I.LNothing           -> notYetImplemented
@@ -148,14 +146,8 @@ dataconToExpr name =
       return (M.Seq M.Swap M.ConsPair)
     _ -> throw (NotYetImplemented ("data con: " <> prettyPrintValue name))
 
-exprToType ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m) ⇒ Expr → m M.Type
-exprToType expr =
-  case expr of
-    I.LV (I.NS (I.UN "Operation") ["Prim", "Tezos"]) -> return M.OperationT
-    _ -> return (M.LamT (M.PairT M.StringT M.StringT) (M.PairT (M.ListT M.OperationT) M.StringT))
-
-primToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Prim → m M.Expr
-primToExpr prim = do
+primExprToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Prim → m M.Expr
+primExprToExpr prim = do
   let notYetImplemented ∷ m M.Expr
       notYetImplemented = throw (NotYetImplemented $ prettyPrintValue prim)
 
@@ -175,3 +167,15 @@ constToExpr const = do
     I.BI v  -> pure (M.Int v)
     I.Str s -> pure (M.String (T.pack s))
     _       -> notYetImplemented
+
+primToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Text → [Expr] -> m M.Expr
+primToExpr prim args =
+  case (prim, args) of
+    ("prim__tezosAmount", []) -> do
+      modify ((:) M.FuncResult)
+      return M.Amount
+    ("prim__tezosNil", [expr]) -> do
+      modify ((:) M.FuncResult)
+      ty <- exprToType expr
+      return $ M.Nil M.OperationT -- TODOM.VarE (prettyPrintValue a))
+    _ -> throw (NotYetImplemented ("primitive: " <> prim))

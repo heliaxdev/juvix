@@ -64,6 +64,10 @@ foldDrop ∷ Int → M.Expr
 foldDrop 0 = M.Nop
 foldDrop n = M.Dip (foldl M.Seq M.Nop (replicate n M.Drop))
 
+foldSeq ∷ [M.Expr] → M.Expr
+foldSeq []     = M.Nop
+foldSeq (x:xs) = M.Seq x (foldSeq xs)
+
 unitaryTypes ∷ [M.Type]
 unitaryTypes = [M.UnitT, M.IntT, M.TezT, M.KeyT]
 

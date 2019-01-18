@@ -12,8 +12,8 @@ run__IO f = f
 main : (Bool, Bool) -> (List Operation, Bool)
 main (storage, param) =
   case storage of
-    True  => (nil, True)
-    False => (nil, False)
+    True  => (nil, False)
+    False => (nil, True)
 
 {-
 

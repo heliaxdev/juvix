@@ -2,11 +2,11 @@ module Juvix.CodeGen where
 
 import           Control.Monad.Except
 import           Control.Monad.Writer
-import           Protolude
+import           Protolude                hiding (Type)
 
 import           Idris.AbsSyntax
 import           Idris.Core.Evaluate
-import           Idris.Core.TT            hiding (Name)
+import           Idris.Core.TT            hiding (Name, Type)
 import           Idris.ElabDecls
 import           Idris.Main
 import           Idris.Options
@@ -37,9 +37,10 @@ getOpts = do xs <- getArgs
     process opts (x:xs)             = process (opts { inputs = x:inputs opts }) xs
     process opts []                 = opts
 
-codeGenSdecls ∷ CodeGenerator
-codeGenSdecls ci = do
+codeGenSdecls ∷ Type → CodeGenerator
+codeGenSdecls ty ci = do
   putText $ "Output file : " <> show (outputFile ci)
+  putText $ "Type: " <> show ty
   let decls = liftDecls ci
   putText $ "Number of decls: " <> show (length decls)
   let main = findMain decls
@@ -49,7 +50,7 @@ codeGenSdecls ci = do
   let LFun _ _ args body = decl
       expr = LLam args body
   putText $ "Main expr prettified: " <> prettyPrintValue expr
-  case runWriter $ runExceptT (M.compileToMichelsonSourceFile expr ∷ (ExceptT M.CompilationError (Writer [M.CompilationLog]) Text)) of
+  case runWriter $ runExceptT (M.compileToMichelsonSourceFile expr ty ∷ (ExceptT M.CompilationError (Writer [M.CompilationLog]) Text)) of
     (res, logs) -> do
       mapM_ (putText . prettyPrintValue) logs
       case res of
@@ -60,18 +61,20 @@ codeGenSdecls ci = do
           putText $ "Error during transpilation: " <> prettyPrintValue err
           exitFailure
 
-findMain ∷ [(Name, LDecl)] → (Name, LDecl)
-findMain decls = let Just f = head $ filter (\(name, _) -> name == NS (UN "main") ["Main"]) decls in f
+mainN ∷ Name
+mainN = NS (UN "main") ["Main"]
 
-findMain2 ∷ [(Name, TTDecl)] → (Name, TTDecl)
-findMain2 decls = let Just f = head $ filter (\(name, _) -> name == NS (UN "main") ["Main"]) decls in f
+findMain ∷ [(Name, LDecl)] → (Name, LDecl)
+findMain decls = let Just f = head $ filter (\(name, _) -> name == mainN) decls in f
 
 sdeclMain ∷ Opts → Idris ()
 sdeclMain opts = do elabPrims
                     _ <- loadInputs (inputs opts) Nothing
                     mainProg <- if interface opts then liftM Just elabMain else return Nothing
                     ir <- compile (Via IBCFormat "juvix") (output opts) mainProg
-                    runIO $ codeGenSdecls ir
+                    is <- getIState
+                    let Just ty = lookupTyExact mainN (tt_ctxt is)
+                    runIO $ codeGenSdecls ty ir
 
 main ∷ IO ()
 main = do opts <- getOpts
