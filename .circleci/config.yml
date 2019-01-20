@@ -42,7 +42,7 @@ jobs:
           at: /root
       - run:
           name: Setup secp256k1
-          command: git clone https://github.com/libbitcoin/secp256k1.git && cd secp256k1 && git checkout 2bdb30782ba14e481983f664495370aee7048762 && ./autogen.sh && ./configure --enable-module-recovery && make && make install
+          command: cd secp256k1 && ./autogen.sh && ./configure --enable-module-recovery && make && make install
       - run:
           name: Run tests
           command: stack test --extra-include-dirs=/usr/local/include --extra-lib-dirs=/usr/local/lib
@@ -54,8 +54,11 @@ jobs:
       - attach_workspace:
           at: /root
       - run:
+          name: Setup secp256k1
+          command: cd secp256k1 && ./autogen.sh && ./configure --enable-module-recovery && make && make install
+      - run:
           name: Run Tezos tests
-          command: make test-tezos
+          command: LD_LIBRARY_PATH=/usr/local/lib make test-tezos
 
 workflows:
   version: 2.1
