@@ -12,12 +12,11 @@ for file in ${files[@]}; do
   stack exec -- idris --noprelude -p tezos --check $file
 done
 
-TMP=$(mktemp -d)
-
 for file in ${files[@]}; do
   echo "Compiling $file..."
-  ./scripts/tezos_compile.sh $file -o $TMP/test.tz
-  test -f $TMP/test.tz
+  OUT=$(mktemp).tz
+  ./scripts/tezos_compile.sh $file -o $OUT
+  test -f $OUT
 done
 
 rm -rf $TMP
