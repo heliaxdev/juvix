@@ -45,9 +45,8 @@ optimize' expr =
 
     (Seq (Seq (Seq e Dup) Swap) Drop) → optimize' e
 
-    {- This is stupid. Should left-force Seq constructors in another phase. -}
+    {- Seq should be left-forced. -}
     (Seq (Seq Dup Swap) Drop) → return Nop
-    (Seq Dup (Seq Swap Drop)) → return Nop
     (Seq Dup (Dip Drop))      → return Nop
 
     (Seq (Seq Swap Dup) (Dip Swap)) → return (Seq (Dip Dup) Swap)

@@ -12,10 +12,18 @@ run__IO f = f
 main : (Bool, Bool) -> (List Operation, Bool)
 main (param, storage) =
   case storage of
-    True  => (nil, False)
-    False => (nil, True)
+    True  =>
+      case param of
+        True  => (nil, False)
+        False => (nil, True)
+    False =>
+      case param of
+        True  => (nil, True)
+        False => (nil, False)
 
 {-
+
+test XOR
 
 proofOne : main (True, False) = (True, True)
 proofOne = Refl

@@ -64,12 +64,26 @@ foldDrop ∷ Int → M.Expr
 foldDrop 0 = M.Nop
 foldDrop n = M.Dip (foldSeq (replicate n M.Drop))
 
+leftSeq ∷ M.Expr → M.Expr
+leftSeq = foldSeq . unrollSeq
+
+unrollSeq ∷ M.Expr → [M.Expr]
+unrollSeq expr =
+  case expr of
+    M.Seq x y    → [x, y]
+
+    M.IfLeft x y → [M.IfLeft (leftSeq x) (leftSeq y)]
+    M.Dip x      → [M.Dip (leftSeq x)]
+    M.If x y     → [M.If (leftSeq x) (leftSeq y)]
+
+    _            → [expr]
+
 foldSeq ∷ [M.Expr] → M.Expr
 foldSeq []     = M.Nop
 foldSeq (x:xs) = M.Seq x (foldSeq xs)
 
 unitaryTypes ∷ [M.Type]
-unitaryTypes = [M.UnitT, M.IntT, M.TezT, M.KeyT]
+unitaryTypes = [M.UnitT, M.IntT, M.TezT, M.KeyT, M.BoolT]
 
 genReturn ∷ forall m . (MonadError CompilationError m, MonadState M.Stack m) ⇒ M.Expr → m M.Expr
 genReturn expr = do

@@ -89,7 +89,7 @@ exprToExpr expr = do
       --throw (NotYetImplemented ("constructor: " <> prettyPrintValue name <> ", args: " <> prettyPrintValue args))
 
     -- ∷ a ~ s ⇒ (a, s)
-    I.LCase ct expr alts -> do
+    ce@(I.LCase ct expr alts) -> do
       -- Do we care about the case type?
       -- Generate switch on native repr (never constructor tag except for e.g. data Ord = A | B | C)
       -- Unpack necessary variables in fixed pattern according to desired bindings
@@ -99,15 +99,40 @@ exprToExpr expr = do
 
       let invariant = do
             end <- get
-            unless (drop 1 end == start) (throw (NotYetImplemented $ "Case compilation violated stack invariant: start " <> prettyPrintValue start <> ", end " <> prettyPrintValue end))
+            unless (drop 1 end == start) (throw (NotYetImplemented $ "Case compilation violated stack invariant: start " <> prettyPrintValue start <> ", end " <> prettyPrintValue end
+              <> " with expr " <> prettyPrintValue ce))
+
+      -- somehow we need the type of the scrutinee
+      -- we'll need to look up data constructors anyways...
+      -- OR we could track types of stack variables
 
       -- Evaluate the scrutinee.
       scrutinee <- exprToExpr expr
 
       evaluand <-
         case alts of
-          [I.LConCase _ con@(I.NS (I.UN "MkPair") ["Builtins"]) binds@[a, b] expr] -> do
-            unpack <- unpack (M.PairT M.StringT M.StringT) (map (Just . prettyPrintValue) binds)
+          [I.LConCase _ conA bindsA exprA, I.LConCase _ conB bindsB exprB] -> do
+            scrutineeTypeA <- dataconToType conA
+            scrutineeTypeB <- dataconToType conB
+            unless (scrutineeTypeA == scrutineeTypeB) (throw (NotYetImplemented "unequal scrutinee types"))
+            switch <- genSwitch scrutineeTypeA
+            switchCase <- do
+              now <- get
+              unpackA <- unpack scrutineeTypeA (map (Just . prettyPrintValue) bindsA)
+              exprA <- exprToExpr exprA
+              unpackDropA <- unpackDrop (map (Just . prettyPrintValue) bindsA)
+              modify (const now)
+              unpackB <- unpack scrutineeTypeB (map (Just . prettyPrintValue) bindsB)
+              exprB <- exprToExpr exprB
+              unpackDropB <- unpackDrop (map (Just . prettyPrintValue) bindsB)
+              let caseA = foldSeq [unpackA, exprA, unpackDropA]
+                  caseB = foldSeq [unpackB, exprB, unpackDropB]
+              return $ switch caseA caseB
+            return $ foldSeq [scrutinee, switchCase]
+          [I.LConCase _ con binds expr] -> do
+            scrutineeType <- dataconToType con
+            -- later: usage analysis
+            unpack <- unpack scrutineeType (map (Just . prettyPrintValue) binds)
             expr <- exprToExpr expr
             unpackDrop <- unpackDrop (map (Just . prettyPrintValue) binds)
             return $ foldSeq [scrutinee, unpack, expr, unpackDrop]
@@ -140,9 +165,32 @@ exprToExpr expr = do
 
     I.LError msg         -> failWith (T.pack msg)
 
+genSwitch ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ M.Type -> m (M.Expr -> M.Expr -> M.Expr)
+genSwitch M.BoolT         = return (\x y -> M.If y x) -- TODO
+genSwitch (M.EitherT _ _) = return M.IfLeft
+genSwitch (M.OptionT _)   = return M.IfNone
+genSwitch (M.ListT _)     = return M.IfCons
+genSwitch ty              = throw (NotYetImplemented ("genSwitch: " <> prettyPrintValue ty))
+
+dataconToType ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Name → m M.Type
+dataconToType name =
+  case name of
+    I.NS (I.UN "True") ["Prim", "Tezos"] ->
+      return M.BoolT
+    I.NS (I.UN "False") ["Prim", "Tezos"] ->
+      return M.BoolT
+    I.NS (I.UN "MkPair") ["Builtins"] ->
+      return (M.PairT M.StringT M.StringT)
+    _ ->
+      throw (NotYetImplemented ("dataconToType: " <> prettyPrintValue name))
+
 dataconToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Name → m M.Expr
 dataconToExpr name =
   case name of
+    I.NS (I.UN "True") ["Prim", "Tezos"] ->
+      return (M.Const $ M.Bool True)
+    I.NS (I.UN "False") ["Prim", "Tezos"] ->
+      return (M.Const $ M.Bool False)
     I.NS (I.UN "Operation") ["Tezos"] -> do
       throw (NotYetImplemented "tezos.operation")
     I.NS (I.UN "MkPair") ["Builtins"] -> do
@@ -181,7 +229,7 @@ primToExpr prim args =
     ("prim__tezosNil", [expr]) -> do
       modify ((:) M.FuncResult)
       ty <- exprToType expr
-      return $ M.Nil M.OperationT -- TODOM.VarE (prettyPrintValue a))
+      return $ M.Nil M.OperationT -- TODO? M.VarE (prettyPrintValue a))
     ("prim__tezosAddIntInt", [a, b]) -> do
       a <- exprToExpr a
       b <- exprToExpr b

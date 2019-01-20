@@ -10,9 +10,11 @@ run__IO f = f
 main : (String, String) -> (List Operation, String)
 main (param, storage) = (nil, param)
 
-{-
+snd : (a, b) -> b
+snd (_, b) = b
 
-helloWorld : main ("Hello", "World") = ("World", "Hello")
-helloWorld = Refl
+main_swaps_ex : snd (main ("param", "storage")) = "param"
+main_swaps_ex = Refl
 
--}
+main_swaps : (param, storage : String) -> snd (main (param, storage)) = param
+main_swaps param storage = Refl

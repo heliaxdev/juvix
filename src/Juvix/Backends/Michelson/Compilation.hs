@@ -7,6 +7,7 @@ import           Protolude                                  hiding (Type, catch)
 
 import           Juvix.Backends.Michelson.Compilation.Expr
 import           Juvix.Backends.Michelson.Compilation.Types
+import           Juvix.Backends.Michelson.Compilation.Util
 import qualified Juvix.Backends.Michelson.Emit              as M
 import qualified Juvix.Backends.Michelson.Lift              as M
 import qualified Juvix.Backends.Michelson.Optimization      as M
@@ -26,7 +27,8 @@ compileToMichelsonSourceFile expr ty = do
 
 compileToMichelson ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m) ⇒ Expr → Type → m (M.SomeExpr, MU.Type, MU.Type, MU.Type)
 compileToMichelson expr ty = do
-  ((michelsonExpr, michelsonExprType), _) <- runStateT (exprToMichelson expr ty) []
+  ((michelsonExpr', michelsonExprType), _) <- runStateT (exprToMichelson expr ty) []
+  let michelsonExpr = leftSeq michelsonExpr'
   case michelsonExprType of
     MU.LamT start@(MU.PairT paramTy startStorageTy) end@(MU.PairT retTy endStorageTy) | startStorageTy == endStorageTy → do
       case (M.liftType paramTy, M.liftType startStorageTy, M.liftType retTy, M.liftType endStorageTy) of

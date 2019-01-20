@@ -25,7 +25,10 @@ emit expr =
             _         →
               case eqT ∷ Maybe (t :~: T.Text) of
                 Just Refl → T.concat ["PUSH string ", show v]
-                _         → "e"
+                _         →
+                  case eqT ∷ Maybe (t :~: Bool) of
+                    Just Refl → T.concat ["PUSH bool ", show v]
+                    _         → "e"
 
 
     ConsPair → "PAIR"
