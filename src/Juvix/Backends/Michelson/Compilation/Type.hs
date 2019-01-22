@@ -17,9 +17,13 @@ import qualified IRTS.Lang                                  as I
 exprToType ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m) ⇒ Expr → m M.Type
 exprToType expr =
   case expr of
+    I.LLazyExp e -> exprToType e
+    I.LForce e -> exprToType e
     I.LV (I.NS (I.UN "MkPair") ["Builtins"]) -> return $ M.PairT M.StringT M.StringT
     I.LV (I.NS (I.UN "Operation") ["Prim", "Tezos"]) -> return M.OperationT
-    _ -> return (M.LamT (M.PairT M.TezT M.StringT) (M.PairT (M.ListT M.OperationT) M.TezT))
+    I.LCon _ _ (I.NS (I.UN "Operation") ["Prim", "Tezos"]) _ -> return M.OperationT
+    I.LV _ -> throw (NotYetImplemented ("exprToType (var): " <> prettyPrintValue expr))
+    _ -> throw (NotYetImplemented ("exprToType: " <> prettyPrintValue expr))
 
 typeToType ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m) ⇒ Type → m M.Type
 typeToType ty =

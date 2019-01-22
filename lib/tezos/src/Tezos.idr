@@ -8,7 +8,7 @@ import public Tezos.Prim
 namespace Map
 
   empty : Map k v
-  empty = prim__tezosMapEmpty
+  empty = prim__tezosEmptyMap
 
   get : k -> Map k v -> Maybe v
   get = prim__tezosMapGet
@@ -24,9 +24,6 @@ namespace Map
 
 amount : Tez
 amount = prim__tezosAmount
-
-nil : List a
-nil = prim__tezosNil
 
 fail : a
 fail = prim__tezosFail
@@ -59,7 +56,7 @@ interface Num ty where
 
 Num Integer where
   (+) = prim__tezosAddIntInt
-  (-) = prim__tezosSubIntInt
+  (-) = prim__tezosSubInt
   (*) = prim__tezosMulIntInt
 
 interface Eq ty => Ord ty where
@@ -67,12 +64,12 @@ interface Eq ty => Ord ty where
   (>) : ty -> ty -> Bool
 
 Ord Integer where
-  (<) = prim__tezosLessThanInt
-  (>) = prim__tezosGreaterThanInt
+  (<) = prim__tezosLtInt
+  (>) = prim__tezosGtInt
 
 Ord Tez where
-  (<) = prim__tezosLessThanTez
-  (>) = prim__tezosGreaterThanTez
+  (<) = prim__tezosLtTez
+  (>) = prim__tezosGtTez
 
 ifThenElse : (b : Bool) -> (t : Lazy a) -> (e : Lazy a) -> a
 ifThenElse True  t e = t

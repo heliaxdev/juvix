@@ -10,7 +10,7 @@ run__IO f = f
 
 -- The main function.
 main : (Integer, Integer) -> (List Operation, Integer)
-main (param, storage) = (nil, param * storage)
+main (param, storage) = (Nil, param * storage)
 
 {-
 

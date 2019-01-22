@@ -9,7 +9,7 @@ run__IO : a -> a
 run__IO f = f
 
 main : (Integer, Integer) -> (List Operation, Integer)
-main (param, storage) = (nil, storage + param)
+main (param, storage) = (Nil, storage + param)
 
 {-
 

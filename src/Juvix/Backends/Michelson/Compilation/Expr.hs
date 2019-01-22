@@ -107,12 +107,8 @@ exprToExpr expr = do
     -- ??
     I.LProj expr num     -> notYetImplemented
 
-    I.LCon _ _ name args -> do
-      args <- mapM exprToExpr args
-      cons <- dataconToExpr name
-      return (M.Seq (foldl M.Seq M.Nop args) cons)
-
-      --throw (NotYetImplemented ("constructor: " <> prettyPrintValue name <> ", args: " <> prettyPrintValue args))
+    I.LCon _ _ name args -> stackGuard addsOne $ do
+      dataconToExpr name args
 
     -- ∷ a ~ s ⇒ (a, s)
     ce@(I.LCase ct expr alts) -> stackGuard addsOne $ do
@@ -125,8 +121,7 @@ exprToExpr expr = do
 
       let invariant = do
             end <- get
-            unless (drop 1 end == start) (throw (NotYetImplemented $ "Case compilation violated stack invariant: start " <> prettyPrintValue start <> ", end " <> prettyPrintValue end
-              <> " with expr " <> prettyPrintValue ce))
+            unless (drop 1 end == start) (throw (NotYetImplemented $ "Case compilation violated stack invariant: start " <> prettyPrintValue start <> ", end " <> prettyPrintValue end <> " with expr " <> prettyPrintValue ce))
 
       -- somehow we need the type of the scrutinee
       -- we'll need to look up data constructors anyways...
@@ -198,20 +193,27 @@ genSwitch (M.OptionT _)   = return M.IfNone
 genSwitch (M.ListT _)     = return M.IfCons
 genSwitch ty              = throw (NotYetImplemented ("genSwitch: " <> prettyPrintValue ty))
 
-dataconToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Name → m M.Expr
-dataconToExpr name =
-  case name of
-    I.NS (I.UN "True") ["Prim", "Tezos"] -> do
+dataconToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Name → [Expr] → m M.Expr
+dataconToExpr name args =
+  case (name, args) of
+    (I.NS (I.UN "True") ["Prim", "Tezos"], []) -> do
       modify ((:) M.FuncResult)
       return (M.Const $ M.Bool True)
-    I.NS (I.UN "False") ["Prim", "Tezos"] -> do
+    (I.NS (I.UN "False") ["Prim", "Tezos"], []) -> do
       modify ((:) M.FuncResult)
       return (M.Const $ M.Bool False)
-    I.NS (I.UN "Operation") ["Tezos"] -> do
-      throw (NotYetImplemented "tezos.operation")
-    I.NS (I.UN "MkPair") ["Builtins"] -> do
+    (I.NS (I.UN "MkPair") ["Builtins"], args@[_, _]) -> do
+      args <- mapM exprToExpr args
       modify ((:) M.FuncResult . drop 2)
-      return (M.Seq M.Swap M.ConsPair)
+      return $ foldSeq (args ++ [M.Swap, M.ConsPair])
+    (I.NS (I.UN "Nil") ["Prim", "Tezos"], [expr]) -> do
+      modify ((:) M.FuncResult)
+      ty <- exprToType expr
+      return $ M.Nil ty
+    (I.NS (I.UN "Nil") ["Prim", "Tezos"], []) -> do
+      -- TODO
+      modify ((:) M.FuncResult)
+      return $ M.Nil M.OperationT
     _ -> throw (NotYetImplemented ("data con: " <> prettyPrintValue name))
 
 primExprToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Prim → m M.Expr
@@ -242,10 +244,6 @@ primToExpr prim args =
     ("prim__tezosAmount", []) -> do
       modify ((:) M.FuncResult)
       return M.Amount
-    ("prim__tezosNil", [expr]) -> do
-      modify ((:) M.FuncResult)
-      ty <- exprToType expr
-      return $ M.Nil M.OperationT -- TODO? M.VarE (prettyPrintValue a))
     ("prim__tezosAddIntInt", [a, b]) -> do
       a <- exprToExpr a
       b <- exprToExpr b

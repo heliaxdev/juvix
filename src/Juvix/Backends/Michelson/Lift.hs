@@ -241,8 +241,8 @@ typeToStack ty =
     DynamicType (Proxy ∷ Proxy t) → DynamicType (Proxy ∷ Proxy (t, ()))
 
 instance PrettyPrint DynamicError where
-  prettyPrintValue (CannotCast (DynamicValue v) _)       = "cannot cast " <> prettyPrintValue v <> " to "
-  prettyPrintValue (CannotUnify (Proxy :: Proxy a) (Proxy :: Proxy b)) = "cannot unify " <> prettyPrintType (undefined :: a) <> " with " <> prettyPrintType (undefined :: b)
+  prettyPrintValue (CannotCast (DynamicValue v) _)                      = "cannot cast " <> prettyPrintValue v <> " to "
+  prettyPrintValue (CannotUnify (Proxy :: Proxy a) (Proxy :: Proxy b))  = "cannot unify " <> prettyPrintType (undefined :: a) <> " with " <> prettyPrintType (undefined :: b)
   prettyPrintValue (NotAnOptionType prx) = "not an option type: " <> prettyPrintProxy prx
   prettyPrintValue (NotAProductType prx) = "not a product type: " <> prettyPrintProxy prx
   prettyPrintValue (NotASumType prx)     = "not a sum type: " <> prettyPrintProxy prx

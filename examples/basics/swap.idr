@@ -8,7 +8,7 @@ run__IO f = f
 
 -- Swap storage and parameter.
 main : (String, String) -> (List Operation, String)
-main (param, storage) = (nil, param)
+main (param, storage) = (Nil, param)
 
 snd : (a, b) -> b
 snd (_, b) = b

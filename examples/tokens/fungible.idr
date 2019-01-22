@@ -42,7 +42,7 @@ data Action =
   Transfer String String Nat
 
 main : (Token, Action) -> (List Operation, Token)
-main (token, Transfer from to amount) = (nil, token)
+main (token, Transfer from to amount) = (Nil, token)
 
 {-
 

@@ -10,10 +10,12 @@ steps:
   - imports:
       align: global
       list_align: after_alias
+      pad_module_names: true
       long_list_align: inline
       empty_list_align: inherit
       list_padding: 4
       separate_lists: true
+      space_surround: false
 
   - language_pragmas:
       style: vertical

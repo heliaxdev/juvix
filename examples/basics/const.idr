@@ -10,4 +10,4 @@ run__IO f = f
 
 -- Main contract function.
 main : (String, String) -> (List Operation, String)
-main (_, _) = (nil, "hello world")
+main (_, _) = (Nil, "hello world")

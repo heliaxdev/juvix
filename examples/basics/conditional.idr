@@ -14,12 +14,12 @@ main (param, storage) =
   case storage of
     True  =>
       case param of
-        True  => (nil, False)
-        False => (nil, True)
+        True  => (Nil, False)
+        False => (Nil, True)
     False =>
       case param of
-        True  => (nil, True)
-        False => (nil, False)
+        True  => (Nil, True)
+        False => (Nil, False)
 
 {-
 
