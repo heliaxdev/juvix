@@ -13,6 +13,7 @@ import           Juvix.Utility
 data TypecheckError
   = CannotCastAs DynamicError
   | NotImplemented
+  | Wrapped Text TypecheckError
 
 {-  Lift an untyped Michelson instruction sequence, with an initial stack type, into a typed (GADT) Michelson instruction sequence and return stack type in a typesafe manner.
     The type of the instruction sequence is *not* known until runtime (hence the heavy existential / scoped type variable use).
@@ -32,7 +33,16 @@ data TypecheckError
 liftUntyped ∷ ∀ m . (MonadError TypecheckError m) ⇒ U.Expr → DynamicType → DynamicType → m (SomeExpr, DynamicType)
 liftUntyped expr stk@(DynamicType (prx@(Proxy ∷ Proxy stkTy))) str@(DynamicType (Proxy ∷ Proxy storageTy)) = do
 
-  let take1 ∷ (MonadError TypecheckError m) ⇒ m (DynamicType, DynamicType)
+  let wrap ∷ TypecheckError → TypecheckError
+      wrap = Wrapped ("expr: " <> prettyPrintValue expr <> ", stack: " <> prettyPrintProxy prx)
+
+      notImplemented ∷ (MonadError TypecheckError m) ⇒ m a
+      notImplemented = throw (wrap NotImplemented)
+
+      cannotCastAs ∷ DynamicError → (MonadError TypecheckError m) ⇒ m a
+      cannotCastAs = throw . wrap . CannotCastAs
+
+      take1 ∷ (MonadError TypecheckError m) ⇒ m (DynamicType, DynamicType)
       take1 = case unProduct prx of
                 P.Left e  → cannotCastAs e
                 P.Right r → return r
@@ -196,12 +206,6 @@ liftUntyped expr stk@(DynamicType (prx@(Proxy ∷ Proxy stkTy))) str@(DynamicTyp
 
     _ -> notImplemented
 
-cannotCastAs ∷ DynamicError → (MonadError TypecheckError m) ⇒ m a
-cannotCastAs = throw . CannotCastAs
-
-notImplemented ∷ (MonadError TypecheckError m) ⇒ m a
-notImplemented = throw NotImplemented
-
 {-  Lift a Michelson type into a Haskell type existential.  -}
 
 liftType ∷ U.Type → DynamicType
@@ -237,14 +241,15 @@ typeToStack ty =
     DynamicType (Proxy ∷ Proxy t) → DynamicType (Proxy ∷ Proxy (t, ()))
 
 instance PrettyPrint DynamicError where
-  --prettyPrintValue (CannotCast v (t :: TypeRep)) = "cannot cast " <> prettyPrintValue v <> " to " <> prettyPrintType (undefined :: t)
+  prettyPrintValue (CannotCast (DynamicValue v) _)       = "cannot cast " <> prettyPrintValue v <> " to "
   prettyPrintValue (CannotUnify (Proxy :: Proxy a) (Proxy :: Proxy b)) = "cannot unify " <> prettyPrintType (undefined :: a) <> " with " <> prettyPrintType (undefined :: b)
-  prettyPrintValue (NotAnOptionType (Proxy :: Proxy a)) = "not an option type: " -- <> prettyPrintType (undefined :: a)
-  prettyPrintValue (NotAProductType (Proxy :: Proxy a)) = "not a product type: " -- <> prettyPrintType (undefined :: a)
-  prettyPrintValue (NotASumType (Proxy :: Proxy a))     = "not a sum type: " -- <> prettyPrintType (undefined :: a)
-  prettyPrintValue (NotAnArrowType (Proxy :: Proxy a))  = "not an arrow type: " -- <> prettyPrintType (undefined :: a)
+  prettyPrintValue (NotAnOptionType prx) = "not an option type: " <> prettyPrintProxy prx
+  prettyPrintValue (NotAProductType prx) = "not a product type: " <> prettyPrintProxy prx
+  prettyPrintValue (NotASumType prx)     = "not a sum type: " <> prettyPrintProxy prx
+  prettyPrintValue (NotAnArrowType prx)  = "not an arrow type: " <> prettyPrintProxy prx
 
 instance PrettyPrint TypecheckError where
   prettyPrintValue = \case
+    Wrapped t e      -> prettyPrintValue e <> "; " <> t
     CannotCastAs e   -> "cannot cast: " <> prettyPrintValue e
     NotImplemented   -> "not yet implemented"

@@ -15,6 +15,11 @@ class PrettyPrint a where
   default prettyPrintType ∷ (R.Typeable a) ⇒ a → Text
   prettyPrintType = show . R.typeOf
 
+  prettyPrintProxy ∷ Proxy a → Text
+
+  default prettyPrintProxy ∷ (R.Typeable a) ⇒ Proxy a → Text
+  prettyPrintProxy (Proxy :: Proxy t) = prettyPrintType (undefined :: t)
+
 instance (PrettyPrint a, R.Typeable a) ⇒ PrettyPrint [a] where
   prettyPrintValue l = T.concat ["[", T.intercalate ", " (fmap prettyPrintValue l), "]"]
 
@@ -39,3 +44,4 @@ instance PrettyPrint Text
 instance PrettyPrint (a → b) where
   prettyPrintValue  = const "λ"
   prettyPrintType   = const "λ"
+  prettyPrintProxy  = const "λ"

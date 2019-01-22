@@ -389,3 +389,4 @@ instance (Eq a, Eq b) ⇒ Eq (Expr a b) where
 instance (PrettyPrint a, PrettyPrint b) ⇒ PrettyPrint (Expr a b) where
   prettyPrintValue  _ = "Expr<a, b>"
   prettyPrintType   _ = "Expr<a, b>"
+  prettyPrintProxy  _ = "Expr<a, b>"
