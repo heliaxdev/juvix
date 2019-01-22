@@ -37,13 +37,35 @@ exprToExpr expr = do
       failWith ∷ Text → m M.Expr
       failWith = throw . NotYetImplemented
 
+      stackGuard ∷ (M.Stack -> M.Stack -> Bool) -> m M.Expr -> m M.Expr
+      stackGuard guard func = do
+        pre   <- get
+        res   <- func
+        post  <- get
+        unless (guard post pre) $ do
+          throw (NotYetImplemented ("compilation violated stack invariant: " <> prettyPrintValue expr))
+        return res
+
+      takesOne ∷ M.Stack -> M.Stack -> Bool
+      takesOne post pre = post == drop 1 pre
+
+      addsOne ∷ M.Stack -> M.Stack -> Bool
+      addsOne post pre = drop 1 post == pre
+
+      changesTop ∷ M.Stack -> M.Stack -> Bool
+      changesTop post pre = drop 1 post == drop 1 pre
+
+      lambda ∷ Int -> M.Stack -> M.Stack -> Bool
+      lambda nargs post pre = drop nargs pre == drop 1 post
+
   case expr of
 
     -- :: a ~ s => (a, s)
-    I.LV (I.NS (I.UN prim) ["Prim", "Tezos"]) -> primToExpr prim []
+    I.LV (I.NS (I.UN prim) ["Prim", "Tezos"]) -> stackGuard addsOne $ do
+      primToExpr prim []
 
     -- :: a ~ s => (a, s)
-    I.LV name            -> do
+    I.LV name            -> stackGuard addsOne $ do
       stack <- get
       case position (prettyPrintValue name) stack of
         Nothing → throwError (NotYetImplemented ("variable not in scope: " <> prettyPrintValue name))
@@ -53,25 +75,29 @@ exprToExpr expr = do
           genReturn (M.Seq (M.Seq before M.Dup) after)
 
     -- ∷ (\a → b) a ~ s ⇒ (b, s)
-    I.LApp _ func args   -> do
+    I.LApp _ func args   -> stackGuard addsOne $ do
       args <- mapM exprToExpr args -- Check ordering.
       func <- exprToExpr func
       return (M.Seq (foldl M.Seq M.Nop args) func)
 
     -- ∷ (\a → b) a ~ s ⇒ (b, s)
-    I.LLazyApp func args -> exprToExpr (I.LApp undefined (I.LV func) args)
+    I.LLazyApp func args -> stackGuard addsOne $ do
+      exprToExpr (I.LApp undefined (I.LV func) args)
 
     -- :: a ~ s => (a, s)
-    I.LLazyExp expr      -> exprToExpr expr
+    I.LLazyExp expr      -> stackGuard addsOne $ do
+      exprToExpr expr
 
     -- :: a ~ s => (a, s)
-    I.LForce expr        -> exprToExpr expr
+    I.LForce expr        -> stackGuard addsOne $ do
+      exprToExpr expr
 
     -- :: a ~ s => (a, s)
-    I.LLet name val expr -> notYetImplemented
+    I.LLet name val expr -> stackGuard addsOne $ do
+      notYetImplemented
 
     -- ∷ \a... → b ~ (a..., s) ⇒ (b, s)
-    I.LLam args body     -> do
+    I.LLam args body     -> stackGuard (lambda (length args)) $ do
       -- Ordering: Treat as \a b -> c ~= \a -> \b -> c, e.g. reverse stack order.
       forM_ args (\a -> modify ((:) (M.VarE (prettyPrintValue a))))
       inner <- exprToExpr body
@@ -89,7 +115,7 @@ exprToExpr expr = do
       --throw (NotYetImplemented ("constructor: " <> prettyPrintValue name <> ", args: " <> prettyPrintValue args))
 
     -- ∷ a ~ s ⇒ (a, s)
-    ce@(I.LCase ct expr alts) -> do
+    ce@(I.LCase ct expr alts) -> stackGuard addsOne $ do
       -- Do we care about the case type?
       -- Generate switch on native repr (never constructor tag except for e.g. data Ord = A | B | C)
       -- Unpack necessary variables in fixed pattern according to desired bindings
@@ -147,7 +173,7 @@ exprToExpr expr = do
       return evaluand
 
     -- ∷ a ~ s ⇒ (a, s)
-    I.LConst const       -> do
+    I.LConst const       -> stackGuard addsOne $ do
       M.Const |<< constToExpr const
 
     -- (various)
@@ -172,24 +198,14 @@ genSwitch (M.OptionT _)   = return M.IfNone
 genSwitch (M.ListT _)     = return M.IfCons
 genSwitch ty              = throw (NotYetImplemented ("genSwitch: " <> prettyPrintValue ty))
 
-dataconToType ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Name → m M.Type
-dataconToType name =
-  case name of
-    I.NS (I.UN "True") ["Prim", "Tezos"] ->
-      return M.BoolT
-    I.NS (I.UN "False") ["Prim", "Tezos"] ->
-      return M.BoolT
-    I.NS (I.UN "MkPair") ["Builtins"] ->
-      return (M.PairT M.StringT M.StringT)
-    _ ->
-      throw (NotYetImplemented ("dataconToType: " <> prettyPrintValue name))
-
 dataconToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Name → m M.Expr
 dataconToExpr name =
   case name of
-    I.NS (I.UN "True") ["Prim", "Tezos"] ->
+    I.NS (I.UN "True") ["Prim", "Tezos"] -> do
+      modify ((:) M.FuncResult)
       return (M.Const $ M.Bool True)
-    I.NS (I.UN "False") ["Prim", "Tezos"] ->
+    I.NS (I.UN "False") ["Prim", "Tezos"] -> do
+      modify ((:) M.FuncResult)
       return (M.Const $ M.Bool False)
     I.NS (I.UN "Operation") ["Tezos"] -> do
       throw (NotYetImplemented "tezos.operation")

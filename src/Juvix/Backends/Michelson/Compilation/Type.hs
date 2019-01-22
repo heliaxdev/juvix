@@ -57,3 +57,15 @@ typeToType ty =
       retTy <- typeToType retTy
       return $ M.LamT argTy retTy
     _ -> throw (NotYetImplemented ("typeToType: " <> prettyPrintValue ty))
+
+dataconToType ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Name → m M.Type
+dataconToType name =
+  case name of
+    I.NS (I.UN "True") ["Prim", "Tezos"] ->
+      return M.BoolT
+    I.NS (I.UN "False") ["Prim", "Tezos"] ->
+      return M.BoolT
+    I.NS (I.UN "MkPair") ["Builtins"] ->
+      return (M.PairT M.StringT M.StringT)
+    _ ->
+      throw (NotYetImplemented ("dataconToType: " <> prettyPrintValue name))

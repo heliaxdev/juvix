@@ -19,11 +19,13 @@ pack ty      = throw (NotYetImplemented ("pack: " `T.append` prettyPrintValue ty
 unpack ∷ forall m . (MonadError CompilationError m, MonadState M.Stack m) ⇒ M.Type → [Maybe T.Text] → m M.Expr
 unpack ty []          | ty `elem` unitaryTypes = do
   genReturn M.Drop
+{-
 unpack ty [Nothing]   | ty `elem` unitaryTypes = do
   genReturn M.Drop
 unpack ty [Just bind] | ty `elem` unitaryTypes = do
   modify ((:) (M.VarE bind) . drop 1)
   return M.Nop
+-}
 unpack ty@(M.PairT _ _) binds =
   case binds of
     [Just fst, Just snd] → do
