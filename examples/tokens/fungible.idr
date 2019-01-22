@@ -27,6 +27,7 @@ newToken s a = MkToken (Map.update s (Just a) Map.empty)
 balanceOf : Token -> String -> Nat
 balanceOf token key = lookupWithDefault (balances token) key 0
 
+
 transfer : Token -> String -> String -> Nat -> (Token, Bool)
 transfer token key dest amount =
   let sourceBalance = balanceOf token key

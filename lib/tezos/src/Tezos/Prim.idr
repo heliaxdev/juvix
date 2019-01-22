@@ -29,6 +29,8 @@ data Either : (l : Type, r : Type) -> Type where
 
 data Map : (k : Type, v : Type) -> Type
 
+data BigMap : (k : Type, v : Type) -> Type
+
 data Set : (v : Type) -> Type
 
 data List : (e : Type) -> Type where

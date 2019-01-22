@@ -45,7 +45,7 @@ jobs:
           command: cd secp256k1 && ./autogen.sh && ./configure --enable-module-recovery && make && make install
       - run:
           name: Run tests
-          command: LD_LIBRARY_PATH=/usr/local/lib stack test --extra-include-dirs=/usr/local/include --extra-lib-dirs=/usr/local/lib
+          command: LD_LIBRARY_PATH=/usr/local/lib stack clean && stack test --extra-include-dirs=/usr/local/include --extra-lib-dirs=/usr/local/lib --ghc-options="-DOPTIMIZE"
 
   test_tezos:
     docker:

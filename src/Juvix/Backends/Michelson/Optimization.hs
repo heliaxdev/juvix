@@ -33,34 +33,35 @@ optimize expr = do
 optimize' ∷ (Dynamical a, Dynamical b, MonadWriter [CompilationLog] m) ⇒ Expr (Stack a) (Stack b) → m (Expr (Stack a) (Stack b))
 optimize' expr =
   case expr of
-    (IfLeft x y)    → optimize' x >>= \x → optimize' y >>= \y → return (IfLeft x y)
 
+    (If x y)        → optimize' x >>= \x → optimize' y >>= \y → return (If x y)
+    (IfLeft x y)    → optimize' x >>= \x → optimize' y >>= \y → return (IfLeft x y)
+    (IfCons x y)    → optimize' x >>= \x → optimize' y >>= \y → return (IfCons x y)
+    (IfNone x y)    → optimize' x >>= \x → optimize' y >>= \y → return (IfNone x y)
     (Dip e)         → Dip |<< optimize' e
 
+{- We can assume Seq will be left-forced. -}
 #if defined(OPTIMIZE)
-    (Seq (Seq Dup (Dip e)) Drop) → optimize' e
+    (Seq (Seq Dup (Dip e)) Drop)        → optimize' e
+    (Seq (Dip e) Drop)                  → optimize' (Seq Drop e)
+    (Seq (Seq (Seq e Dup) Swap) Drop)   → optimize' e
 
-    {- Possibly could move these elsewhere... -}
-    (Seq (Seq (Const v) (Seq (Seq (Dip Dup) Swap) ConsPair)) (Seq Swap Drop)) → return (Seq (Dip (Const v)) ConsPair)
+    -- (Seq (Seq (Seq Dup Cdr) Swap) Car)  → (Seq (Seq Dup (Dip Cdr)) Car)
 
-    (Seq (Seq (Seq e Dup) Swap) Drop) → optimize' e
+    (Seq (Seq Dup Swap) Drop)           → return Nop
+    (Seq Dup (Dip Drop))                → return Nop
 
-    {- Seq should be left-forced. -}
-    (Seq (Seq Dup Swap) Drop) → return Nop
-    (Seq Dup (Dip Drop))      → return Nop
-
-    (Seq (Seq Swap Dup) (Dip Swap)) → return (Seq (Dip Dup) Swap)
+    (Seq (Seq Swap Dup) (Dip Swap))     → return (Seq (Dip Dup) Swap)
 
     (Seq Dup Swap)  → return Dup
     (Seq Dup Drop)  → return Nop
     (Seq Swap Swap) → return Nop
+    (Seq Fail e)    → return Fail
 #endif
 
     (Seq e Nop)     → optimize' e
     (Seq Nop e)     → optimize' e
 
     (Seq x y)       → optimize' x >>= \x → optimize' y >>= \y → return (Seq x y)
-
-    (If x y)        → optimize' x >>= \x → optimize' y >>= \y → return (If x y)
 
     expr            → return expr

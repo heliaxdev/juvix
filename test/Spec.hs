@@ -24,7 +24,8 @@ compilationTests = T.testGroup "Compilation" (map compilationTestCase compilatio
 
 optimizationTests ∷ T.TestTree
 optimizationTests = T.testGroup "Optimization" [
-  T.testCase "NOP removed" (J.optimizeNoLogs (J.Seq J.Nop J.Nop) == (J.Nop ∷ J.Expr (J.Stack ()) (J.Stack ())) T.@? "NOP was not removed")
+  T.testCase "NOP removed" (J.optimizeNoLogs (J.Seq J.Nop J.Nop) == (J.Nop ∷ J.Expr (J.Stack ()) (J.Stack ())) T.@? "NOP was not removed"),
+  T.testCase "Duplicate swap removed" (J.optimizeNoLogs (J.Seq J.Swap J.Swap) == (J.Nop ∷ J.Expr (J.Stack (Integer, (Integer, ()))) (J.Stack (Integer, (Integer, ())))) T.@? "Duplicate swap was not removed")
   ]
 
 wrappedInterpret ∷ J.SomeExpr → J.DynamicValue → J.Tez → J.Timestamp → J.DynamicValue → T.Assertion

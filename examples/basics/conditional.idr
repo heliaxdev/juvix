@@ -8,7 +8,7 @@ import Tezos
 run__IO : a -> a
 run__IO f = f
 
--- The main function.
+-- The main function (XOR).
 main : (Bool, Bool) -> (List Operation, Bool)
 main (param, storage) =
   case storage of
