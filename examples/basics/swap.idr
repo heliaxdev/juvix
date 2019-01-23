@@ -10,9 +10,6 @@ run__IO f = f
 main : (String, String) -> (List Operation, String)
 main (param, storage) = (Nil, param)
 
-snd : (a, b) -> b
-snd (_, b) = b
-
 main_swaps_ex : snd (main ("param", "storage")) = "param"
 main_swaps_ex = Refl
 

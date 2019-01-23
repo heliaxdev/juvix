@@ -1,8 +1,12 @@
-module Token
+module Main
 
 import Tezos
 
 %default total
+
+-- A tiny hack for now.
+run__IO : a -> a
+run__IO f = f
 
 {- Definitions -}
 
@@ -19,31 +23,25 @@ record Token where
 newToken : (s : String, a : Nat) -> Token
 newToken s a = MkToken (Map.update s (Just a) Map.empty)
 
--- totalSupply : Token -> Nat
--- totalSupply = foldl (+) 0 . map snd . toList . balances
-
-{-
+totalSupply : Token -> Nat
+totalSupply t = Map.foldl (+) 0 (balances t)
 
 balanceOf : Token -> String -> Nat
 balanceOf token key = lookupWithDefault (balances token) key 0
 
-
-transfer : Token -> String -> String -> Nat -> (Token, Bool)
+transfer : Token -> String -> String -> Nat -> Token
 transfer token key dest amount =
-  let sourceBalance = balanceOf token key
-  in case isLTE amount sourceBalance of
-    Yes prf =>
-      let destBalance = balanceOf token dest
-      in (record { balances $= (insert dest (destBalance + amount) . insert key ((-) sourceBalance amount {smaller = prf})) } token, True)
-    No _ => (token, False)
-
--}
+  let sourceBalance = balanceOf token key in
+  if amount < sourceBalance then
+    let destBalance = balanceOf token dest in
+    record { balances $= (Map.update dest (Just (destBalance + amount)) . Map.update key (Just (sourceBalance - amount))) } token
+  else token
 
 data Action =
   Transfer String String Nat
 
 main : (Token, Action) -> (List Operation, Token)
-main (token, Transfer from to amount) = (Nil, token)
+main (token, Transfer from to amount) = (Nil, transfer token from to amount)
 
 {-
 
@@ -89,7 +87,3 @@ transferTotalSupplyPreserved : (t : Token, s : String, d : String, a : Nat) => t
 transferTotalSupplyPreserved = ?transferTotalSupplyPreserved
 
 -}
-
--- A tiny hack for now.
-run__IO : a -> a
-run__IO f = f

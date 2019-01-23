@@ -70,6 +70,18 @@ data Maybe : (v : Type) -> Type where
 
 %extern prim__tezosMulIntInt : Integer -> Integer -> Integer
 
+%extern prim__tezosAddNatNat : Nat -> Nat -> Nat
+
+%extern prim__tezosSubNat : Nat -> Nat -> Nat
+
+%extern prim__tezosMulNatNat : Nat -> Nat -> Nat
+
+%extern prim__tezosEqNat : Nat -> Nat -> Bool
+
+%extern prim__tezosLtNat : Nat -> Nat -> Bool
+
+%extern prim__tezosGtNat : Nat -> Nat -> Bool
+
 %extern prim__tezosEqInt : Integer -> Integer -> Bool
 
 %extern prim__tezosLtInt : Integer -> Integer -> Bool
