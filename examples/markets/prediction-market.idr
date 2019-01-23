@@ -1,5 +1,7 @@
 module Main
 
+import Tezos
+
 %default total
 
 -- A tiny hack for now.
@@ -7,8 +9,8 @@ run__IO : a -> a
 run__IO f = f
 
 -- Main contract function.
-main : String -> String
-main x = x
+main : (String, String) -> (List Operation, String)
+main _ = (Nil, "")
 
 -- TODO: Basic prediction market.
 -- Base it on this whitepaper: http://www.truthcoin.info/papers/truthcoin-whitepaper.pdf

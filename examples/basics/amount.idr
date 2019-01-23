@@ -10,5 +10,5 @@ run__IO : a -> a
 run__IO f = f
 
 -- Main contract function.
-main : (Tez, String) -> (List Operation, Tez)
+main : (String, Tez) -> (List Operation, Tez)
 main (_, _) = (Nil, amount)

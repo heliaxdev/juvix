@@ -227,10 +227,12 @@ primExprToExpr prim = do
 
     _                          -> notYetImplemented
 
-constToExpr ∷ ∀ m . MonadError CompilationError m ⇒ Const → m M.Const
+constToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Const → m M.Const
 constToExpr const = do
   let notYetImplemented ∷ m M.Const
       notYetImplemented = throw (NotYetImplemented (prettyPrintValue const))
+
+  modify ((:) M.FuncResult)
 
   case const of
     I.I v   -> pure (M.Int (fromIntegral v))
@@ -249,4 +251,17 @@ primToExpr prim args =
       b <- exprToExpr b
       modify ((:) M.FuncResult . drop 2)
       return (foldSeq [a, b, M.AddIntInt])
+    ("prim__tezosMulIntInt", [a, b]) -> do
+      a <- exprToExpr a
+      b <- exprToExpr b
+      modify ((:) M.FuncResult . drop 2)
+      return (foldSeq [a, b, M.MulIntInt])
+    ("prim__tezosLtTez", [a, b]) -> do
+      a <- exprToExpr a
+      b <- exprToExpr b
+      modify ((:) M.FuncResult . drop 2)
+      return (foldSeq [a, b, M.Lt])
+    ("prim__tezosFail", [_]) -> do
+      modify ((:) M.FuncResult)
+      return M.Fail
     _ -> throw (NotYetImplemented ("primitive: " <> prim))

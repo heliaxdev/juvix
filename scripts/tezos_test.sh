@@ -12,11 +12,23 @@ for file in ${files[@]}; do
   stack exec -- idris --noprelude -p tezos --check $file
 done
 
+ok=0
+exit=0
+
 for file in ${files[@]}; do
-  echo "Compiling $file..."
   OUT=$(mktemp).tz
-  ./scripts/tezos_compile.sh $file -o $OUT
-  test -f $OUT
+  OUTPUT=$(./scripts/tezos_compile.sh $file -o $OUT)
+  if test -f $OUT; then
+    ok=`expr $ok + 1`
+  else
+    echo "Compilation of $file failed!"
+    echo -e $OUTPUT
+    exit=1
+  fi
 done
 
+echo "$ok out of $count contracts compiled successfully!"
+
 rm -rf $TMP
+
+exit $exit

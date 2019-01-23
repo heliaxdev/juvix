@@ -34,6 +34,7 @@ typeToType ty =
         I.NS (I.UN "Integer") ["Prim", "Tezos"] -> return M.IntT
         I.NS (I.UN "Tez") ["Prim", "Tezos"] -> return M.TezT
         I.NS (I.UN "Bool") ["Prim", "Tezos"] -> return M.BoolT
+        I.NS (I.UN "Unit") _ -> return M.UnitT -- TODO
         _ -> throw (NotYetImplemented ("typeToType: unknown name " <> prettyPrintValue ty))
     I.V _ -> throw (NotYetImplemented "typeToType: cannot resolve deBrujin-indexed variables")
     I.App _ (I.App _ (I.P _ (I.NS (I.UN "Pair") ["Builtins"]) _) fst) snd -> do

@@ -22,7 +22,7 @@ verify _ _ _ = True
 -}
 
 -- Main contract function.
-main : String -> String
-main x = x
+main : (String, String) -> (List Operation, String)
+main _ = (Nil, "")
 
 -- TODO: Basic multisig: execute a transaction on N-of-M signatures. Requires ECDSA primitives.

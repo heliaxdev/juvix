@@ -39,14 +39,10 @@ getOpts = do xs <- getArgs
 
 codeGenSdecls ∷ Type → CodeGenerator
 codeGenSdecls ty ci = do
-  putText $ "Output file : " <> show (outputFile ci)
   putText $ "Type: " <> show ty
   let decls = liftDecls ci
-  putText $ "Number of decls: " <> show (length decls)
   let main = findMain decls
-  putText $ "Main decl print: " <> show main
   let decl = snd main
-  putText $ "Main decl prettified: " <> prettyPrintValue decl
   let LFun _ _ args body = decl
       expr = LLam args body
   putText $ "Main expr prettified: " <> prettyPrintValue expr
@@ -56,7 +52,6 @@ codeGenSdecls ty ci = do
       case res of
         Right output -> do
           writeFile (outputFile ci) output
-          putText "Compilation success!"
         Left err -> do
           putText $ "Error during transpilation: " <> prettyPrintValue err
           exitFailure

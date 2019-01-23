@@ -46,4 +46,4 @@ compileToMichelson expr ty = do
                 " but expected " <> prettyPrintType (undefined :: M.Pair startStorageTyLifted paramTyLifted, ()) <> ", end: "
                 <> prettyPrintType (undefined :: b) <> " but expected " <> prettyPrintType (undefined :: M.Pair retTyLifted endStorageTyLifted, ()) <>
                 ", expr: " <> prettyPrintValue michelsonExpr))
-    _ -> throw (InvalidInput "invalid type for main function")
+    ty -> throw (InvalidInput ("invalid type for main function: " <> prettyPrintValue ty))
