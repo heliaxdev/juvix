@@ -51,6 +51,18 @@ amount = prim__tezosAmount
 fail : a
 fail = prim__tezosFail
 
+sender : Address
+sender = prim__tezosSender
+
+transferTokens : p -> Tez -> Contract p -> Operation
+transferTokens = prim__tezosTransferTokens
+
+setDelegate : Maybe KeyHash -> Operation
+setDelegate = prim__tezosSetDelegate
+
+checkSignature : Key -> Signature -> Bytes -> Bool
+checkSignature = prim__tezosCheckSignature
+
 infix 6 ==, /=, <, <=, >, >=
 infixl 8 +, -
 infixl 9 *, /
@@ -69,6 +81,9 @@ Eq Nat where
 
 Eq Tez where
   (==) = prim__tezosEqTez
+
+Eq Address where
+  (==) = prim__tezosEqAddress
 
 Eq a => Eq (Maybe a) where
   (==) Nothing  Nothing   = True

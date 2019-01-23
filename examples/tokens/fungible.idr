@@ -18,18 +18,18 @@ lookupWithDefault map key default =
 
 record Token where
   constructor MkToken
-  balances: Map String Nat
+  balances: Map Address Nat
 
-newToken : (s : String, a : Nat) -> Token
+newToken : (s : Address, a : Nat) -> Token
 newToken s a = MkToken (Map.update s (Just a) Map.empty)
 
 totalSupply : Token -> Nat
 totalSupply t = Map.foldl (+) 0 (balances t)
 
-balanceOf : Token -> String -> Nat
+balanceOf : Token -> Address -> Nat
 balanceOf token key = lookupWithDefault (balances token) key 0
 
-transfer : Token -> String -> String -> Nat -> Token
+transfer : Token -> Address -> Address -> Nat -> Token
 transfer token key dest amount =
   let sourceBalance = balanceOf token key in
   if amount < sourceBalance then
@@ -38,10 +38,10 @@ transfer token key dest amount =
   else token
 
 data Action =
-  Transfer String String Nat
+  Transfer Address Nat
 
 main : (Token, Action) -> (List Operation, Token)
-main (token, Transfer from to amount) = (Nil, transfer token from to amount)
+main (token, Transfer to amount) = (Nil, transfer token sender to amount)
 
 {-
 

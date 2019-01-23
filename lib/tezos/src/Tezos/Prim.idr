@@ -9,6 +9,10 @@ data Bool = False | True
 
 data Key
 
+data KeyHash
+
+data Address
+
 data Hash
 
 data Integer
@@ -21,7 +25,13 @@ data Tez
 
 data String
 
+data Bytes
+
+data Signature
+
 data Operation
+
+data Contract : (p : Type) -> Type
 
 data Either : (l : Type, r : Type) -> Type where
   Left  : l -> Either l r
@@ -96,7 +106,29 @@ data Maybe : (v : Type) -> Type where
 
 %extern prim__tezosEqString : String -> String -> Bool
 
+%extern prim__tezosEqAddress : Address -> Address -> Bool
+
 %extern prim__tezosFail : a
+
+%extern prim__tezosExec : a -> (a -> b) -> b
+
+%extern prim__tezosLambda : (a -> b) -> (a -> b)
+
+%extern prim__tezosTransferTokens : p -> Tez -> Contract p -> Operation
+
+%extern prim__tezosSetDelegate : Maybe KeyHash -> Operation
+
+%extern prim__tezosAddress : Contract p -> Address
+
+%extern prim__tezosContract : Address -> Maybe (Contract p)
+
+%extern prim__tezosSource : Address
+
+%extern prim__tezosSender : Address
+
+%extern prim__tezosSelf : Contract p
+
+%extern prim__tezosImplicitAccount : KeyHash -> Contract Unit
 
 %extern prim__tezosManager : Key
 
@@ -105,5 +137,15 @@ data Maybe : (v : Type) -> Type where
 %extern prim__tezosBalance : Tez
 
 %extern prim__tezosAmount : Tez
+
+%extern prim__tezosHashKey : Key -> KeyHash
+
+%extern prim__tezosBlake2B : Bytes -> Bytes
+
+%extern prim__tezosSHA256 : Bytes -> Bytes
+
+%extern prim__tezosSHA512 : Bytes -> Bytes
+
+%extern prim__tezosCheckSignature : Key -> Signature -> Bytes -> Bool
 
 -- Syntax rules
