@@ -64,6 +64,10 @@ data Maybe : (v : Type) -> Type where
 
 %extern prim__tezosSetMap : (f : a -> b) -> Set a -> Set b
 
+%extern prim__tezosSetMember : v -> Set v -> Bool
+
+%extern prim__tezosSetSize : Set v -> Integer
+
 %extern prim__tezosEmptyMap : Map k v
 
 %extern prim__tezosMapGet : k -> Map k v -> Maybe v

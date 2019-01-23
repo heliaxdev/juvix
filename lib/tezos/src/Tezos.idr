@@ -45,6 +45,17 @@ namespace Map
   foldl : (a -> v -> a) -> a -> Map k v -> a
   foldl = prim__tezosFail
 
+namespace Set
+
+  empty : Set v
+  empty = prim__tezosEmptySet
+
+  member : v -> Set v -> Bool
+  member = prim__tezosSetMember
+
+  size : Set v -> Integer
+  size = prim__tezosSetSize
+
 amount : Tez
 amount = prim__tezosAmount
 

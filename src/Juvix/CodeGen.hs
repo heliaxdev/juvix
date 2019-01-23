@@ -76,24 +76,3 @@ main = do opts <- getOpts
           if (null (inputs opts))
              then showUsage
              else runMain (sdeclMain opts)
-
-{-
-data CodegenInfo = CodegenInfo {
-    outputFile    :: String
-  , outputType    :: OutputType
-  , targetTriple  :: String
-  , targetCPU     :: String
-  , includes      :: [FilePath]
-  , importDirs    :: [FilePath]
-  , compileObjs   :: [String]
-  , compileLibs   :: [String]
-  , compilerFlags :: [String]
-  , debugLevel    :: DbgLevel
-  , simpleDecls   :: [(Name, SDecl)] -- most low level
-  , defunDecls    :: [(Name, DDecl)]
-  , liftDecls     :: [(Name, LDecl)]
-  , interfaces    :: Bool
-  , exportDecls   :: [ExportIFace]
-  , ttDecls       :: [(Name, TTDecl)]
-  }
--}
