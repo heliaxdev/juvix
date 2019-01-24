@@ -1,29 +1,12 @@
 module Tezos
 
+import public Interfaces
+import public Basics
+
 import public Tezos.Prim
 
 %access public export
 %default total
-
-id : a -> a
-id x = x
-
-the : (a : Type) -> (value : a) -> a
-the _ = id
-
-const : a -> b -> a
-const x = \value => x
-
-fst : (a, b) -> a
-fst (x, y) = x
-
-snd : (a, b) -> b
-snd (x, y) = y
-
-infixr 9 .
-
-(.) : (b -> c) -> (a -> b) -> a -> c
-(.) f g = \x => f (g x)
 
 namespace Map
 
@@ -74,13 +57,6 @@ setDelegate = prim__tezosSetDelegate
 checkSignature : Key -> Signature -> Bytes -> Bool
 checkSignature = prim__tezosCheckSignature
 
-infix 6 ==, /=, <, <=, >, >=
-infixl 8 +, -
-infixl 9 *, /
-
-interface Eq ty where
-  (==) : ty -> ty -> Bool
-
 Eq String where
   (==) = prim__tezosEqString
 
@@ -101,28 +77,19 @@ Eq a => Eq (Maybe a) where
   (==) (Just x) (Just y)  = (==) x y
   (==) _        _         = False
 
-interface Num ty where
-  (+) : ty -> ty -> ty
-  (-) : ty -> ty -> ty
-  (*) : ty -> ty -> ty
-
-  fromInteger : Integer -> ty
-
 Num Integer where
   (+) = prim__tezosAddIntInt
-  (-) = prim__tezosSubInt
   (*) = prim__tezosMulIntInt
   fromInteger = id
 
 Num Nat where
   (+) = prim__tezosAddNatNat
-  (-) = prim__tezosSubNat
   (*) = prim__tezosMulNatNat
   fromInteger = prim__tezosFail
 
-interface Eq ty => Ord ty where
-  (<) : ty -> ty -> Bool
-  (>) : ty -> ty -> Bool
+Neg Nat where
+  negate = prim__tezosFail
+  (-) = prim__tezosSubNat
 
 Ord Integer where
   (<) = prim__tezosLtInt
