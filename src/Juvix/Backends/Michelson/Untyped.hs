@@ -4,7 +4,7 @@ import           Protolude     hiding (Const (..), Type (..))
 
 import           Juvix.Utility
 
-type Stack = [StackElem]
+type Stack = [(StackElem, Type)]
 
 data StackElem
   = ConstE Const

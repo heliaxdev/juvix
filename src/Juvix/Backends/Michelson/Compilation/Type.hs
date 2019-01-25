@@ -19,7 +19,6 @@ exprToType expr =
   case expr of
     I.LLazyExp e -> exprToType e
     I.LForce e -> exprToType e
-    I.LV (I.NS (I.UN "MkPair") ["Builtins"]) -> return $ M.PairT M.StringT M.StringT
     I.LV (I.NS (I.UN "Operation") ["Prim", "Tezos"]) -> return M.OperationT
     I.LCon _ _ (I.NS (I.UN "Operation") ["Prim", "Tezos"]) _ -> return M.OperationT
     I.LV _ -> throw (NotYetImplemented ("exprToType (var): " <> prettyPrintValue expr))
@@ -62,15 +61,3 @@ typeToType ty =
       retTy <- typeToType retTy
       return $ M.LamT argTy retTy
     _ -> throw (NotYetImplemented ("typeToType: " <> prettyPrintValue ty))
-
-dataconToType ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Name → m M.Type
-dataconToType name =
-  case name of
-    I.NS (I.UN "True") ["Prim", "Tezos"] ->
-      return M.BoolT
-    I.NS (I.UN "False") ["Prim", "Tezos"] ->
-      return M.BoolT
-    I.NS (I.UN "MkPair") ["Builtins"] ->
-      return (M.PairT M.StringT M.StringT)
-    _ ->
-      throw (NotYetImplemented ("dataconToType: " <> prettyPrintValue name))

@@ -39,6 +39,12 @@ data DynamicValue where
 data DynamicType where
   DynamicType ∷ ∀ a . (Dynamical a) ⇒ Proxy a → DynamicType
 
+instance Eq DynamicType where
+  (==) (DynamicType (Proxy :: Proxy x)) (DynamicType (Proxy :: Proxy y)) =
+    case eqT :: Maybe (x :~: y) of
+      Just Refl -> True
+      _         -> False
+
 instance PrettyPrint DynamicType where
   prettyPrintValue v = prettyPrintType v
 

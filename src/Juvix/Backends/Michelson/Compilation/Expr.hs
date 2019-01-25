@@ -7,6 +7,7 @@ import           Protolude                                  hiding (Const, Type)
 
 import           Juvix.Backends.Michelson.Compilation.Types
 import           Juvix.Backends.Michelson.Compilation.Type
+import Juvix.Backends.Michelson.Lift
 import           Juvix.Backends.Michelson.Compilation.Util
 import qualified Juvix.Backends.Michelson.Untyped           as M
 import           Juvix.Lang
@@ -16,7 +17,11 @@ import qualified Idris.Core.TT                              as I
 import qualified IRTS.Lang                                  as I
 
 exprToMichelson ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Expr → Type → m (M.Expr, M.Type)
-exprToMichelson expr ty = (,) <$> exprToExpr expr <*> typeToType ty
+exprToMichelson expr ty = do
+  ty@(M.LamT start end) <- typeToType ty
+  modify ((:) (M.FuncResult, start))
+  expr <- exprToExpr expr
+  return (expr, ty)
 
 {-
  - Transform core expression to Michelson instruction sequence.
@@ -25,8 +30,18 @@ exprToMichelson expr ty = (,) <$> exprToExpr expr <*> typeToType ty
  - ∷ { Haskell Type } ~ { Stack Pre-Evaluation } ⇒ { Stack Post-Evaluation }
  -}
 
+liftGuard  ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Expr → (Expr → m M.Expr) → m M.Expr
+liftGuard expr func = do
+  stk <- get
+  michelsonExpr <- func expr
+  (_, endType) <- liftUntyped michelsonExpr (stackToStack stk) (liftType M.BoolT)
+  end <- get
+  unless (stackToStack end == endType) $
+    throw (InternalFault ("Stack mismatch while compiling " <> prettyPrintValue expr <> " : end stack " <> prettyPrintValue end <> ", lifted stack: " <> prettyPrintValue endType))
+  return michelsonExpr
+
 exprToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Expr → m M.Expr
-exprToExpr expr = do
+exprToExpr expr = liftGuard expr $ \expr -> do
 
   let tellReturn ∷ M.Expr → m M.Expr
       tellReturn ret = tell [ExprToExpr expr ret] >> return ret
@@ -97,16 +112,20 @@ exprToExpr expr = do
       notYetImplemented
 
     -- ∷ \a... → b ~ (a..., s) ⇒ (b, s)
-    I.LLam args body     -> stackGuard (lambda (length args)) $ do
-      -- Ordering: Treat as \a b -> c ~= \a -> \b -> c, e.g. reverse stack order.
-      forM_ args (\a -> modify ((:) (M.VarE (prettyPrintValue a))))
+    I.LLam [arg] body     -> stackGuard (lambda 1) $ do
+      modify (\((x, t):xs) -> (M.VarE (prettyPrintValue arg), t):xs)
       inner <- exprToExpr body
-      after ← genReturn (foldDrop (length args))
-      tellReturn (M.Seq inner after)
+      after ← genReturn (foldDrop 1)
+      return (M.Seq inner after)
+
+    -- TODO: Multi-arg lambdas.
+    -- Ordering: Treat as \a b -> c ~= \a -> \b -> c, e.g. reverse stack order.
+    -- forM_ args (\a -> modify ((:) (M.VarE (prettyPrintValue a), M.PairT M.BoolT M.BoolT))) -- TODO
 
     -- ??
     I.LProj expr num     -> notYetImplemented
 
+    -- ∷ a ~ s ⇒ (a, s)
     I.LCon _ _ name args -> stackGuard addsOne $ do
       dataconToExpr name args
 
@@ -117,7 +136,7 @@ exprToExpr expr = do
       -- Unpack necessary variables in fixed pattern according to desired bindings
       -- Rewrite case with more than two alternatives to nested version.
 
-      start <- get
+      (start :: M.Stack) <- get
 
       let invariant = do
             end <- get
@@ -130,28 +149,30 @@ exprToExpr expr = do
       -- Evaluate the scrutinee.
       scrutinee <- exprToExpr expr
 
+      stack <- get
+      let Just (_, scrutineeType) = head stack
+
       evaluand <-
         case alts of
           [I.LConCase _ conA bindsA exprA, I.LConCase _ conB bindsB exprB] -> do
-            scrutineeTypeA <- dataconToType conA
-            scrutineeTypeB <- dataconToType conB
-            unless (scrutineeTypeA == scrutineeTypeB) (throw (NotYetImplemented "unequal scrutinee types"))
-            switch <- genSwitch scrutineeTypeA
+            switch <- genSwitch scrutineeType
             switchCase <- do
-              now <- get
-              unpackA <- unpack scrutineeTypeA (map (Just . prettyPrintValue) bindsA)
+              (now :: M.Stack) <- get
+              unpackA <- unpack scrutineeType (map (Just . prettyPrintValue) bindsA)
               exprA <- exprToExpr exprA
-              unpackDropA <- unpackDrop (map (Just . prettyPrintValue) bindsA)
+              unpackDropA <- unpackDrop (map (Just . prettyPrintValue) $ drop 1 bindsA)
+              (endA :: M.Stack) <- get
               modify (const now)
-              unpackB <- unpack scrutineeTypeB (map (Just . prettyPrintValue) bindsB)
+              unpackB <- unpack scrutineeType (map (Just . prettyPrintValue) bindsB)
               exprB <- exprToExpr exprB
-              unpackDropB <- unpackDrop (map (Just . prettyPrintValue) bindsB)
+              unpackDropB <- unpackDrop (map (Just . prettyPrintValue) $ drop 1 bindsB)
+              endB <- get
+              unless (endA == endB) (throw (NotYetImplemented ("case compilation returned unequal stacks: " <> prettyPrintValue endA <> ", " <> prettyPrintValue endB)))
               let caseA = foldSeq [unpackA, exprA, unpackDropA]
                   caseB = foldSeq [unpackB, exprB, unpackDropB]
               return $ switch caseA caseB
             return $ foldSeq [scrutinee, switchCase]
           [I.LConCase _ con binds expr] -> do
-            scrutineeType <- dataconToType con
             -- later: usage analysis
             unpack <- unpack scrutineeType (map (Just . prettyPrintValue) binds)
             expr <- exprToExpr expr
@@ -174,10 +195,12 @@ exprToExpr expr = do
     -- (various)
     I.LForeign _ _ _     -> notYetImplemented
 
-    -- (various)
-    I.LOp (I.LExternal (I.NS (I.UN prim) ["Prim", "Tezos"])) args -> primToExpr prim args
+    -- ∷ a ~ s ⇒ (a, s)
+    I.LOp (I.LExternal (I.NS (I.UN prim) ["Prim", "Tezos"])) args -> stackGuard addsOne $ do
+      primToExpr prim args
 
-    I.LOp prim args      -> do
+    -- ∷ a ~ s ⇒ (a, s)
+    I.LOp prim args      -> stackGuard addsOne $ do
       args <- mapM exprToExpr args
       prim <- primExprToExpr prim
       return (M.Seq (foldl M.Seq M.Nop args) prim)
@@ -197,22 +220,22 @@ dataconToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError Compilatio
 dataconToExpr name args =
   case (name, args) of
     (I.NS (I.UN "True") ["Prim", "Tezos"], []) -> do
-      modify ((:) M.FuncResult)
+      modify ((:) (M.FuncResult, M.BoolT))
       return (M.Const $ M.Bool True)
     (I.NS (I.UN "False") ["Prim", "Tezos"], []) -> do
-      modify ((:) M.FuncResult)
+      modify ((:) (M.FuncResult, M.BoolT))
       return (M.Const $ M.Bool False)
     (I.NS (I.UN "MkPair") ["Builtins"], args@[_, _]) -> do
       args <- mapM exprToExpr args
-      modify ((:) M.FuncResult . drop 2)
+      modify (\( (_, xT) : (_, yT) : xs) -> (M.FuncResult, M.PairT yT xT) : xs)
       return $ foldSeq (args ++ [M.Swap, M.ConsPair])
     (I.NS (I.UN "Nil") ["Prim", "Tezos"], [expr]) -> do
-      modify ((:) M.FuncResult)
       ty <- exprToType expr
+      modify ((:) (M.FuncResult, M.ListT ty))
       return $ M.Nil ty
     (I.NS (I.UN "Nil") ["Prim", "Tezos"], []) -> do
       -- TODO
-      modify ((:) M.FuncResult)
+      modify ((:) (M.FuncResult, M.ListT M.OperationT))
       return $ M.Nil M.OperationT
     _ -> throw (NotYetImplemented ("data con: " <> prettyPrintValue name))
 
@@ -222,8 +245,12 @@ primExprToExpr prim = do
       notYetImplemented = throw (NotYetImplemented $ prettyPrintValue prim)
 
   case prim of
-    I.LPlus (I.ATInt I.ITBig)  -> return M.AddIntInt
-    I.LMinus (I.ATInt I.ITBig) -> return M.SubInt
+    I.LPlus (I.ATInt I.ITBig)  -> do
+      modify ((:) (M.FuncResult, M.IntT) . drop 2)
+      return M.AddIntInt
+    I.LMinus (I.ATInt I.ITBig) -> do
+      modify ((:) (M.FuncResult, M.IntT) . drop 2)
+      return M.SubInt
 
     _                          -> notYetImplemented
 
@@ -232,36 +259,41 @@ constToExpr const = do
   let notYetImplemented ∷ m M.Const
       notYetImplemented = throw (NotYetImplemented (prettyPrintValue const))
 
-  modify ((:) M.FuncResult)
 
   case const of
-    I.I v   -> pure (M.Int (fromIntegral v))
-    I.BI v  -> pure (M.Int v)
-    I.Str s -> pure (M.String (T.pack s))
+    I.I v   -> do
+      modify ((:) (M.FuncResult, M.IntT))
+      return (M.Int (fromIntegral v))
+    I.BI v  -> do
+      modify ((:) (M.FuncResult, M.IntT))
+      return (M.Int v)
+    I.Str s -> do
+      modify ((:) (M.FuncResult, M.StringT))
+      return (M.String (T.pack s))
     _       -> notYetImplemented
 
 primToExpr ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m, MonadState M.Stack m) ⇒ Text → [Expr] -> m M.Expr
 primToExpr prim args =
   case (prim, args) of
     ("prim__tezosAmount", []) -> do
-      modify ((:) M.FuncResult)
+      modify ((:) (M.FuncResult, M.TezT))
       return M.Amount
     ("prim__tezosAddIntInt", [a, b]) -> do
       a <- exprToExpr a
       b <- exprToExpr b
-      modify ((:) M.FuncResult . drop 2)
+      modify ((:) (M.FuncResult, M.IntT) . drop 2)
       return (foldSeq [a, b, M.AddIntInt])
     ("prim__tezosMulIntInt", [a, b]) -> do
       a <- exprToExpr a
       b <- exprToExpr b
-      modify ((:) M.FuncResult . drop 2)
+      modify ((:) (M.FuncResult, M.IntT) . drop 2)
       return (foldSeq [a, b, M.MulIntInt])
     ("prim__tezosLtTez", [a, b]) -> do
       a <- exprToExpr a
       b <- exprToExpr b
-      modify ((:) M.FuncResult . drop 2)
+      modify ((:) (M.FuncResult, M.BoolT) . drop 2)
       return (foldSeq [a, b, M.Lt])
     ("prim__tezosFail", [_]) -> do
-      modify ((:) M.FuncResult)
+      modify ((:) (M.FuncResult, M.UnitT))
       return M.Fail
     _ -> throw (NotYetImplemented ("primitive: " <> prim))

@@ -17,25 +17,19 @@ pack ty      = throw (NotYetImplemented ("pack: " `T.append` prettyPrintValue ty
 
 -- Start with value to unpack at top of stack. len (filter Just binds) will be dropped at the end.
 unpack ∷ forall m . (MonadError CompilationError m, MonadState M.Stack m) ⇒ M.Type → [Maybe T.Text] → m M.Expr
-unpack ty []          | ty `elem` unitaryTypes = do
-  genReturn M.Drop
-{-
-unpack ty [Nothing]   | ty `elem` unitaryTypes = do
-  genReturn M.Drop
-unpack ty [Just bind] | ty `elem` unitaryTypes = do
-  modify ((:) (M.VarE bind) . drop 1)
+unpack M.BoolT [] = do
+  modify (drop 1)
   return M.Nop
--}
-unpack ty@(M.PairT _ _) binds =
+unpack ty@(M.PairT fT sT) binds =
   case binds of
     [Just fst, Just snd] → do
-      modify ((<>) [M.VarE fst, M.VarE snd] . drop 1)
+      modify ((<>) [(M.VarE fst, fT), (M.VarE snd, sT)] . drop 1)
       return (M.Seq (M.Seq (M.Seq M.Dup M.Cdr) M.Swap) M.Car)
     [Just fst, Nothing] → do
-      modify ((:) (M.VarE fst) . drop 1)
+      modify ((:) (M.VarE fst, fT) . drop 1)
       return M.Car
     [Nothing, Just snd] → do
-      modify ((:) (M.VarE snd) . drop 1)
+      modify ((:) (M.VarE snd, sT) . drop 1)
       return M.Cdr
     [Nothing, Nothing]  → do
       genReturn M.Drop
@@ -56,10 +50,11 @@ unrearrange 1 = M.Swap
 unrearrange n = M.Seq M.Swap (M.Dip (unrearrange (n - 1)))
 
 position ∷ T.Text → M.Stack → Maybe Int
-position n = elemIndex (M.VarE n)
+position n []     = Nothing
+position n (x:xs) = if fst x == M.VarE n then Just 0 else (+) 1 |<< position n xs
 
 dropFirst ∷ T.Text → M.Stack → M.Stack
-dropFirst n (x:xs) = if x == M.VarE n then xs else x : dropFirst n xs
+dropFirst n (x:xs) = if fst x == M.VarE n then xs else x : dropFirst n xs
 dropFirst _ []     = []
 
 foldDrop ∷ Int → M.Expr
@@ -93,39 +88,39 @@ genReturn expr = do
   return expr
 
 genFunc ∷ forall m . MonadError CompilationError m ⇒ M.Expr → m (M.Stack → M.Stack)
-genFunc expr = if
+genFunc expr =
 
-  | expr `elem` [M.Nop] → return (\x -> x)
+  case expr of
+    M.Nop -> return (\x -> x)
 
-  | expr `elem` [M.Drop] → return (drop 1)
-  | expr `elem` [M.Dup] → return (\(x:xs) → x:x:xs)
-  | expr `elem` [M.Swap] → return (\(x:y:xs) → y:x:xs)
+    M.Drop -> return (drop 1)
+    M.Dup -> return (\(x:xs) -> x:x:xs)
+    M.Swap -> return (\(x:y:xs) -> y:x:xs)
 
-  | expr `elem` [M.Amount] → return ((:) M.FuncResult)
+    M.Amount -> return ((:) (M.FuncResult, M.TezT))
 
-  | isNilList expr -> return ((:) M.FuncResult)
+    M.Nil t -> return ((:) (M.FuncResult, M.ListT t))
 
-  | expr `elem` [M.Fail, M.Left, M.Right, M.DefaultAccount, M.Car, M.Cdr, M.Eq, M.Le, M.Not] → return ((:) M.FuncResult . drop 1)
+    M.Car -> return (\( (_, M.PairT x _) : xs) -> (M.FuncResult, x) : xs)
+    M.Cdr -> return (\( (_, M.PairT _ y) : xs) -> (M.FuncResult, y) : xs)
 
-  | expr `elem` [M.MapGet, M.AddIntNat, M.AddNatInt, M.AddNatNat, M.AddIntInt, M.AddTez, M.SubInt, M.SubTez, M.MulIntInt, M.ConsPair] → return ((:) M.FuncResult . drop 2)
+    M.ConsPair -> return (\( (_, xT) : (_, yT) : xs) -> (M.FuncResult, M.PairT xT yT) : xs)
 
-  | expr `elem` [M.MapUpdate] → return ((:) M.FuncResult . drop 3)
+    M.AddIntInt -> return ((:) (M.FuncResult, M.IntT) . drop 2)
+    M.MulIntInt -> return ((:) (M.FuncResult, M.IntT) . drop 2)
 
-  | otherwise →
-      case expr of
+    M.Dip x -> do
+      f <- genFunc x
+      return (\(x:xs) -> x : f xs)
 
-        M.Dip x → do
-          f ← genFunc x
-          return (\(x:xs) → x : f xs)
+    M.Seq x y → do
+      x ← genFunc x
+      y ← genFunc y
+      return (y . x)
 
-        M.Seq x y → do
-          x ← genFunc x
-          y ← genFunc y
-          return (y . x)
+    M.Const (M.Bool _) → return ((:) (M.FuncResult, M.BoolT))
 
-        M.Const _ → return ((:) (M.FuncResult))
-
-        _ → throw (NotYetImplemented (T.concat ["genFunc: ", prettyPrintValue expr]))
+    _ → throw (NotYetImplemented (T.concat ["genFunc: ", prettyPrintValue expr]))
 
 isNilList ∷ M.Expr → Bool
 isNilList (M.Nil _) = True

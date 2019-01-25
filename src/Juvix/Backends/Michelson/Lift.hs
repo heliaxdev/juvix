@@ -1,19 +1,17 @@
 module Juvix.Backends.Michelson.Lift where
 
+import           Control.Monad.Writer
 import           Data.Typeable
-import           Protolude                        hiding (Const (..),
-                                                   Either (..), Option (..),
-                                                   notImplemented)
-import qualified Protolude                        as P
+import           Protolude                                  hiding (Const (..),
+                                                             Either (..),
+                                                             Option (..),
+                                                             notImplemented)
+import qualified Protolude                                  as P
 
+import           Juvix.Backends.Michelson.Compilation.Types
 import           Juvix.Backends.Michelson.Typed
-import qualified Juvix.Backends.Michelson.Untyped as U
+import qualified Juvix.Backends.Michelson.Untyped           as U
 import           Juvix.Utility
-
-data TypecheckError
-  = CannotCastAs DynamicError
-  | NotImplemented
-  | Wrapped Text TypecheckError
 
 {-  Lift an untyped Michelson instruction sequence, with an initial stack type, into a typed (GADT) Michelson instruction sequence and return stack type in a typesafe manner.
     The type of the instruction sequence is *not* known until runtime (hence the heavy existential / scoped type variable use).
@@ -30,72 +28,74 @@ data TypecheckError
 -- but type of what, e.g. LEFT 2; IF_LEFT {...} {...} - don't *know* type
 -- the annotation route is correct I think
 
-liftUntyped ∷ ∀ m . (MonadError TypecheckError m) ⇒ U.Expr → DynamicType → DynamicType → m (SomeExpr, DynamicType)
+liftUntyped ∷ ∀ m . (MonadWriter [CompilationLog] m, MonadError CompilationError m) ⇒ U.Expr → DynamicType → DynamicType → m (SomeExpr, DynamicType)
 liftUntyped expr stk@(DynamicType (prx@(Proxy ∷ Proxy stkTy))) str@(DynamicType (Proxy ∷ Proxy storageTy)) = do
+
+  --tell [TryLift expr stk str]
 
   let wrap ∷ TypecheckError → TypecheckError
       wrap = Wrapped ("expr: " <> prettyPrintValue expr <> ", stack: " <> prettyPrintProxy prx)
 
-      notImplemented ∷ (MonadError TypecheckError m) ⇒ m a
-      notImplemented = throw (wrap NotImplemented)
+      notImplemented ∷ (MonadError CompilationError m) ⇒ m a
+      notImplemented = throw (DidNotTypecheck $ wrap NotImplemented)
 
-      cannotCastAs ∷ DynamicError → (MonadError TypecheckError m) ⇒ m a
-      cannotCastAs = throw . wrap . CannotCastAs
+      cannotCastAs ∷ DynamicError → (MonadError CompilationError m) ⇒ m a
+      cannotCastAs = throw . DidNotTypecheck . wrap . CannotCastAs
 
-      take1 ∷ (MonadError TypecheckError m) ⇒ m (DynamicType, DynamicType)
+      take1 ∷ (MonadError CompilationError m) ⇒ m (DynamicType, DynamicType)
       take1 = case unProduct prx of
                 P.Left e  → cannotCastAs e
                 P.Right r → return r
 
-      take2 ∷ (MonadError TypecheckError m) ⇒ m (DynamicType, DynamicType, DynamicType)
+      take2 ∷ (MonadError CompilationError m) ⇒ m (DynamicType, DynamicType, DynamicType)
       take2 = do
         (x, DynamicType r) ← take1
         case unProduct r of
           P.Left e       → cannotCastAs e
           P.Right (y, z) → return (x, y, z)
 
-      take3 ∷ (MonadError TypecheckError m) ⇒ m (DynamicType, DynamicType, DynamicType, DynamicType)
+      take3 ∷ (MonadError CompilationError m) ⇒ m (DynamicType, DynamicType, DynamicType, DynamicType)
       take3 = do
         (x, y, DynamicType r) ← take2
         case unProduct r of
           P.Left e       → cannotCastAs e
           P.Right (a, b) → return (x, y, a, b)
 
-      take4 ∷ (MonadError TypecheckError m) ⇒ m (DynamicType, DynamicType, DynamicType, DynamicType, DynamicType)
+      take4 ∷ (MonadError CompilationError m) ⇒ m (DynamicType, DynamicType, DynamicType, DynamicType, DynamicType)
       take4 = do
         (x, y, z, DynamicType r) ← take3
         case unProduct r of
           P.Left e       → cannotCastAs e
           P.Right (a, b) → return (x, y, z, a, b)
 
-      take1As ∷ (MonadError TypecheckError m) ⇒ (DynamicType → m b) → m (b, DynamicType)
+      take1As ∷ (MonadError CompilationError m) ⇒ (DynamicType → m b) → m (b, DynamicType)
       take1As func = do
         (head, rest) ← take1
         maybe ← func head
         return (maybe, rest)
 
-      asUnion ∷ (MonadError TypecheckError m) ⇒ DynamicType → m (DynamicType, DynamicType)
+      asUnion ∷ (MonadError CompilationError m) ⇒ DynamicType → m (DynamicType, DynamicType)
       asUnion (DynamicType prx) =
         case unSum prx of
           P.Left e  → cannotCastAs e
           P.Right r → return r
 
-      asProduct ∷ (MonadError TypecheckError m) ⇒ DynamicType → m (DynamicType, DynamicType)
+      asProduct ∷ (MonadError CompilationError m) ⇒ DynamicType → m (DynamicType, DynamicType)
       asProduct (DynamicType prx) =
         case unProduct prx of
           P.Left e  → cannotCastAs e
           P.Right r → return r
 
-      asArrow ∷ (MonadError TypecheckError m) ⇒ DynamicType → m (DynamicType, DynamicType)
+      asArrow ∷ (MonadError CompilationError m) ⇒ DynamicType → m (DynamicType, DynamicType)
       asArrow (DynamicType prx) =
         case unArrow prx of
           P.Left e  → cannotCastAs e
           P.Right r → return r
 
-      take1Pair ∷ (MonadError TypecheckError m) ⇒ m ((DynamicType, DynamicType), DynamicType)
+      take1Pair ∷ (MonadError CompilationError m) ⇒ m ((DynamicType, DynamicType), DynamicType)
       take1Pair = take1As asProduct
 
-      take1Union ∷ (MonadError TypecheckError m) ⇒ m ((DynamicType, DynamicType), DynamicType)
+      take1Union ∷ (MonadError CompilationError m) ⇒ m ((DynamicType, DynamicType), DynamicType)
       take1Union = take1As asUnion
 
   case expr of
@@ -240,16 +240,10 @@ typeToStack ty =
   case liftType ty of
     DynamicType (Proxy ∷ Proxy t) → DynamicType (Proxy ∷ Proxy (t, ()))
 
-instance PrettyPrint DynamicError where
-  prettyPrintValue (CannotCast (DynamicValue v) _)                      = "cannot cast " <> prettyPrintValue v <> " to "
-  prettyPrintValue (CannotUnify (Proxy :: Proxy a) (Proxy :: Proxy b))  = "cannot unify " <> prettyPrintType (undefined :: a) <> " with " <> prettyPrintType (undefined :: b)
-  prettyPrintValue (NotAnOptionType prx) = "not an option type: " <> prettyPrintProxy prx
-  prettyPrintValue (NotAProductType prx) = "not a product type: " <> prettyPrintProxy prx
-  prettyPrintValue (NotASumType prx)     = "not a sum type: " <> prettyPrintProxy prx
-  prettyPrintValue (NotAnArrowType prx)  = "not an arrow type: " <> prettyPrintProxy prx
-
-instance PrettyPrint TypecheckError where
-  prettyPrintValue = \case
-    Wrapped t e      -> prettyPrintValue e <> "; " <> t
-    CannotCastAs e   -> "cannot cast: " <> prettyPrintValue e
-    NotImplemented   -> "not yet implemented"
+stackToStack ∷ U.Stack → DynamicType
+stackToStack []     = DynamicType (Proxy ∷ Proxy ())
+stackToStack (h:tl) =
+  case stackToStack tl of
+     DynamicType (Proxy :: Proxy tt) ->
+        case liftType (snd h) of
+          DynamicType (Proxy :: Proxy ht) -> DynamicType (Proxy :: Proxy (ht, tt))
