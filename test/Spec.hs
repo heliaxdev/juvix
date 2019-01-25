@@ -3,6 +3,7 @@ import           Protolude
 import qualified Data.Text        as T
 import qualified System.IO        as IO
 import qualified System.IO.Temp   as Temp
+import qualified System.Process   as P
 import qualified Test.Tasty       as T
 import qualified Test.Tasty.HUnit as T
 
@@ -48,7 +49,7 @@ compilationTestCase (CompilationTestCase name idris inputs) =
     path ← Temp.emptySystemTempFile "test.idr"
     step "Compiling to Michelson..."
     IO.writeFile path (T.unpack idris)
-    T.assertFailure "TODO!"
+    P.callProcess "stack" ["exec", "--", "idris", "--interface", "--noprelude", "-p", "tezos", "--ibcsubdir", "tmp", "--codegen", "juvix", path, "-o", "test.tz"]
     {-
     compileResult ← J.compileToTyped path
     case compileResult of

@@ -19,7 +19,6 @@ lint:
 	stack exec -- hlint app codegen src test
 
 test:
-	stack clean
 	stack test --fast --ghc-options "-DOPTIMIZE"
 
 test-tezos:

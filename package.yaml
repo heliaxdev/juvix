@@ -108,3 +108,4 @@ tests:
       - tasty-hunit
       - temporary
       - raw-strings-qq
+      - process
