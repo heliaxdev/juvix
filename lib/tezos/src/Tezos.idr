@@ -19,6 +19,9 @@ namespace Map
   update : k -> Maybe v -> Map k v -> Map k v
   update = prim__tezosMapUpdate
 
+  insert : k -> v -> Map k v -> Map k v
+  insert k v m = update k (Just v) m
+
   member : k -> Map k v -> Bool
   member = prim__tezosMapMember
 
@@ -42,11 +45,17 @@ namespace Set
 amount : Tez
 amount = prim__tezosAmount
 
+now : Timestamp
+now = prim__tezosNow
+
 fail : a
 fail = prim__tezosFail
 
 sender : Address
 sender = prim__tezosSender
+
+sha256 : Bytes -> Bytes
+sha256 = prim__tezosSHA256
 
 transferTokens : p -> Tez -> Contract p -> Operation
 transferTokens = prim__tezosTransferTokens
@@ -58,19 +67,22 @@ checkSignature : Key -> Signature -> Bytes -> Bool
 checkSignature = prim__tezosCheckSignature
 
 Eq String where
-  (==) = prim__tezosEqString
+  (==) x y = prim__tezosEq (prim__tezosCompareString x y)
 
 Eq Integer where
-  (==) = prim__tezosEqInt
+  (==) x y = prim__tezosEq (prim__tezosCompareInt x y)
 
 Eq Nat where
-  (==) = prim__tezosEqNat
+  (==) x y = prim__tezosEq (prim__tezosCompareNat x y)
 
 Eq Tez where
-  (==) = prim__tezosEqTez
+  (==) x y = prim__tezosEq (prim__tezosCompareTez x y)
 
 Eq Address where
-  (==) = prim__tezosEqAddress
+  (==) x y = prim__tezosEq (prim__tezosCompareAddress x y)
+
+Eq Bytes where
+  (==) x y = prim__tezosEq (prim__tezosCompareBytes x y)
 
 Eq a => Eq (Maybe a) where
   (==) Nothing  Nothing   = True
@@ -89,19 +101,25 @@ Num Nat where
 
 Neg Nat where
   negate = prim__tezosFail
-  (-) = prim__tezosSubNat
+  (-) = prim__tezosSubNatNat
 
 Ord Integer where
-  (<) = prim__tezosLtInt
-  (>) = prim__tezosGtInt
+  (<) x y = prim__tezosLt (prim__tezosCompareInt x y)
+  (>) x y = prim__tezosGt (prim__tezosCompareInt x y)
 
 Ord Nat where
-  (<) = prim__tezosLtNat
-  (>) = prim__tezosGtNat
+  (<) x y = prim__tezosLt (prim__tezosCompareNat x y)
+  (>) x y = prim__tezosGt (prim__tezosCompareNat x y)
 
 Ord Tez where
-  (<) = prim__tezosLtTez
-  (>) = prim__tezosGtTez
+  (<) x y = prim__tezosLt (prim__tezosCompareTez x y)
+  (>) x y = prim__tezosGt (prim__tezosCompareTez x y)
+
+Semigroup String where
+  (<+>) = prim__tezosConcatString
+
+Semigroup Bytes where
+  (<+>) = prim__tezosConcatBytes
 
 ifThenElse : (b : Bool) -> (t : Lazy a) -> (e : Lazy a) -> a
 ifThenElse True  t e = t

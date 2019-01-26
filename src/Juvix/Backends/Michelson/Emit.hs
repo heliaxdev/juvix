@@ -43,6 +43,7 @@ emit expr =
     Nil      → "NIL operation"
 
     AddIntInt -> "ADD"
+    MulIntInt -> "MUL"
 
     Amount   → "AMOUNT"
 

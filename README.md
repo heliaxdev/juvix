@@ -8,7 +8,9 @@
 
 Work in progress. Do not expect API stability. This is experimental software and no warranty is provided or implied.
 
-Expect Juvix to produce inefficient output Michelson code right now. Many more optimizations are possible (although some may require altering the core language).
+Expect Juvix to produce inefficient output Michelson code right now.
+
+Many more optimizations are possible (although some may require altering the core language).
 
 ## Installation
 
@@ -38,7 +40,7 @@ For example, to compile [examples/basics/add.idr](examples/basics/add.idr), run:
 ./scripts/tezos_compile.sh examples/add.idr -o add.tz
 ```
 
-To run a contract using tezos-client:
+To run a contract using tezos-client (`tezos-client` will need to be on your `$PATH`):
 
 ```bash
 ./scripts/tezos_run.sh [filename].tz [storage] [input] [amount]

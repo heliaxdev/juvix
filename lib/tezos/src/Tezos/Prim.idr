@@ -78,41 +78,67 @@ data Maybe : (v : Type) -> Type where
 
 %extern prim__tezosMapSize : Map k v -> Integer
 
+%extern prim__tezosEq : Integer -> Bool
+
+%extern prim__tezosNeq : Integer -> Bool
+
+%extern prim__tezosLt : Integer -> Bool
+
+%extern prim__tezosGt : Integer -> Bool
+
+%extern prim__tezosLe : Integer -> Bool
+
+%extern prim__tezosGe : Integer -> Bool
+
+%extern prim__tezosOr : Bool -> Bool -> Bool
+
+%extern prim__tezosAnd : Bool -> Bool -> Bool
+
+%extern prim__tezosXor : Bool -> Bool -> Bool
+
+%extern prim__tezosNot : Bool -> Bool -> Bool
+
+%extern prim__tezosNegInt : Integer -> Integer
+
+%extern prim__tezosNegNat : Nat -> Nat
+
+%extern prim__tezosAbs : Integer -> Nat
+
 %extern prim__tezosAddIntInt : Integer -> Integer -> Integer
-
-%extern prim__tezosSubInt : Integer -> Integer -> Integer
-
-%extern prim__tezosMulIntInt : Integer -> Integer -> Integer
 
 %extern prim__tezosAddNatNat : Nat -> Nat -> Nat
 
-%extern prim__tezosSubNat : Nat -> Nat -> Nat
+%extern prim__tezosSubIntInt : Integer -> Integer -> Integer
+
+%extern prim__tezosSubNatNat : Nat -> Nat -> Nat
+
+%extern prim__tezosMulIntInt : Integer -> Integer -> Integer
 
 %extern prim__tezosMulNatNat : Nat -> Nat -> Nat
 
-%extern prim__tezosEqNat : Nat -> Nat -> Bool
+%extern prim__tezosEdivIntInt : Integer -> Integer -> Maybe (Integer, Nat)
 
-%extern prim__tezosLtNat : Nat -> Nat -> Bool
+%extern prim__tezosEdivNatNat : Nat -> Nat -> Maybe (Nat, Nat)
 
-%extern prim__tezosGtNat : Nat -> Nat -> Bool
+%extern prim__tezosCompareInt : Integer -> Integer -> Integer
 
-%extern prim__tezosEqInt : Integer -> Integer -> Bool
+%extern prim__tezosCompareNat : Nat -> Nat -> Integer
 
-%extern prim__tezosLtInt : Integer -> Integer -> Bool
+%extern prim__tezosConcatString : String -> String -> String
 
-%extern prim__tezosGtInt : Integer -> Integer -> Bool
+%extern prim__tezosSizeString : String -> Nat
 
-%extern prim__tezosEqTez : Tez -> Tez -> Bool
+%extern prim__tezosCompareTez : Tez -> Tez -> Integer
 
-%extern prim__tezosLtTez : Tez -> Tez -> Bool
+%extern prim__tezosCompareString : String -> String -> Integer
 
-%extern prim__tezosGtTez : Tez -> Tez -> Bool
+%extern prim__tezosCompareAddress : Address -> Address -> Integer
 
-%extern prim__tezosEqString : String -> String -> Bool
-
-%extern prim__tezosEqAddress : Address -> Address -> Bool
+%extern prim__tezosCompareBytes : Bytes -> Bytes -> Integer
 
 %extern prim__tezosFail : a
+
+%extern prim__tezosFailWith : a -> b
 
 %extern prim__tezosExec : a -> (a -> b) -> b
 
@@ -143,6 +169,8 @@ data Maybe : (v : Type) -> Type where
 %extern prim__tezosAmount : Tez
 
 %extern prim__tezosHashKey : Key -> KeyHash
+
+%extern prim__tezosConcatBytes : Bytes -> Bytes -> Bytes
 
 %extern prim__tezosBlake2B : Bytes -> Bytes
 

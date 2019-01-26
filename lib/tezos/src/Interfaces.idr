@@ -80,3 +80,11 @@ interface Eq ty => Ord ty where
   min : ty -> ty -> ty
   min x y = if (x < y) then x else y
   -}
+
+infixl 6 <+>
+
+interface Semigroup ty where
+  (<+>) : ty -> ty -> ty
+
+interface Semigroup ty => Monoid ty where
+  neutral : ty
