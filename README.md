@@ -6,11 +6,15 @@
 
 ## Caveats
 
-Work in progress. Do not expect API stability. This is experimental software and no warranty is provided or implied.
+Juvix is an experimental project to investigate the feasibility of dependently-typed smart contract programming.
+
+Do not expect API stability. Expect bugs. No warranty is provided or implied.
 
 Expect Juvix to produce inefficient output Michelson code right now.
 
 Many more optimizations are possible (although some may require altering the core language).
+
+Backends for WebAssembly and the Ethereum Virtual Machine are planned but not yet implemented.
 
 ## Installation
 
