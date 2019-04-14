@@ -1,0 +1,61 @@
+---
+title: Juvix
+author: Christopher Goes <cwgoes@pluranimity.org>
+date: \textit{Working Draft}
+abstract: Juvix solves all problems with smart contracts.
+urlcolor: cyan
+header-includes:
+    - \usepackage{fancyhdr}
+    - \usepackage{graphicx}
+    - \usepackage{hyperref}
+    - \pagestyle{fancy}
+    - \fancyhead[RE,LO]{Juvix}
+    - \fancyhead[LE,RO]{[logo]}
+    - \fancyhead[CO,CE]{}
+    - \fancyfoot[CO,CE]{}
+    - \fancyfoot[LE,RO]{\thepage}
+---
+
+## Motivation
+
+## Prior Work
+
+Why haven't dependently-typed languages suceeded?
+
+1. Inefficient compilation
+1. Too hard / too much effort to write proofs
+1. Economics didn't favor safety (compile time, speed of development matters more)
+
+Why will Juvix fix?
+
+1. More efficient compilation - see the rest of the paper
+    1. Compiler-level
+        1. Efficient TCO
+        1. More efficient datatype representation (Cedille?)
+        1. Large reductions (Cedille?)
+        1. Closures, investigate
+        1. Linear types
+        1. Supercompilation
+    1. Developer-level
+        1. Expose underlying VM primitives, expose interpreter
+        1. Allow safe rewrites to more efficient implementations
+1. Assistance for proof generation, ecosystem for composable proofs
+    1. Libraries of proofs for common functionality
+    1. Graph search for asserted properties
+    1. "Prototype first, proofs later"
+1. Make safety cheaper, smart contracts need it, enable more complex systems
+    - Correctness necessary
+    - Compile time doesn't matter, small programs, can supercompile/search
+    - Code reuse (even on-chain)
+
+## Future Directions
+
+- Put the language in the consensus
+  - Defined equalence semantics but implementation can change later
+  - Contracts themselves can call the compiler (needs more R&D)
+  - Bounties for proofs, sub-contract-upgrades, etc.
+
+- Layer over consensus
+  - Can run cross-chain over IBC
+  - Targets multiple backends (Ethereum, Tezos, Cosmos) initially
+  - Avoid lock-in, separate choice of application and choice of consensus

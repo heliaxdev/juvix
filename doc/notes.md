@@ -1,3 +1,14 @@
+https://github.com/cedille/cedille-core-spec/blob/master/spec.pdf
+https://github.com/astump/cedilleum-spec/blob/master/spec/spec.pdf
+https://github.com/cedille/cedille/tree/master/core
+
+~
+
+http://purelytheoretical.com/sywtltt.html
+
+
+~~
+
 > https://github.com/maiavictor/formality
 > https://github.com/Gabriel439/Haskell-Morte-Library
 
