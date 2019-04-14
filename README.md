@@ -6,7 +6,7 @@
 
 ## Caveats
 
-Juvix is an experimental project to investigate the feasibility of dependently-typed smart contract programming.
+Juvix is an experimental research project to investigate the feasibility of dependently-typed smart contract programming.
 
 Do not expect API stability. Expect bugs. No warranty is provided or implied.
 
