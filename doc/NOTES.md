@@ -18,6 +18,10 @@
 
        (notes)
 
+    1. [A parallel implementation for optimal lambda-calculus reduction - Marco Pedicini](https://www.researchgate.net/publication/221336344_A_parallel_implementation_for_optimal_lambda-calculus_reduction)
+
+       (notes)
+
     1. [Lambdascope: Another optimal implementation of the lambda calculus - Vincent van Oostrom](https://www.researchgate.net/publication/237723293_Lambdascope_Another_optimal_implementation_of_the_lambda-calculus)
 
        (notes)
@@ -35,6 +39,7 @@
        (notes)
 
 1. Blog posts
+
     1. [Solving the mystery behind Abstract Algorithm's magical optimizations](https://medium.com/@maiavictor/solving-the-mystery-behind-abstract-algorithms-magical-optimizations-144225164b07)
 
        (notes)
@@ -48,6 +53,21 @@
        (notes)
 
     1. [Towards a simple theorem prover](https://medium.com/@maiavictor/towards-a-simple-theorem-prover-5005a1e66a6f)
+
+       (notes)
+
+
+1. Code
+
+    1. [Nasic](https://github.com/moonad/Nasic)
+
+       (notes)
+
+    1. [Elementary Affine Calculus](https://github.com/moonad/elementary-affine-calculus)
+
+       (notes)
+
+    1. [Formality](https://github.com/moonad/Formality)
 
        (notes)
 
