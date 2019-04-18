@@ -112,19 +112,59 @@
 
     1. [Introduction to the Calculus of Inductive Constructions](https://hal.inria.fr/hal-01094195/document)
 
+    1. [Practical Reflection & Metaprogramming for Dependent Types](http://www.davidchristiansen.dk/david-christiansen-phd.pdf)
+
+    1. [Ivor, a proof engine](https://dl.acm.org/citation.cfm?id=1757037)
+
+    1. [Quantitative Type Theory](https://bentnib.org/quantitative-type-theory.pdf)
+
+    1. [Programming up to Congruence](https://www.seas.upenn.edu/~sweirich/papers/congruence-extended.pdf)
+
+    1. [Programming in Lean](https://leanprover.github.io/programming_in_lean/programming_in_lean.pdf)
+
+    1. [Idris, a General Purpose Dependently Typed Programming Language: Design & Implementation](https://eb.host.cs.st-andrews.ac.uk/drafts/impldtp.pdf)
+
+    1. [Rethinking Supercompilation](https://ndmitchell.com/downloads/paper-rethinking_supercompilation-29_sep_2010.pdf)
+
+    1. [Supercompilation: Ideas & Methods](https://themonadreader.files.wordpress.com/2014/04/super-final.pdf)
+
+    1. [The Concept of a Supercompiler](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.128.6414&rep=rep1&type=pdf)
+
+    1. [Positive Supercompilation for a Higher-Order Call-by-Value Language](https://arxiv.org/pdf/1005.5278.pdf)
+
+    1. [Supercompilation by Evaluation](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/07/supercomp-by-eval.pdf)
+
+    1. [Improving supercompilation: tag-bags, rollback, speculation, normalisation, and generalisation](https://www.microsoft.com/en-us/research/publication/improving-supercompilation-tag-bags-rollback-speculation-normalisation-and-generalisation/)
+
+    1. [Stochastic Supercompilation](https://theory.stanford.edu/~aiken/publications/papers/asplos13.pdf)
+
+    1. [The Calculus of Constructions](https://hal.inria.fr/inria-00076024/document)
+
 1. Resources
 
     1. [So you want to learn type theory](http://purelytheoretical.com/sywtltt.html)
 
     1. [Type theory podcast](http://typetheorypodcast.com/)
 
+    1. [Luna Lang](https://luna-lang.org)
+
+    1. [Intuitionistic Type Theory](https://intuitionistic.files.wordpress.com/2010/07/martin-lof-tt.pdf)
+
 1. Code
+
+    1. [Insane](https://github.com/UlfNorell/insane)
 
     1. [Haskell Morte Library](https://github.com/Gabriel439/Haskell-Morte-Library)
 
     1. [Blodwen](https://github.com/edwinb/Blodwen)
 
     1. [Idris Codegen WASM](https://github.com/SPY/idris-codegen-wasm)
+
+1. Books
+
+    1. [Type Theory & Functional Programming](https://www.cs.kent.ac.uk/people/staff/sjt/TTFP/ttfp.pdf)
+
+    1. [Programming in Martin-Lof's Type Theory](http://www.cse.chalmers.se/research/group/logic/book/book.pdf)
 
 ~~~
 
