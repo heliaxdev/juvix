@@ -150,6 +150,8 @@
 
     1. [Intuitionistic Type Theory](https://intuitionistic.files.wordpress.com/2010/07/martin-lof-tt.pdf)
 
+    1. [Lambda the Ultimate](http://lambda-the-ultimate.org/)
+
 1. Code
 
     1. [Insane](https://github.com/UlfNorell/insane)
@@ -159,6 +161,8 @@
     1. [Blodwen](https://github.com/edwinb/Blodwen)
 
     1. [Idris Codegen WASM](https://github.com/SPY/idris-codegen-wasm)
+
+    1. [Lambda](https://github.com/codedot/lambda)
 
 1. Books
 
@@ -191,3 +195,5 @@ Toolchain stack aspects (to be done *after* type theoretical problems are addres
   - Visualization, Luna-Lang
 
 > Write http://dev.stephendiehl.com/fun/ but for Juvix
+
+read https://www.reddit.com/r/haskell/comments/2zqtfk/why_isnt_anyone_talking_about_optimal_lambda/csommh8/
