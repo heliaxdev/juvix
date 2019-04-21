@@ -46,6 +46,8 @@ ghc-options:
 
 library:
   source-dirs: src
+  dependencies:
+    - containers
   exposed-modules:
     - LOpt
 
