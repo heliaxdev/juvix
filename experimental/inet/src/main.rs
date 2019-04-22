@@ -2,8 +2,13 @@ mod net;
 
 fn print_and_reduce(n: &mut net::Net) {
     println!("Reducing net: {:?}", n);
-    let steps : u32 = net::reduce_all(n);
-    println!("Reduced in {} steps, result: {:?}", steps, n);
+    let steps: u32 = net::reduce_all(n);
+    println!(
+        "Reduced in {} steps, result: {:?}, node count: {}",
+        steps,
+        n,
+        n.nodes.len()
+    );
 }
 
 fn main() {
