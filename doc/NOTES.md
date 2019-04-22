@@ -199,3 +199,7 @@ Toolchain stack aspects (to be done *after* type theoretical problems are addres
 read https://www.reddit.com/r/haskell/comments/2zqtfk/why_isnt_anyone_talking_about_optimal_lambda/csommh8/
 
 https://www.academia.edu/10855474/Interaction_Nets_with_McCarthys_amb
+
+http://sro.sussex.ac.uk/id/eprint/54469/1/Sato%2C_Shinya.pdf
+
+

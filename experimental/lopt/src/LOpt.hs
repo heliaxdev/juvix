@@ -105,7 +105,8 @@ maybeCommute1 (Net nodes wires) id =
               newCBid = newCAid + 1
               newDAid = newCBid + 1
               newDBid = newDAid + 1
-              newWOne = Connector (if snd one then Node newDAid 0 else p1) (if snd one then p2 else Node newDAid 0) -- problem, need to update p1 to new node link ~>> general problem, need to update wires if nodes are recreated, should end up with loops
+              -- problem, need to update p1 to new node link ~>> general problem, need to update wires if nodes are recreated, should end up with loops
+              newWOne = Connector (if snd one then Node newDAid 0 else p1) (if snd one then p2 else Node newDAid 0)
               newWTwo = Connector (if snd two then Node newDBid 0 else p3) (if snd two then p4 else Node newDBid 0)
               newWThree = Connector (if snd three then Node newCBid 0 else p5) (if snd three then p6 else Node newCBid 0)
               newWFour = Connector (if snd four then Node newCAid 0 else p7) (if snd four then p8 else Node newCAid 0)
