@@ -49,7 +49,7 @@ library:
   dependencies:
     - containers
   exposed-modules:
-    - LOpt
+    - InteractionNet
 
 executables:
   lopt:
