@@ -48,6 +48,12 @@ Why will Juvix fix?
     - Compile time doesn't matter, small programs, can supercompile/search
     - Code reuse (even on-chain)
 
+## Components
+
+- High-level dependently-typed frontend ~ Idris (there may exist alternative syntaxes)
+- Core dependently-typed lambda calculus
+- Low-level target computational model (interaction nets)
+
 ## Future Directions
 
 - Put the language in the consensus
