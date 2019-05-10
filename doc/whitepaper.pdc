@@ -1,9 +1,18 @@
 ---
 title: Juvix
-author: Christopher Goes <cwgoes@pluranimity.org>
+lang: zh-ZH
+mainfont: Noto Sans CJK HK Light
+fontsize: 7pt
+author: Christopher Goes
 date: \textit{Working Draft}
-abstract: Juvix solves all problems with smart contracts.
 urlcolor: cyan
+abstract: Juvix encapsulates a high-level frontend syntax, dependently-typed core language, and parallelizable
+          low-level execution model for writing efficient, formally verifiable smart contracts which can be
+          deployed to a variety of distributed ledgers. Juvix's compiler architecture has been designed from the
+          ground up for the particular requirements and economic tradeoffs of the smart contract use case - it prioritizes
+          verifiability, precision, and output code efficiency over compilation speed, syntax familiarity, and VM specifics.
+          An interchain abstraction layer representing ledgers as first-class objects facilitates stateful
+          contract deployment, seamless cross-chain programming, and typesafe runtime reconfiguration.
 header-includes:
     - \usepackage{fancyhdr}
     - \usepackage{graphicx}
@@ -16,15 +25,17 @@ header-includes:
     - \fancyfoot[LE,RO]{\thepage}
 ---
 
-## Motivation
+# Motivation
 
-## Prior Work
+# Prior Work
 
 Why haven't dependently-typed languages suceeded?
 
 1. Inefficient compilation
 1. Too hard / too much effort to write proofs
 1. Economics didn't favor safety (compile time, speed of development matters more)
+
+See [@safer-smart-contracts]
 
 Why will Juvix fix?
 
@@ -44,24 +55,46 @@ Why will Juvix fix?
     1. Graph search for asserted properties
     1. "Prototype first, proofs later"
 1. Make safety cheaper, smart contracts need it, enable more complex systems
-    - Correctness necessary
-    - Compile time doesn't matter, small programs, can supercompile/search
-    - Code reuse (even on-chain)
+    1. Correctness necessary
+    1. Compile time doesn't matter, small programs, can supercompile/search
+    1. Code reuse (even on-chain)
+1. Leverage power of dependent types for safe, complex interchain logic
+    1. "Abstraction limits" hit by interacting Ethereum contracts
+        1. Typecheck across contracts
+        1. Contracts require types of callers / callees
+    1. Safe cross-contract optimization using known types
+    1. Safe upgrades (prove semantical equivalence, anyone can upgrade contract)
 
-## Components
+# Components
 
-- High-level dependently-typed frontend ~ Idris (there may exist alternative syntaxes)
-- Core dependently-typed lambda calculus
-- Low-level target computational model (interaction nets)
+## Frontend
 
-## Future Directions
+High-level dependently-typed language.
 
-- Put the language in the consensus
-  - Defined equalence semantics but implementation can change later
-  - Contracts themselves can call the compiler (needs more R&D)
-  - Bounties for proofs, sub-contract-upgrades, etc.
+Syntax options:
 
-- Layer over consensus
-  - Can run cross-chain over IBC
-  - Targets multiple backends (Ethereum, Tezos, Cosmos) initially
-  - Avoid lock-in, separate choice of application and choice of consensus
+1. Idris / Haskell (favored)
+1. Lisp-like (alternative)
+
+## Core
+
+Dependently-typed lambda calculus. Inspirations: Cedille, Blodwen Core, Formality Core.
+
+## Low-level
+
+Interaction nets as target computational model.
+Interaction net interpreters / compilers in Michelson, EVM, WASM.
+
+# Future Directions
+
+1. Put the language in the consensus
+    1. Defined equalence semantics but implementation can change later
+    1. Contracts themselves can call the compiler (needs more R&D)
+    1. Bounties for proofs, sub-contract-upgrades, etc.
+
+1. Layer over consensus
+    1. Can run cross-chain over IBC
+    1. Targets multiple backends (Ethereum, Tezos, Cosmos) initially
+    1. Avoid lock-in, separate choice of application and choice of consensus
+
+# References

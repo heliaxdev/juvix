@@ -174,7 +174,6 @@
 
 Find some "Intro to Type Theory" book (covering *notation*, at least); read it. 
 Implement all of LambdaPi, including simple REPL, keep around for experimentation.
-Read everything Maia Victor has done, email him with questions.
 Construct a strategy; criteria/concerns/options:
   - Could be sovereign chain(s)
   - Could target multiple chains
@@ -201,5 +200,3 @@ read https://www.reddit.com/r/haskell/comments/2zqtfk/why_isnt_anyone_talking_ab
 https://www.academia.edu/10855474/Interaction_Nets_with_McCarthys_amb
 
 http://sro.sussex.ac.uk/id/eprint/54469/1/Sato%2C_Shinya.pdf
-
-
