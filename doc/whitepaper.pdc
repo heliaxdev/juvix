@@ -4,12 +4,12 @@ lang: zh-ZH
 mainfont: Noto Sans CJK HK Light
 fontsize: 7pt
 author: Christopher Goes
-date: \textit{Working Draft}
+date: \textit{\today}
 urlcolor: cyan
 abstract: Juvix encapsulates a high-level frontend syntax, dependently-typed core language, and parallelizable
           low-level execution model for writing efficient, formally verifiable smart contracts which can be
           deployed to a variety of distributed ledgers. Juvix's compiler architecture has been designed from the
-          ground up for the particular requirements and economic tradeoffs of the smart contract use case - it prioritizes
+          ground up for the particular requirements and economic tradeoffs of the smart contract use case — it prioritizes
           verifiability, precision, and output code efficiency over compilation speed, syntax familiarity, and VM specifics.
           An interchain abstraction layer representing ledgers as first-class objects facilitates stateful
           contract deployment, seamless cross-chain programming, and typesafe runtime reconfiguration.
@@ -19,7 +19,7 @@ header-includes:
     - \usepackage{hyperref}
     - \pagestyle{fancy}
     - \fancyhead[RE,LO]{Juvix}
-    - \fancyhead[LE,RO]{[logo]}
+    - \fancyhead[LE,RO]{}
     - \fancyhead[CO,CE]{}
     - \fancyfoot[CO,CE]{}
     - \fancyfoot[LE,RO]{\thepage}
@@ -29,31 +29,54 @@ header-includes:
 
 # Prior Work
 
-Why haven't dependently-typed languages suceeded?
+## Dependently-typed languages
+
+Why have dependently-typed languages not yet succeeded?
 
 1. Inefficient compilation
 1. Too hard / too much effort to write proofs
 1. Economics didn't favor safety (compile time, speed of development matters more)
+1. Not enough engineering effort dedicated
 
-See [@safer-smart-contracts]
+## Dependently-typed smart contracts
 
-Why will Juvix fix?
+One prior work [@safer-smart-contracts-through-type-driven-development] wrote an Idris [@idris-systems-programming-meets-full-dependent-types] backend targeting Ethereum's LLL language [@lisp-like-language]. Juvix shares many of the goals outlined in that paper, but the approach described failed to take advantage of well-known optimizations such as tail-call optimization and handicapped itself by compiling to LLL instead of directly to EVM opcodes. The effects system described therein may be a sensible model for smart contract programs written in Juvix but is out of scope of this paper.
 
-1. More efficient compilation - see the rest of the paper
-    1. Compiler-level
-        1. Efficient TCO
-        1. More efficient datatype representation (Cedille?)
-        1. Large reductions (Cedille?)
-        1. Closures, investigate
-        1. Linear types
-        1. Supercompilation
-    1. Developer-level
-        1. Expose underlying VM primitives, expose interpreter
-        1. Allow safe rewrites to more efficient implementations
+Formality [@formality] was a substantial inspiration for this work, particularly the low-level interaction net execution model. Juvix differs in its willingness to implement a larger core language and low-level execution model and trade some simplicity for performance where the performance gains are substantial.
+
+# Reasoning
+
+Why will Juvix fix these problems?
+
+## Efficient compilation
+
+### Compiler-level optimizations
+
+1. Efficient TCO
+1. More efficient datatype representation (Cedille?)
+1. Large reductions (Cedille?)
+1. Closures, investigate
+1. Linear types
+1. Supercompilation
+
+### Developer-level optimizations
+        
+1. Expose underlying VM primitives, expose interpreter
+1. Allow safe rewrites to more efficient implementations
+
+### Execution model
+
+1. Interaction nets, custom rewrite rules, optimal lambda reduction
+
+## Time-efficient formal proof cconstructions
+
 1. Assistance for proof generation, ecosystem for composable proofs
     1. Libraries of proofs for common functionality
     1. Graph search for asserted properties
     1. "Prototype first, proofs later"
+
+## Not just safe - possible
+
 1. Make safety cheaper, smart contracts need it, enable more complex systems
     1. Correctness necessary
     1. Compile time doesn't matter, small programs, can supercompile/search
@@ -73,28 +96,40 @@ High-level dependently-typed language.
 
 Syntax options:
 
-1. Idris / Haskell (favored)
-1. Lisp-like (alternative)
+1. Idris [@idris-systems-programming-meets-full-dependent-types] / Haskell [@haskell] favored
+1. Lisp-like [@common-lisp]
 
 ## Core
 
 Dependently-typed lambda calculus. Inspirations: Cedille, Blodwen Core, Formality Core.
 
+See Cedille [@the-calculus-of-dependent-lambda-eliminations]
+
+See Formality [@formality]
+
 ## Low-level
+
+See Optimal Lambda Calculus Reduction [@an-algorithm-for-optimal-lambda-calculus-reduction]
 
 Interaction nets as target computational model.
 Interaction net interpreters / compilers in Michelson, EVM, WASM.
 
 # Future Directions
 
-1. Put the language in the consensus
-    1. Defined equalence semantics but implementation can change later
-    1. Contracts themselves can call the compiler (needs more R&D)
-    1. Bounties for proofs, sub-contract-upgrades, etc.
+## State machine integration
 
-1. Layer over consensus
-    1. Can run cross-chain over IBC
-    1. Targets multiple backends (Ethereum, Tezos, Cosmos) initially
-    1. Avoid lock-in, separate choice of application and choice of consensus
+1. Defined equalence semantics but implementation can change later
+1. Contracts themselves can call the compiler (needs more R&D)
+1. Bounties for proofs, sub-contract-upgrades, etc.
+
+## Interchain abstraction
+
+1. Can run cross-chain over IBC
+1. Targets multiple backends (Ethereum, Tezos, Cosmos) initially
+1. Avoid lock-in, separate choice of application and choice of consensus
+
+## Visual representation
+
+1. Inspiration: Luna [@luna-lang]
 
 # References
