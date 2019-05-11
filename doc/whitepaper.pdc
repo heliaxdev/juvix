@@ -25,6 +25,8 @@ header-includes:
     - \fancyfoot[LE,RO]{\thepage}
 ---
 
+\pagebreak
+
 # Motivation
 
 # Prior Work
@@ -90,7 +92,7 @@ Why will Juvix fix these problems?
 
 # Components
 
-## Frontend
+## Frontend language
 
 High-level dependently-typed language.
 
@@ -99,7 +101,7 @@ Syntax options:
 1. Idris [@idris-systems-programming-meets-full-dependent-types] / Haskell [@haskell] favored
 1. Lisp-like [@common-lisp]
 
-## Core
+## Core language
 
 Dependently-typed lambda calculus. Inspirations: Cedille, Blodwen Core, Formality Core.
 
@@ -107,12 +109,22 @@ See Cedille [@the-calculus-of-dependent-lambda-eliminations]
 
 See Formality [@formality]
 
-## Low-level
+## Low-level execution model
 
 See Optimal Lambda Calculus Reduction [@an-algorithm-for-optimal-lambda-calculus-reduction]
 
 Interaction nets as target computational model.
 Interaction net interpreters / compilers in Michelson, EVM, WASM.
+
+# Extensions
+
+## Platform targets
+
+### WASM
+
+### Michelson
+
+### EVM
 
 # Future Directions
 
@@ -131,5 +143,9 @@ Interaction net interpreters / compilers in Michelson, EVM, WASM.
 ## Visual representation
 
 1. Inspiration: Luna [@luna-lang]
+
+# Appendices
+
+## Examples
 
 # References
