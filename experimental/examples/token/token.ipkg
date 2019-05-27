@@ -1,4 +1,3 @@
 package token
 
-pkgs = contrib,
-       effects
+pkgs = contrib

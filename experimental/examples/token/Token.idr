@@ -1,7 +1,4 @@
-import Data.List
 import Data.SortedMap
-import Effect.Exception
-import Effects
 
 ||| Account contains the balance of the token.
 Account : Type
@@ -20,25 +17,26 @@ record Storage where
     symbol : String
     owner : Address
 
-{-record Person where
-    constructor MkPerson
-    firstName, middleName, lastName : String
-    age : Int
-
-fred : Person
-fred = MkPerson "Fred" "Joe" "Bloggs" 30
--}
+data Error = NotEnoughBalance
+           | FailedToAuthenticate
 
 total getAccount : Address -> SortedMap Address Account -> Nat
 getAccount address accounts = case lookup address accounts of
                       Nothing => 0
                       (Just balance) => balance
 
-total performTransfer : Address -> Address -> Nat -> Storage -> Either String (SortedMap Address Account)
+total performTransfer : Address -> Address -> Nat -> Storage -> Either Error (SortedMap Address Account)
 performTransfer from dest tokens storage =
   let fromBalance = getAccount from (accounts storage)
       destBalance = getAccount dest (accounts storage) in
-          case lte tokens fromBalance of
-               False => Left "Not enough balance."
-               True => let accountsStored = insert from (minus fromBalance tokens) (accounts storage) in
+        case lte tokens fromBalance of
+             False => Left NotEnoughBalance
+             True => let accountsStored = insert from (minus fromBalance tokens) (accounts storage) in
                        Right (insert dest (destBalance + tokens) accountsStored)
+
+total createAccount : Address -> Nat -> Storage -> Either Error (Either Error (SortedMap Address Account))
+createAccount dest tokens storage =
+  let owner = owner storage in
+      case owner == owner of --when sender can be detected, check sender == owner.
+           False => Left FailedToAuthenticate
+           True => Right (performTransfer owner dest tokens storage)
