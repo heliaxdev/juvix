@@ -34,11 +34,11 @@ getAccount address accounts = case lookup address accounts of
                       Nothing => 0
                       (Just balance) => balance
 
-total performTransfer : Address -> Address -> Nat -> Storage -> Either (String, (SortedMap Address Account))
+total performTransfer : Address -> Address -> Nat -> Storage -> Either String (SortedMap Address Account)
 performTransfer from dest tokens storage =
   let fromBalance = getAccount from (accounts storage)
       destBalance = getAccount dest (accounts storage) in
-      case lte tokens fromBalance of
-        False => Left "Not enough balance."
-        True => let accountsStored = insert from (fromBalance - tokens) (accounts storage)
-                    Right (insert dest (destBalance + tokens) accountsStored)
+          case lte tokens fromBalance of
+               False => Left "Not enough balance."
+               True => let accountsStored = insert from (minus fromBalance tokens) (accounts storage) in
+                       Right (insert dest (destBalance + tokens) accountsStored)
