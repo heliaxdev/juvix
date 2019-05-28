@@ -1,12 +1,28 @@
+module Main
+
 import Data.SortedMap
+import Data.Vect
 
 ||| Account contains the balance of the token.
 Account : Type
 Account = Nat
 
-||| Address is the key hash of the owner of the associated account.
+||| Address is the key hash, a string of length 36.
 Address : Type
 Address = String
+{- Attempt at making address a dependent type
+data Address : Type where
+  MkAddress : (s : String) -> (length s = 36) -> Address
+
+stringToAddress : (s : String) -> Maybe Address
+stringToAddress s = case length s == 36 of
+                         False => Nothing
+                         True => Just MkAddress
+-}
+
+-- Prove address is a string of length 36.
+--address36Char : (address : String) -> length address = 36
+--address36Char address = ?address36Char_rhs
 
 ||| The storage has type Storage which is a record with fields accounts,
 ||| version number of the token standard, total supply, name, symbol, and owner of tokens.
@@ -51,3 +67,7 @@ createAccount dest tokens storage =
       case owner == owner of --when sender can be detected, check sender == owner.
            False => Left FailedToAuthenticate
            True => Right (performTransfer owner dest tokens storage)
+
+--Prove the total supply is the sum of all account balances. TODO define owner account & balance and its relation to totalSupply.
+totalSupplyToken : (totalSupply : Nat) -> (allAccount : SortedMap Address Account) -> (sumAccountBalance = sum (values allAccount)) -> totalSupply = sumAccountBalance
+totalSupplyToken totalSupply allAccount prf = ?totalSupplyToken_rhs
