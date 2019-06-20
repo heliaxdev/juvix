@@ -2,9 +2,7 @@
 --"A tutorial implementation of a dependently typed lambda calculus"
 
 import Control.Monad.Except --Enable throwError 
-import System.Console.Haskeline
-import System.IO hiding (print)
- 
+
 -- Inferable terms 
 data ITerm 
   =  Ann    CTerm Type --Annotated terms
