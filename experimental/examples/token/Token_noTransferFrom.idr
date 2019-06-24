@@ -68,6 +68,23 @@ createAccount dest tokens storage =
            False => Left FailedToAuthenticate
            True => Right (performTransfer owner dest tokens storage)
 
+pvalues : SortedMap Address Account -> Type
+pvalues m = values m = []
+pvaluesempty : pvalues empty
+pvaluesempty = Refl
+
+{-
+psortedMape : (k : Address) -> (em : SortedMap Address Account) -> (em = empty) -> (lookup k em = Nothing)
+psortedMape _ Empty _ impossible
+psortedMape _ (M _ _) _ impossible
+-}
+
 --Prove the total supply is the sum of all account balances. TODO define owner account & balance and its relation to totalSupply.
-totalSupplyToken : (totalSupply : Nat) -> (allAccount : SortedMap Address Account) -> (sumAccountBalance = sum (values allAccount)) -> totalSupply = sumAccountBalance
-totalSupplyToken totalSupply allAccount prf = ?totalSupplyToken_rhs
+ptotalValues : Nat -> SortedMap Address Account -> Type
+ptotalSupplyToken : ptotalValues (totalSupply storage) (accounts storage)
+ptotalSupplyToken = ?rhs
+
+
+
+--ptotalSupplyToken totalSupply (accounts )
+--ptotalSupplyToken totalSupply allAccount prf = ?totalSupplyToken_rhs
