@@ -90,10 +90,10 @@ cEval (Lam  e)    d  =  VLam (\ x -> cEval e (x : d))
 
 --substitution function for inferable terms
 iSubst :: Int -> ITerm -> ITerm -> ITerm
-iSubst ii r (Ann e ty)   =  Ann (cSubst ii r e) (cSubst ii r ty)
-iSubst ii r (Bound j)    =  if ii == j then r else Bound j
-iSubst ii r (Free y)     =  Free y
-iSubst ii r (e1 :@: e2)  =  iSubst ii r e1 :@: cSubst ii r e2
+iSubst ii r (Ann e ty)       =  Ann (cSubst ii r e) (cSubst ii r ty)
+iSubst ii r (Bound j)        =  if ii == j then r else Bound j
+iSubst ii r (Free y)         =  Free y
+iSubst ii r (e1 :@: e2)      =  iSubst ii r e1 :@: cSubst ii r e2
 iSubst_ ii r  Star           =  Star
 iSubst_ ii r  (Pi ty ty')    =  Pi  (cSubst ii r ty) (cSubst (ii + 1) r ty')
 
@@ -154,6 +154,20 @@ iType ii g (e1 :@: e2)
          VPi ty ty'  ->  do  cType ii g e2 ty
                              return (ty' (cEval e2 []))
          _           ->  throwError "illegal application"
+--type checker for Nat
+iType ii g Nat                  =  return VStar
+iType ii g Zero                 =  return VNat
+iType ii g (Succ k)             = 
+  do cType ii g k VNat
+     return VNat
+iType ii g (NatElim m mz ms k)  =
+  do cType ii g m (VPi VNat (const VStar))
+     let mVal = cEval m []
+     cType ii g mz (mVal `vapp` VZero)
+     cType ii g ms (VPi VNat (\ l -> VPi (mVal `vapp` l) (\_ -> mVal `vapp` VSucc l)))
+     cType ii g k VNat
+     let kVal = cEval k []
+     return (mVal `vapp` kVal)
 
 --checkable terms takes a type as input and returns ().
 cType :: Int -> Context -> CTerm -> Type -> Result ()
