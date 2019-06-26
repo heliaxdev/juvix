@@ -90,13 +90,18 @@ cEval (Lam  e)    d  =  VLam (\ x -> cEval e (x : d))
 
 --substitution function for inferable terms
 iSubst :: Int -> ITerm -> ITerm -> ITerm
-iSubst ii r (Ann e ty)       =  Ann (cSubst ii r e) (cSubst ii r ty)
-iSubst ii r (Bound j)        =  if ii == j then r else Bound j
-iSubst ii r (Free y)         =  Free y
-iSubst ii r (e1 :@: e2)      =  iSubst ii r e1 :@: cSubst ii r e2
-iSubst_ ii r  Star           =  Star
-iSubst_ ii r  (Pi ty ty')    =  Pi  (cSubst ii r ty) (cSubst (ii + 1) r ty')
-
+iSubst ii r (Ann e ty)     =  Ann (cSubst ii r e) (cSubst ii r ty)
+iSubst ii r (Bound j)      =  if ii == j then r else Bound j
+iSubst ii r (Free y)       =  Free y
+iSubst ii r (e1 :@: e2)    =  iSubst ii r e1 :@: cSubst ii r e2
+iSubst ii r Star           =  Star
+iSubst ii r (Pi ty ty')    =  Pi  (cSubst ii r ty) (cSubst (ii + 1) r ty')
+--for Nat
+iSubst ii r Nat            =  Nat
+iSubst_ ii r  (NatElim m mz ms n)
+                           =  NatElim (cSubst ii r m)
+                                      (cSubst ii r mz) (cSubst ii r ms)
+                                      (cSubst ii r ms)
 
 --substitution function for checkable terms
 cSubst :: Int -> ITerm -> CTerm -> CTerm
@@ -112,6 +117,10 @@ quote ii (VLam f)      =  Lam (quote (ii + 1) (f (vfree (Quote ii))))
 quote ii (VNeutral n)  =  Inf (neutralQuote ii n)
 quote ii VStar         = Inf Star
 quote ii (VPi v f)     = Inf (Pi (quote ii v)(quote (ii + 1)(f (vfree(Quote ii)))))
+--for Nat
+quote ii VNat       =  Inf Nat
+quote ii VZero      =  Inf Zero
+quote ii (VSucc n)  =  Inf (Succ (quote ii n))
 
 neutralQuote :: Int -> Neutral -> ITerm
 neutralQuote ii (NFree x)   =  boundfree ii x
