@@ -1,20 +1,24 @@
 --Dependent type implementation following 
 --"A tutorial implementation of a dependently typed lambda calculus"
 
-import Control.Monad.Except --Enable throwError 
+import Control.Monad.Except --enable throwError 
 
 -- Inferable terms 
 data ITerm 
-  =  Ann    CTerm CTerm --Annotated terms
+  =  Ann    CTerm CTerm --annotated terms
   |  Star --(STAR) Star (the type of types) is now a term
   |  Pi CTerm CTerm --(PI) dependent function space
   |  Bound  Int --Bound variables of type Int because it's represented by de Bruijn indices
   |  Free   Name --Free variables of type name (see below)
-  |  ITerm :@: CTerm --The infix constructor :@: denotes application
-  |  Nat --Natural number data type
-  |  NatElim CTerm CTerm CTerm CTerm --Eliminator of Nat
+  |  ITerm :@: CTerm --the infix constructor :@: denotes application
+  |  Nat --Nat data type
+  |  NatElim CTerm CTerm CTerm CTerm --eliminator of Nat
   |  Zero --data constructor of Nat
   |  Succ CTerm --data constructor of Nat
+  |  Vec CTerm CTerm --Vec (vector) data type
+  |  Nil CTerm --data constructor of Vec
+  |  Cons CTerm CTerm CTerm CTerm --data constructor of Vec
+  |  VecElim CTerm CTerm CTerm CTerm CTerm CTerm --elminator of Vec
   deriving (Show, Eq)
   
 --Checkable terms
@@ -35,15 +39,19 @@ data Value
   | VStar
   | VPi Value (Value -> Value)
   | VNeutral Neutral
-  | VNat --extensions for natural numbers
+  | VNat --extensions for Nat
   | VZero
   | VSucc Value
+  | VNil Value --extensions for Vec
+  | VCons Value Value Value Value
+  | VVec Value Value
 
 --A neutral term is either a variable or an application of a neutral term to a value
 data Neutral
   = NFree Name
   | NApp Neutral Value
   | NNatElim Value Value Value Neutral --for NatElim to not be stuck
+  | NVecElim Value Value Value Value Value Neutral
 
 --vfree creates the value corresponding to a free variable
 vfree :: Name -> Value
@@ -77,6 +85,20 @@ iEval (NatElim m mz ms k)  d
                           (NNatElim (cEval m d) mzVal msVal k)
             _          -> error "internal: eval natElim"
     in rec (cEval k d)
+--evaluation of Vec (TODO)
+iEval_ (Vec_ a n)                 d  =  VVec_ (cEval_ a d) (cEval_ n d)
+iEval_ (VecElim_ a m mn mc n xs)  d  =
+    let  mnVal  =  cEval_ mn d
+         mcVal  =  cEval_ mc d
+         rec nVal xsVal =
+           case xsVal of
+             VNil_ _          ->  mnVal
+             VCons_ _ k x xs  ->  foldl vapp_ mcVal [k, x, xs, rec k xs]
+             VNeutral_ n      ->  VNeutral_
+                                  (NVecElim_  (cEval_ a d) (cEval_ m d)
+                                              mnVal mcVal nVal n)
+             _                ->  error "internal: eval vecElim"
+    in   rec (cEval_ n d) (cEval_ xs d)
 
 vapp :: Value -> Value -> Value
 vapp (VLam f)      v  =  f v
@@ -85,6 +107,13 @@ vapp (VNeutral n)  v  =  VNeutral (NApp n v)
 cEval :: CTerm -> Env -> Value
 cEval (Inf  ii)   d  =  iEval ii d
 cEval (Lam  e)    d  =  VLam (\ x -> cEval e (x : d))
+--for Nat (in the paper, they are iEval??? But in the code, they are cEval???)
+cEval Zero      d  = VZero
+cEval (Succ k)  d  = VSucc (cEval k d)
+--for Vec (not mentioned in the paper, only in the code???)
+cEval (Nil a)          d  =  VNil (cEval a d)
+cEval (Cons a n x xs)  d  =  VCons  (cEval a d) (cEval n d)
+                                    (cEval x d) (cEval xs d)
 
 --Substitution
 
