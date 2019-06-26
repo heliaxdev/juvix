@@ -11,6 +11,10 @@ data ITerm
   |  Bound  Int --Bound variables of type Int because it's represented by de Bruijn indices
   |  Free   Name --Free variables of type name (see below)
   |  ITerm :@: CTerm --The infix constructor :@: denotes application
+  |  Nat --Natural number data type
+  |  NatElim CTerm CTerm CTerm CTerm --Eliminator of Nat
+  |  Zero --data constructor of Nat
+  |  Succ CTerm --data constructor of Nat
   deriving (Show, Eq)
   
 --Checkable terms
@@ -31,11 +35,15 @@ data Value
   | VStar
   | VPi Value (Value -> Value)
   | VNeutral Neutral
+  | VNat --extensions for natural numbers
+  | VZero
+  | VSucc Value
 
 --A neutral term is either a variable or an application of a neutral term to a value
 data Neutral
   = NFree Name
   | NApp Neutral Value
+  | NNatElim Value Value Value Neutral --for NatElim to not be stuck
 
 --vfree creates the value corresponding to a free variable
 vfree :: Name -> Value
@@ -45,8 +53,7 @@ vfree n = VNeutral (NFree n)
 type Type    = Value 
 type Context = [(Name, Type)]
 
---Evaluation
-
+--Evaluation, including Natural numbers
 type Env = [Value]
 iEval :: ITerm -> Env -> Value
 iEval (Ann  e _)    d  =  cEval e d
@@ -55,6 +62,21 @@ iEval (Bound  ii)   d  =  d !! ii --(!!) :: [a] -> Int -> a. It's the list looku
 iEval (e1 :@: e2)   d  =  vapp (iEval e1 d) (cEval e2 d)
 iEval Star          d  =  VStar
 iEval (Pi ty ty')   d  =  VPi (cEval ty d)(\ x -> cEval ty' (x : d))
+--evaluation of Nat
+iEval Nat                  d  =  VNat 
+iEval Zero                 d  =  VZero
+iEval (Succ k)             d  =  VSucc (cEval k d)
+iEval (NatElim m mz ms k)  d
+  = let mzVal = cEval mz d
+        msVal = cEval ms d
+        rec kVal =
+          case kVal of
+            VZero      -> mzVal
+            VSucc l    -> msVal `vapp` l `vapp` rec l
+            VNeutral k -> VNeutral
+                          (NNatElim (cEval m d) mzVal msVal k)
+            _          -> error "internal: eval natElim"
+    in rec (cEval k d)
 
 vapp :: Value -> Value -> Value
 vapp (VLam f)      v  =  f v
@@ -144,4 +166,4 @@ cType ii g (Lam e) (VPi ty ty')
 cType ii g _ _
   =  throwError "type mismatch" 
 
---Natural numbers, using eliminator
+
