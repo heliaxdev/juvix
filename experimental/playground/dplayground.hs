@@ -12,9 +12,9 @@ data ITerm
   |  Free   Name --Free variables of type name (see below)
   |  ITerm :@: CTerm --the infix constructor :@: denotes application
   |  Nat --Nat data type
-  |  NatElim CTerm CTerm CTerm CTerm --eliminator of Nat
   |  Zero --data constructor of Nat
   |  Succ CTerm --data constructor of Nat
+  |  NatElim CTerm CTerm CTerm CTerm --eliminator of Nat
   |  Vec CTerm CTerm --Vec (vector) data type
   |  Nil CTerm --data constructor of Vec
   |  Cons CTerm CTerm CTerm CTerm --data constructor of Vec
@@ -51,7 +51,7 @@ data Neutral
   = NFree Name
   | NApp Neutral Value
   | NNatElim Value Value Value Neutral --for NatElim to not be stuck
-  | NVecElim Value Value Value Value Value Neutral
+  | NVecElim Value Value Value Value Value Neutral --for VecElim
 
 --vfree creates the value corresponding to a free variable
 vfree :: Name -> Value
@@ -85,20 +85,23 @@ iEval (NatElim m mz ms k)  d
                           (NNatElim (cEval m d) mzVal msVal k)
             _          -> error "internal: eval natElim"
     in rec (cEval k d)
---evaluation of Vec (TODO)
-iEval_ (Vec_ a n)                 d  =  VVec_ (cEval_ a d) (cEval_ n d)
-iEval_ (VecElim_ a m mn mc n xs)  d  =
-    let  mnVal  =  cEval_ mn d
-         mcVal  =  cEval_ mc d
-         rec nVal xsVal =
+--evaluation of Vec
+iEval (Nil a)                   d  =  VNil (cEval a d)
+iEval (Cons a k x xs)           d  =  VCons  (cEval a d) (cEval k d)
+                                      (cEval x d) (cEval xs d)
+iEval (Vec a k)                 d  =  VVec (cEval a d) (cEval k d)
+iEval (VecElim a m mn mc k xs)  d  =
+    let  mnVal  =  cEval mn d
+         mcVal  =  cEval mc d
+         rec kVal xsVal =
            case xsVal of
-             VNil_ _          ->  mnVal
-             VCons_ _ k x xs  ->  foldl vapp_ mcVal [k, x, xs, rec k xs]
-             VNeutral_ n      ->  VNeutral_
-                                  (NVecElim_  (cEval_ a d) (cEval_ m d)
-                                              mnVal mcVal nVal n)
+             VNil _          ->  mnVal
+             VCons _ l x xs  ->  foldl vapp mcVal [l, x, xs, rec l xs]
+             VNeutral n      ->  VNeutral
+                                 (NVecElim  (cEval a d) (cEval m d)
+                                            mnVal mcVal kVal n)
              _                ->  error "internal: eval vecElim"
-    in   rec (cEval_ n d) (cEval_ xs d)
+    in rec (cEval k d) (cEval xs d)
 
 vapp :: Value -> Value -> Value
 vapp (VLam f)      v  =  f v
@@ -107,13 +110,6 @@ vapp (VNeutral n)  v  =  VNeutral (NApp n v)
 cEval :: CTerm -> Env -> Value
 cEval (Inf  ii)   d  =  iEval ii d
 cEval (Lam  e)    d  =  VLam (\ x -> cEval e (x : d))
---for Nat (in the paper, they are iEval??? But in the code, they are cEval???)
-cEval Zero      d  = VZero
-cEval (Succ k)  d  = VSucc (cEval k d)
---for Vec (not mentioned in the paper, only in the code???)
-cEval (Nil a)          d  =  VNil (cEval a d)
-cEval (Cons a n x xs)  d  =  VCons  (cEval a d) (cEval n d)
-                                    (cEval x d) (cEval xs d)
 
 --Substitution
 
@@ -127,10 +123,16 @@ iSubst ii r Star           =  Star
 iSubst ii r (Pi ty ty')    =  Pi  (cSubst ii r ty) (cSubst (ii + 1) r ty')
 --for Nat
 iSubst ii r Nat            =  Nat
-iSubst_ ii r  (NatElim m mz ms n)
+iSubst ii r  (NatElim m mz ms n)
                            =  NatElim (cSubst ii r m)
                                       (cSubst ii r mz) (cSubst ii r ms)
                                       (cSubst ii r ms)
+--for Vec
+iSubst ii r  (Vec a n)      =  Vec (cSubst ii r a) (cSubst ii r n)
+iSubst ii r  (VecElim a m mn mc n xs)
+                             =  VecElim (cSubst ii r a) (cSubst ii r m)
+                                        (cSubst ii r mn) (cSubst ii r mc)
+                                        (cSubst ii r n) (cSubst ii r xs)
 
 --substitution function for checkable terms
 cSubst :: Int -> ITerm -> CTerm -> CTerm
@@ -144,12 +146,17 @@ quote0 = quote 0
 quote :: Int -> Value -> CTerm
 quote ii (VLam f)      =  Lam (quote (ii + 1) (f (vfree (Quote ii))))
 quote ii (VNeutral n)  =  Inf (neutralQuote ii n)
-quote ii VStar         = Inf Star
-quote ii (VPi v f)     = Inf (Pi (quote ii v)(quote (ii + 1)(f (vfree(Quote ii)))))
+quote ii VStar         =  Inf Star
+quote ii (VPi v f)     =  Inf (Pi (quote ii v)(quote (ii + 1)(f (vfree(Quote ii)))))
 --for Nat
 quote ii VNat       =  Inf Nat
 quote ii VZero      =  Inf Zero
 quote ii (VSucc n)  =  Inf (Succ (quote ii n))
+--for Vec
+quote ii (VVec a n)         =  Inf (Vec (quote ii a) (quote ii n))
+quote ii (VNil a)           =  Inf (Nil (quote ii a))
+quote ii (VCons a n x xs)   =  Inf (Cons  (quote ii a) (quote ii n)
+                                     (quote ii x) (quote ii xs))
 
 neutralQuote :: Int -> Neutral -> ITerm
 neutralQuote ii (NFree x)   =  boundfree ii x
@@ -206,6 +213,41 @@ iType ii g (NatElim m mz ms k)  =
      cType ii g k VNat
      let kVal = cEval k []
      return (mVal `vapp` kVal)
+--type checker for Vec
+iType ii g (Vec a k) =
+  do  cType ii g a VStar
+      cType ii g k VNat
+      return VStar
+iType ii g (Nil a)   =
+  do  cType ii g a VStar
+      let aVal = cEval a []
+      return (VVec aVal VZero)
+iType ii g (Cons a k x xs)      =
+  do  cType ii g a VStar
+      let aVal = cEval a []
+      cType ii g k VNat
+      let kVal = cEval k []
+      cType ii g x aVal
+      cType ii g xs (VVec aVal kVal)
+      return (VVec aVal (VSucc kVal))
+iType ii g (VecElim a m mn mc k vs) =
+  do  cType ii g a VStar
+      let aVal = cEval a []
+      cType ii g m
+        (  VPi VNat (\k -> VPi (VVec aVal k) (\ _ -> VStar)))
+      let mVal = cEval m []
+      cType ii g mn (foldl vapp mVal [VZero, VNil aVal])
+      cType ii g mc
+        (  VPi VNat (\ l -> 
+           VPi aVal (\ y -> 
+           VPi (VVec aVal l) (\ ys ->
+           VPi (foldl vapp mVal [l, ys]) (\ _ ->
+           (foldl vapp mVal [VSucc l, VCons aVal l y ys]))))))
+      cType ii g k VNat
+      let kVal = cEval k []
+      cType ii g vs (VVec aVal kVal)
+      let vsVal = cEval vs []
+      return (foldl vapp mVal [kVal, vsVal])
 
 --checkable terms takes a type as input and returns ().
 cType :: Int -> Context -> CTerm -> Type -> Result ()
