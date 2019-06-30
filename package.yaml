@@ -1,7 +1,7 @@
 name:                juvix
 version:             0.0.0.0
 github:              "cryptiumlabs/juvix"
-license:             GPL3
+license:             GPL-3
 homepage:            https://github.com/cryptiumlabs/juvix#readme
 synopsis:            Juvix smart contract compiler & toolkit
 category:            Web3
@@ -19,6 +19,7 @@ dependencies:
   - text
   - mtl
   - containers
+  - fgl
 
 default-extensions:
   - NoImplicitPrelude
@@ -53,6 +54,7 @@ library:
   source-dirs: src
   exposed-modules:
     - Juvix
+    - Juvix.Interaction
     - Juvix.Utility
 
 executables:
