@@ -20,6 +20,7 @@ dependencies:
   - mtl
   - containers
   - fgl
+  - lens
 
 default-extensions:
   - NoImplicitPrelude
