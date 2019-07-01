@@ -82,6 +82,7 @@ data StateInfo = Info { memoryAllocated  :: Integer
 sequentalStep ∷ MonadState StateInfo m ⇒ m ()
 sequentalStep = modify' (\c -> c {sequentalSteps = sequentalSteps c + 1})
 
+incGraphSizeStep :: MonadState StateInfo m => Integer -> m ()
 incGraphSizeStep n = do
   Info memAlloced seqStep parallelSteps largestGraph currGraph <- get
   let memoryAllocated | n > 0 = memAlloced + n
@@ -96,7 +97,7 @@ aux0FromGraph ∷ (Primary → ProperPort) → Net → Node → Maybe ProperPort
 aux0FromGraph constructor graph num =
   foldr f (constructor Free) . lneighbors' <$> fst (match num graph)
   where
-    f (Edge (n1, n1port) (n2, n2port), n) con
+    f (Edge (n1, n1port) (n2, n2port), _) con
       | n1 == num && Prim == n1port = con {prim = Primary n2}
       | n2 == num && Prim == n2port = con {prim = Primary n1}
     f _ con = con
@@ -109,14 +110,14 @@ aux2FromGraph ∷
 aux2FromGraph constructor graph num =
   foldr f (constructor Free FreeNode FreeNode) . lneighbors' <$> fst (match num graph)
   where
-    f (Edge (n1, n1port) (n2, n2port), n) con
+    f (Edge (n1, n1port) (n2, n2port), _) con
       | n1 == num = conv (n2, n1port) con
       | n2 == num = conv (n1, n2port) con
       | otherwise = con
     conv (n,Prim) con = con {prim = Primary n}
     conv (n,Aux1) con = con {aux1 = Auxiliary n}
     conv (n,Aux2) con = con {aux2 = Auxiliary n}
-    conv (n,_) con    = con
+    conv (_,_) con    = con
 
 -- extra work that could maybe be avoided by doing this else where?
 isBothPrimary ∷ Graph gr ⇒ gr a EdgeInfo → Node → Bool
@@ -228,7 +229,7 @@ erase net conNum eraseNum port
 
 -- | conDup deals with the case when Constructor and Duplicate share a primary
 conDup ∷ MonadState StateInfo m ⇒ Net → Node → Node → ProperPort → ProperPort → m Net
-conDup net conNum deconNum (Construct _ auxA auxB) (Duplicate _ auxC auxD)
+conDup net conNum deconNum (Construct _ _auxA _auxB) (Duplicate _ _auxC _auxD)
   = do
   incGraphSizeStep 2
   return $ deleteRewire [conNum, deconNum] [dupA, dupB, conC, conD]
@@ -263,6 +264,7 @@ conDup net conNum deconNum (Construct _ auxA auxB) (Duplicate _ auxC auxD)
 conDup _ _ _ _ _ = error "only send a construct and duplicate to conDup"
 -- Manipulation functions ------------------------------------------------------
 
+linkHelper :: Net -> REL NumPort -> PortType -> Node -> Net
 linkHelper net rel nodeType node =
   case rel of
     Link (Port portType node1) -> link net (node, nodeType) (node1, portType)
@@ -286,7 +288,7 @@ link net (node1, port1) (node2, port2) =
 
 -- post condition, must delete the old node passed after the set of transitions are done!
 relink ∷ Net → (Node, PortType) → (Node, PortType) → Net
-relink net (oldNode, port) new@(newNode, newPort) =
+relink net (oldNode, port) new@(newNode, _newPort) =
   case findEdge net oldNode port of
     Just relink@(nodeToRelink, _) -> insEdge (nodeToRelink, newNode, Edge relink new) net
     Nothing                       -> net -- The port was really free to begin with!
@@ -307,16 +309,17 @@ deleteRewire oldNodesToDelete newNodes net = delNodes oldNodesToDelete dealWithC
   where
     newNodeSet           = Set.fromList newNodes
     neighbors            = fst <$> (oldNodesToDelete >>= lneighbors net)
-    conflictingNeighbors = findConflict newNodeSet neighbors (Set.fromList oldNodesToDelete)
+    conflictingNeighbors = findConflict newNodeSet neighbors
     dealWithConflict     = foldr (\ (t1, t2) net -> link net t1 t2) net conflictingNeighbors
 
+auxToPrimary :: Auxiliary -> Primary
 auxToPrimary (Auxiliary node) = Primary node
 auxToPrimary FreeNode         = Free
 
-findConflict ∷ Set.Set Node → [EdgeInfo] → Set.Set Node → [((Node, PortType), (Node, PortType))]
-findConflict nodes neighbors oldNodesToDelete = Set.toList (foldr f mempty neighbors)
+findConflict ∷ Set.Set Node → [EdgeInfo] → [((Node, PortType), (Node, PortType))]
+findConflict nodes neighbors  = Set.toList (foldr f mempty neighbors)
   where
-    f e@(Edge t1 t2@(n,_)) xs
+    f (Edge t1 t2@(_,_)) xs
       | Map.member t1 makeMap && Map.member t2 makeMap =
         Set.insert ((makeMap Map.! t2), (makeMap Map.! t1)) xs
       | otherwise = xs
@@ -331,11 +334,11 @@ findConflict nodes neighbors oldNodesToDelete = Set.toList (foldr f mempty neigh
 findEdge ∷ Net → Node → PortType → Maybe (Node, PortType)
 findEdge net node port = fmap other $ shead $ filter f $ lneighbors net node
   where
-    f (Edge t1 t2, n)
+    f (Edge t1 t2, _)
       | t1 == (node, port) = True
       | t2 == (node, port) = True
       | otherwise          = False
-    other (Edge t1 t2, n)
+    other (Edge t1 t2, _)
       | t1 == (node, port) = t2
       | t2 == (node, port) = t1
       | otherwise          = error "doesn't happen"
@@ -355,6 +358,7 @@ untilNothing f a = case f a of
   Nothing -> a
   Just a  -> untilNothing f a
 
+shead :: [a] -> Maybe a
 shead (x:_) = Just x
 shead []    = Nothing
 -- Example Graphs --------------------------------------------------------------
