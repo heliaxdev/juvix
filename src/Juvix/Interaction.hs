@@ -1,7 +1,10 @@
 {-# LANGUAGE NamedFieldPuns     #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Juvix.Interaction where
+module Juvix.Interaction (module Juvix.Interaction
+                         , Node
+                         , delNodes
+                         , nodes) where
 
 import           Control.Monad.State.Strict
 import           Data.Graph.Inductive
@@ -9,11 +12,10 @@ import qualified Data.Map.Strict            as Map
 import qualified Data.Set                   as Set
 import           Prelude                    (error)
 import           Protolude                  hiding (State, link, reduce,
-                                             runState)
+                                                    runState)
 import           Control.Lens
 
 import           Juvix.NodeInterface
-
 
 data PortType = Prim
               | Aux1
@@ -107,8 +109,6 @@ aux2FromGraph constructor graph num =
     conv (n,Aux2) con = set aux2 (Auxiliary n) con
     conv (_,_) con    = con
 
-
-
 -- extra work that could maybe be avoided by doing this else where?
 isBothPrimary ∷ Graph gr ⇒ gr a EdgeInfo → Node → Bool
 isBothPrimary net node =
@@ -116,6 +116,11 @@ isBothPrimary net node =
   $ filter (\ (Edge (_, p) (_, p')) -> p == Prim && p' == Prim)
   $ fmap fst
   $ lneighbors net node
+
+langToPort :: Net a → Node → (a → Maybe b) → Maybe b
+langToPort graph n f = do
+  context ← fst (match n graph)
+  f (snd (labNode' context))
 -- Graph manipulation ----------------------------------------------------------
 runNet ∷ (Net a → State StateInfo a) → Net a → (a, StateInfo)
 runNet f net = runState (f net) (Info netSize 0 0 netSize netSize)

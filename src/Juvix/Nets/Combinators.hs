@@ -7,7 +7,6 @@ import           Control.Monad.State.Strict
 import           Protolude                 hiding (reduce)
 import           Prelude                          (error)
 import           Data.Foldable                    (foldrM)
-import           Data.Graph.Inductive
 import           Control.Lens
 
 import           Juvix.Interaction
@@ -45,12 +44,11 @@ eraFromGraph = aux0FromGraph Erase
 
 -- a bit of extra repeat work in this function!
 langToProperPort ∷ NetLang → Node → Maybe ProperPort
-langToProperPort graph n = do
-  context ← fst (match n graph)
-  case snd (labNode' context) of
-    Con → conFromGraph graph n
-    Dup → dupFromGraph graph n
-    Era → eraFromGraph graph n
+langToProperPort net node = langToPort net node f
+  where
+    f Con = conFromGraph net node
+    f Dup = dupFromGraph net node
+    f Era = eraFromGraph net node
 
 -- Graph manipulation ----------------------------------------------------------
 reduceAll ∷ MonadState StateInfo m ⇒ Int → NetLang → m NetLang
