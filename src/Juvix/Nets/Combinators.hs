@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Juvix.Nets.Combinators where
 
@@ -28,6 +29,8 @@ data Lang where
   Con :: Lang
   Dup :: Lang
   Era :: Lang
+
+deriving instance Show Lang
 
 type NetLang = Net Lang
 
@@ -98,14 +101,12 @@ reduce net = do
 -- | Deals with the case when two nodes annihilate each other
 annihilate ∷ MonadState StateInfo m ⇒ NetLang → Node → Node → ProperPort → ProperPort → m NetLang
 annihilate net conNum1 conNum2 (Construct _ auxA auxB) (Construct _ auxC auxD) = do
-  modify' (\c -> c {currentGraphSize = currentGraphSize c - 2})
-  sequentalStep
+  incGraphSizeStep (-2)
   return $ delNodes [conNum1, conNum2]
          $ rewire (rewire net (Aux1, auxA) (Aux2, auxD)) (Aux2, auxB) (Aux1, auxC)
 
 annihilate net conNum1 conNum2 (Duplicate _ auxA auxB) (Duplicate _ auxC auxD) = do
-  modify' (\c -> c {currentGraphSize = currentGraphSize c - 2})
-  sequentalStep
+  incGraphSizeStep (-2)
   return $ delNodes [conNum1, conNum2]
          $ rewire (rewire net (Aux1, auxA) (Aux1, auxC)) (Aux2, auxB) (Aux2, auxD)
 annihilate _ _ _ _ _ = error "the other nodes do not annihilate eachother"

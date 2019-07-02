@@ -4,43 +4,43 @@ import           Juvix.Nets.Combinators
 import           Juvix.Interaction
 
 -- Example Graphs --------------------------------------------------------------
-commute1 ∷ Net
+commute1 ∷ NetLang
 commute1 = buildGr
            [( [ (Edge (2, Prim) (1, Prim), 2) ], 1, Con, [])
            ,([], 2, Dup, [])
            ]
 
-commute2 ∷ Net
+commute2 ∷ NetLang
 commute2 = buildGr
            [ ( [(Edge (2, Prim) (1, Prim), 2)], 1, Con, [] )
            , ( [], 2, Era, [])
            ]
 
-commute3 ∷ Net
+commute3 ∷ NetLang
 commute3 = buildGr
            [ ( [(Edge (2, Prim) (1, Prim), 2)], 1, Dup, [] )
            , ( [], 2, Era, [])
            ]
 
-annihilate1 ∷ Net
+annihilate1 ∷ NetLang
 annihilate1 = buildGr
            [ ( [ (Edge (2, Prim) (1, Prim), 2) ], 1, Con, [])
            , ([], 2, Con, [])
            ]
 
-annihilate2 ∷ Net
+annihilate2 ∷ NetLang
 annihilate2 = buildGr
            [ ( [ (Edge (2, Prim) (1, Prim), 2) ], 1, Dup, [])
            , ([], 2, Dup, [])
            ]
 
-annihilate3 ∷ Net
+annihilate3 ∷ NetLang
 annihilate3 = buildGr
            [ ( [ (Edge (2, Prim) (1, Prim), 2) ], 1, Era, [])
            , ([], 2, Era, [])
            ]
 
-nonTerminating ∷ Net
+nonTerminating ∷ NetLang
 nonTerminating = buildGr
            [ ( [ (Edge (2, Prim) (1, Prim), 2)
                , (Edge (2, Aux1) (1, Aux2), 2)
@@ -54,5 +54,5 @@ nonTerminating = buildGr
 -- Tests------------------------------------------------------------------------
 
 -- TODO: Write real tests
-test1 :: (Net, StateInfo)
+test1 :: (NetLang, StateInfo)
 test1 = runNet (reduceAll 100) nonTerminating

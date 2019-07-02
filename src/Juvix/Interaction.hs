@@ -1,5 +1,4 @@
 {-# LANGUAGE NamedFieldPuns     #-}
-{-# LANGUAGE StandaloneDeriving #-}
 
 module Juvix.Interaction (module Juvix.Interaction
                          , Node
@@ -28,17 +27,6 @@ data PortType = Prim
 data NumPort = Port PortType Node
              | FreePort
              deriving Show
-
--- Leave these as GADTs for now!
-data Primary where
-  Primary :: Node → Primary
-  Free    :: Primary
-
-deriving instance Show Primary
-
-data Auxiliary = Auxiliary Node
-               | FreeNode
-               deriving Show
 
 data EdgeInfo = Edge (Node, PortType) (Node, PortType) deriving Show
 
@@ -83,31 +71,72 @@ incGraphSizeStep n = do
   put Info {memoryAllocated, currentGraphSize, biggestGraphSize, sequentalSteps, parallelSteps}
 
 -- Graph to more typed construction---------------------------------------------
-aux0FromGraph :: (HasPrim b Primary, Graph gr) ⇒ (Primary → b) → gr a EdgeInfo → Node → Maybe b
-aux0FromGraph constructor graph num =
-  foldr f (constructor Free) . lneighbors' <$> fst (match num graph)
-  where
-    f (Edge (n1, n1port) (n2, n2port), _) con
-      | n1 == num && Prim == n1port = set prim (Primary n2) con
-      | n2 == num && Prim == n2port = set prim (Primary n1) con
-    f _ con = con
-
-aux2FromGraph :: (HasPrim b Primary, HasAux1 b Auxiliary, HasAux2 b Auxiliary, Graph gr)
+aux0FromGraph :: (Prim b, Graph gr) ⇒ (Primary → b) → gr a EdgeInfo → Node → Maybe b
+aux1FromGraph :: (Aux1 b, Graph gr) ⇒ (Primary → Auxiliary → b) → gr a EdgeInfo → Node → Maybe b
+aux2FromGraph :: (Aux2 b, Graph gr)
               ⇒ (Primary → Auxiliary → Auxiliary → b)
               → gr a EdgeInfo
               → Node
               → Maybe b
-aux2FromGraph constructor graph num =
-  foldr f (constructor Free FreeNode FreeNode) . lneighbors' <$> fst (match num graph)
+
+aux3FromGraph :: (Aux3 b, Graph gr)
+              ⇒ (Primary → Auxiliary → Auxiliary → Auxiliary → b)
+              → gr a EdgeInfo
+              → Node
+              → Maybe b
+
+aux4FromGraph :: (Aux4 b, Graph gr)
+              ⇒ (Primary → Auxiliary → Auxiliary → Auxiliary → Auxiliary → b)
+              → gr a EdgeInfo
+              → Node
+              → Maybe b
+
+aux5FromGraph :: (Aux5 b, Graph gr)
+              ⇒ (Primary → Auxiliary → Auxiliary → Auxiliary → Auxiliary → Auxiliary → b)
+              → gr a EdgeInfo
+              → Node
+              → Maybe b
+
+aux0FromGraph con = auxFromGraph convPrim (con Free)
+aux1FromGraph con = auxFromGraph convAux1 (con Free FreeNode)
+aux2FromGraph con = auxFromGraph convAux2 (con Free FreeNode FreeNode)
+aux3FromGraph con = auxFromGraph convAux3 (con Free FreeNode FreeNode FreeNode)
+aux4FromGraph con = auxFromGraph convAux4 (con Free FreeNode FreeNode FreeNode FreeNode)
+aux5FromGraph con = auxFromGraph convAux5 (con Free FreeNode FreeNode FreeNode FreeNode FreeNode)
+
+-- these are made so we restrict what is needed the most by auxFromGraph
+convPrim :: Prim p ⇒ (Node, PortType) → p → p
+convPrim (n,Prim) con = set prim (Primary n) con
+convPrim (_,_) con    = con
+
+convAux1 :: Aux1 p ⇒ (Node, PortType) → p → p
+convAux1 (n,Aux1) con = set aux1 (Auxiliary n) con
+convAux1 a con        = convPrim a con
+
+convAux2 :: Aux2 p ⇒ (Node, PortType) → p → p
+convAux2 (n,Aux2) con = set aux2 (Auxiliary n) con
+convAux2 a con        = convAux1 a con
+
+convAux3 :: Aux3 p ⇒ (Node, PortType) → p → p
+convAux3 (n,Aux2) con = set aux3 (Auxiliary n) con
+convAux3 a con        = convAux2 a con
+
+convAux4 :: Aux4 p ⇒ (Node, PortType) → p → p
+convAux4 (n,Aux2) con = set aux4 (Auxiliary n) con
+convAux4 a con        = convAux3 a con
+
+convAux5 :: Aux5 p ⇒ (Node, PortType) → p → p
+convAux5 (n,Aux2) con = set aux5 (Auxiliary n) con
+convAux5 a con        = convAux4 a con
+
+auxFromGraph :: Graph gr ⇒ ((Node, PortType) → b → b) → b → gr a EdgeInfo → Node → Maybe b
+auxFromGraph conv constructor graph num =
+  foldr f constructor . lneighbors' <$> fst (match num graph)
   where
     f (Edge (n1, n1port) (n2, n2port), _) con
       | n1 == num = conv (n2, n1port) con
       | n2 == num = conv (n1, n2port) con
       | otherwise = con
-    conv (n,Prim) con = set prim (Primary n) con
-    conv (n,Aux1) con = set aux1 (Auxiliary n) con
-    conv (n,Aux2) con = set aux2 (Auxiliary n) con
-    conv (_,_) con    = con
 
 -- extra work that could maybe be avoided by doing this else where?
 isBothPrimary ∷ Graph gr ⇒ gr a EdgeInfo → Node → Bool
@@ -122,13 +151,16 @@ langToPort graph n f = do
   context ← fst (match n graph)
   f (snd (labNode' context))
 -- Graph manipulation ----------------------------------------------------------
-runNet ∷ (Net a → State StateInfo a) → Net a → (a, StateInfo)
+runNet ∷ (Net a → State StateInfo (Net a)) → Net a → (Net a, StateInfo)
 runNet f net = runState (f net) (Info netSize 0 0 netSize netSize)
   where
     netSize = toInteger (length (nodes net))
+
+delMaybeNodes :: Graph gr ⇒ [Maybe Node] → gr a b → gr a b
+delMaybeNodes = delNodes . catMaybes
 -- Manipulation functions ------------------------------------------------------
 
-linkHelper :: Net a -> REL NumPort -> PortType -> Node -> Net a
+linkHelper :: Net a → REL NumPort → PortType → Node → Net a
 linkHelper net rel nodeType node =
   case rel of
     Link (Port portType node1) -> link net (node, nodeType) (node1, portType)
@@ -176,9 +208,13 @@ deleteRewire oldNodesToDelete newNodes net = delNodes oldNodesToDelete dealWithC
     conflictingNeighbors = findConflict newNodeSet neighbors
     dealWithConflict     = foldr (\ (t1, t2) net -> link net t1 t2) net conflictingNeighbors
 
-auxToPrimary :: Auxiliary -> Primary
+auxToPrimary :: Auxiliary → Primary
 auxToPrimary (Auxiliary node) = Primary node
 auxToPrimary FreeNode         = Free
+
+auxToNode :: Auxiliary → Maybe Node
+auxToNode (Auxiliary node) = Just node
+auxToNode FreeNode         = Nothing
 
 findConflict ∷ Set.Set Node → [EdgeInfo] → [((Node, PortType), (Node, PortType))]
 findConflict nodes neighbors  = Set.toList (foldr f mempty neighbors)
