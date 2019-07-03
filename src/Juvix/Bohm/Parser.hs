@@ -81,8 +81,8 @@ parseBohmFile fname = do
   input <- readFile fname
   pure $ parseBohm' fname (show input)
 
-expression :: Parser Bohm
-expression = ifThenElse
+expression' :: Parser Bohm
+expression' = ifThenElse
           <|> cons
           <|> car
           <|> cdr
@@ -96,9 +96,10 @@ expression = ifThenElse
           <|> trueLit
           <|> falseLit
           <|> intLit
+          <|> symbol'
 
-expression' :: Parser Bohm
-expression' = buildExpressionParser optable expression'
+expression :: Parser Bohm
+expression = buildExpressionParser optable expression'
 
 listExpression :: Parser Bohm
 listExpression = nil <|> listCase
@@ -188,6 +189,9 @@ application = do
   case app of
     []     → fail "empty list"
     (x:xs) → pure $ foldr Application x xs
+
+symbol' :: Parser Bohm
+symbol' =  Symbol' <$> symbol
 
 
 -- List Parser------------------------------------------------------------------

@@ -19,6 +19,7 @@ data Bohm
   | Car Bohm
   | Cdr Bohm
   | IsNil Bohm
+  | Symbol' SomeSymbol
   deriving Show
 
 
