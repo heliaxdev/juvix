@@ -21,6 +21,7 @@ dependencies:
   - containers
   - fgl
   - lens
+  - parsec
 
 default-extensions:
   - NoImplicitPrelude

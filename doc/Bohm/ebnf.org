@@ -27,7 +27,7 @@
                | Number
                | 'true'
                | 'false'
-               | 'letrec ' Symbol '=' Expression
+               | 'letrec' Symbol '=' Expression
                | 'let' Symbol '=' Expression 'in' Expression
                | 'if' Expression 'then' Expression 'else' Expression
                | 'not' Expression
