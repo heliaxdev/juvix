@@ -188,7 +188,7 @@ application = do
   app ← parens (many expression)
   case app of
     []     → fail "empty list"
-    (x:xs) → pure $ foldr Application x xs
+    (x:xs) → pure $ foldl' Application x xs
 
 symbol' :: Parser Bohm
 symbol' =  Symbol' <$> symbol
