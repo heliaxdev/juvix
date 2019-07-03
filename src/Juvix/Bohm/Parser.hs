@@ -1,7 +1,7 @@
 {-# LANGUAGE ApplicativeDo #-}
 module Juvix.Bohm.Parser where
 
-import           Protolude hiding ((<|>))
+import           Protolude hiding ((<|>), many)
 import           Prelude (String)
 
 import           Text.Parsec
@@ -83,6 +83,7 @@ parseBohmFile fname = do
 
 expression' :: Parser Bohm
 expression' = ifThenElse
+          <|> (application <?> "help")
           <|> cons
           <|> car
           <|> cdr
@@ -91,7 +92,6 @@ expression' = ifThenElse
           <|> letExp
           <|> letRecExp
           <|> notExp
-          <|> application
           <|> listExpression
           <|> trueLit
           <|> falseLit
@@ -185,7 +185,7 @@ notExp = do
 
 application :: Parser Bohm
 application = do
-  app ← parens (expression `sepBy` space)
+  app ← parens (many expression)
   case app of
     []     → fail "empty list"
     (x:xs) → pure $ foldr Application x xs
