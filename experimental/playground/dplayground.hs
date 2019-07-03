@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall #-}
 --Dependent type implementation following 
 --"A tutorial implementation of a dependently typed lambda calculus"
 
@@ -300,6 +301,7 @@ iType ii g (EqElim a m mr x y eq) =
       cType ii g eq (VEq aVal xVal yVal)
       let eqVal = cEval eq []
       return (foldl vapp mVal [xVal, yVal])
+iType ii g _                       =  throwError "ill-defined type"
 
 --checkable terms takes a type as input and returns ().
 cType :: Int -> Context -> CTerm -> Type -> Result ()
