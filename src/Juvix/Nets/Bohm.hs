@@ -142,7 +142,7 @@ reduce net = update undefined
                   Just App {}    → updated <$> fanInAux2 net n (node, App')
                   Just Lambda {} → updated <$> fanInAux2 net n (node, Lambda')
                   -- fan in should interact with all!, update later
-                  _                 → pure (net, isChanged)
+                  _              → pure (net, isChanged)
               _ → pure (net, isChanged)
 
 propPrimary ::
