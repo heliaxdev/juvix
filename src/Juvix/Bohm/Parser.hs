@@ -70,15 +70,15 @@ symbol = someSymbolVal <$> identifier
 
 -- Grammar----------------------------------------------------------------------
 
-parseBohm :: String -> Either ParseError Bohm
+parseBohm :: String → Either ParseError Bohm
 parseBohm = parseBohm' ""
 
-parseBohm' :: SourceName -> String -> Either ParseError Bohm
-parseBohm' = runParser (whiteSpace >> expression') ()
+parseBohm' :: SourceName → String → Either ParseError Bohm
+parseBohm' = runParser (whiteSpace *> expression' <* eof) ()
 
-parseBohmFile :: FilePath -> IO (Either ParseError Bohm)
+parseBohmFile :: FilePath → IO (Either ParseError Bohm)
 parseBohmFile fname = do
-  input <- readFile fname
+  input ← readFile fname
   pure $ parseBohm' fname (show input)
 
 expression' :: Parser Bohm
@@ -200,7 +200,7 @@ nil = Nil <$ reserved "nil"
 
 listCase :: Parser Bohm
 listCase = do
-  exprs <- brackets (expression `sepBy` comma)
+  exprs ← brackets (expression `sepBy` comma)
   pure $ foldr Cons Nil exprs
 
 
