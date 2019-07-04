@@ -28,7 +28,7 @@ data NumPort = Port PortType Node
              | FreePort
              deriving Show
 
-data EdgeInfo = Edge (Node, PortType) (Node, PortType) deriving Show
+data EdgeInfo = Edge (Node, PortType) (Node, PortType) deriving (Show, Eq)
 
 -- Rewrite REL into tagless final, so we aren't memory
 -- wasting on this silly tag, just pass in the function!
@@ -198,7 +198,9 @@ rewire net _ _                                     = net
 newNode ∷ DynGraph gr ⇒ gr a b → a → (Node, gr a b)
 newNode graph lang = (succ maxNum, insNode (succ maxNum, lang) graph)
   where
-    (_,maxNum) = nodeRange graph
+    (_,maxNum)
+      | isEmpty graph = (0, 0)
+      | otherwise     = nodeRange graph
 
 deleteRewire ∷ [Node] → [Node] → Net a → Net a
 deleteRewire oldNodesToDelete newNodes net = delNodes oldNodesToDelete dealWithConflict
@@ -242,6 +244,11 @@ findEdge net node port = fmap other $ headMay $ filter f $ lneighbors net node
       | t1 == (node, port) = t2
       | t2 == (node, port) = t1
       | otherwise          = error "doesn't happen"
+
+deleteEdge :: Net a → (Node, PortType) → (Node, PortType) → Net a
+deleteEdge net t1@(n1,_) t2@(n2,_)
+  = delAllLEdge (n1, n2, (Edge t1 t2))
+  $ delAllLEdge (n2, n1, (Edge t2 t1)) net
 
 -- Utility functions -----------------------------------------------------------
 untilNothingNTimesM ∷ Monad m ⇒ (t → m (Maybe t)) → t → Int → m t
