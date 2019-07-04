@@ -191,10 +191,10 @@ application = do
     (x:xs) → pure $ foldl' Application x xs
 
 symbol' :: Parser Bohm
-symbol' =  Symbol' <$> symbol
-
+symbol' = Symbol' <$> symbol
 
 -- List Parser------------------------------------------------------------------
+
 nil :: Parser Bohm
 nil = Nil <$ reserved "nil"
 
@@ -202,7 +202,6 @@ listCase :: Parser Bohm
 listCase = do
   exprs ← brackets (expression `sepBy` comma)
   pure $ foldr Cons Nil exprs
-
 
 -- Infix------------------------------------------------------------------------
 

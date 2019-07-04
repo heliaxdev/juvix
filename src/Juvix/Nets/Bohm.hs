@@ -4,44 +4,10 @@
 module Juvix.Nets.Bohm where
 
 import           Control.Lens
-import           Protolude
+import           Protolude hiding (link)
 
 import           Juvix.Interaction
 import           Juvix.NodeInterface
-
-data ProperPort
- = Or      {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | And     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Not     {_prim :: Primary, _aux1 :: Auxiliary}
- | Eq      {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Neq     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | More    {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Less    {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Meq     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Leq     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Cons    {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Car     {_prim :: Primary, _aux1 :: Auxiliary}
- | Cdr     {_prim :: Primary, _aux1 :: Auxiliary}
- | Nil     {_prim :: Primary}
- | TestNil {_prim :: Primary, _aux1 :: Auxiliary}
- | IfElse  {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary, _aux3 :: Auxiliary}
- | Mu      {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Div     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Sub     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Add     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Prod    {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Mod     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Tru     {_prim :: Primary}
- | Fals    {_prim :: Primary}
- | IntLit  {_prim :: Primary, _int :: Int}
- | Lambda  {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | Symbol  {_prim :: Primary, _symb :: SomeSymbol}
- | App     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | FanIn   {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | FanOut  {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- deriving Show
-
-makeFieldsNoPrefix ''ProperPort
 
 data Lang
  = Or'
@@ -73,7 +39,47 @@ data Lang
  | App'
  | FanIn'
  | FanOut'
+ | Curried' Int Lang
+ | Erase'
  deriving Show
+
+
+data ProperPort
+ = Or      {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | And     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Not     {_prim :: Primary, _aux1 :: Auxiliary}
+ | Eq      {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Neq     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | More    {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Less    {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Meq     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Leq     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Cons    {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Car     {_prim :: Primary, _aux1 :: Auxiliary}
+ | Cdr     {_prim :: Primary, _aux1 :: Auxiliary}
+ | Nil     {_prim :: Primary}
+ | TestNil {_prim :: Primary, _aux1 :: Auxiliary}
+ | IfElse  {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary, _aux3 :: Auxiliary}
+ | Mu      {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Div     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Sub     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Add     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Prod    {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Mod     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Tru     {_prim :: Primary}
+ | Fals    {_prim :: Primary}
+ | IntLit  {_prim :: Primary, _int :: Int}
+ | Lambda  {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | Symbol  {_prim :: Primary, _symb :: SomeSymbol}
+ | App     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | FanIn   {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | FanOut  {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+   -- Lang could be a tighter bound, but that would require more boiler plate
+ | Curried {_prim :: Primary, _aux1 :: Auxiliary, _int :: Int, _curried :: Lang}
+ | Erase   {_prim :: Primary}
+ deriving Show
+
+makeFieldsNoPrefix ''ProperPort
 
 -- Graph to more typed construction---------------------------------------------
 
@@ -108,8 +114,10 @@ langToProperPort net node = langToPort net node f
     f App'     = aux2FromGraph App     net node
     f FanIn'   = aux2FromGraph FanIn   net node
     f FanOut'  = aux2FromGraph FanOut  net node
-    f (IntLit' i) = aux0FromGraph (\x -> IntLit x i) net node
-    f (Symbol' s) = aux0FromGraph (\x -> Symbol x s) net node
+    f Erase'   = aux0FromGraph Erase   net node
+    f (IntLit' i)    = aux0FromGraph (\x -> IntLit x i) net node
+    f (Symbol' s)    = aux0FromGraph (\x -> Symbol x s) net node
+    f (Curried' c i) = aux1FromGraph (\x y -> Curried x y c i) net node
 -- Rewrite rules----------------------------------------------------------------
 reduce net = update undefined
   where
@@ -127,6 +135,20 @@ reduce net = update undefined
                   Just Fals {} → updated <$> propPrimary net (n, port) node
                   Just Tru  {} → updated <$> anihilateRewireAux net node (n, port)
                   _            → pure (net, isChanged)
+              Or (Primary node) _ _ →
+                case langToProperPort net node of
+                  Just Fals {} → updated <$> anihilateRewireAux net node (n, port)
+                  Just Tru  {} → updated <$> propPrimary net (n, port) node
+                  _            → pure (net, isChanged)
+              Not (Primary node) _ →
+                case langToProperPort net node of
+                  Nothing      → pure (net, isChanged)
+                  Just x       → notExpand net (node, x) (n, port) isChanged
+              IfElse (Primary node) _ _ _ →
+                case langToProperPort net node of
+                  Just Fals {} → updated <$> ifElseRule net node (n, port) False
+                  Just Tru  {} → updated <$> ifElseRule net node (n, port) True
+                  _            → pure (net, isChanged)
               Lambda (Primary node) _ _ →
                 case langToProperPort net node of
                   Just app@(App {}) → updated <$> anihilateRewireAuxTogether net (n, port) (node, app)
@@ -143,19 +165,42 @@ reduce net = update undefined
                   Just Lambda {} → updated <$> fanInAux2 net n (node, Lambda')
                   -- fan in should interact with all!, update later
                   _              → pure (net, isChanged)
+              Erase (Primary node) →
+                case langToProperPort net node of
+                  Just x  → updated <$> eraseAll net (x, node) n
+                  Nothing → pure (net, isChanged)
               _ → pure (net, isChanged)
 
 propPrimary ::
-  (MonadState StateInfo m, Aux2 s) ⇒ Net a → (Node, s) → Node → m (Net a)
+  (MonadState StateInfo m, Aux2 s) ⇒ Net Lang → (Node, s) → Node → m (Net Lang)
 propPrimary net (numDel, nodeDel) numProp =
   let wire = rewire net (Aux1, nodeDel^.aux1) (Prim, Auxiliary numProp) in
   case auxToNode (nodeDel^.aux2) of
-    Just n -> do
-      incGraphSizeStep (-2)
-      return $ delNodes [numDel, n] $ wire
+    Just _ -> do
+      sequentalStep
+      let (eraseNum, net') = newNode wire Erase'
+          net''            = relink net' (numDel, Aux2) (eraseNum, Prim)
+      return $ deleteRewire [numDel] [eraseNum] $ net''
     Nothing -> do
       incGraphSizeStep (-1)
       return $ delNodes [numDel] $ wire
+
+ifElseRule ::
+  (MonadState StateInfo m, Aux3 s) ⇒ Net Lang → Node → (Node, s) → Bool → m (Net Lang)
+ifElseRule net numPrimOnly (numAuxs, auxs) pred = do
+  incGraphSizeStep (-1)
+  let (numErase, net') = newNode net Erase'
+  return $ deleteRewire [numPrimOnly, numAuxs] [numErase]
+         $ if pred
+           then rewire (rewire net' (Prim, Auxiliary numErase)
+                                    (Aux2, auxs^.aux2))
+                       (Aux1, auxs^.aux1)
+                       (Aux3, auxs^.aux3)
+           else rewire (rewire net' (Prim, Auxiliary numErase)
+                                    (Aux3, auxs^.aux3))
+                       (Aux1, auxs^.aux1)
+                       (Aux2, auxs^.aux2)
+
 
 anihilateRewireAux ::
   (MonadState StateInfo m, Aux2 s) ⇒ Net a → Node → (Node, s) → m (Net a)
@@ -199,8 +244,6 @@ muExpand net muNum = do
                                }
 
 
-
-
 fanInAux2 :: MonadState StateInfo m ⇒ Net Lang → Node → (Node, Lang) → m (Net Lang)
 fanInAux2 net numFan (numOther, otherLang) = do
   incGraphSizeStep 2
@@ -233,3 +276,38 @@ fanInAux2 net numFan (numOther, otherLang) = do
                                , auxiliary1 = Link (Port Aux1 other1)
                                , auxiliary2 = Link (Port Aux1 other2)
                                }
+-- TODO :: delete node coming in!
+notExpand :: (MonadState StateInfo f, Aux2 s)
+          ⇒ Net Lang
+          → (Node, ProperPort)
+          → (Node, s)
+          → Bool
+          → f (Net Lang, Bool)
+notExpand net (n, Tru {}) (notNum, notPort) _ =
+  (\n -> (n, True)) <$> propPrimary (delNodes [n] net') (notNum, notPort) numFals
+  where
+    (numFals, net') = newNode net Fals'
+
+notExpand net (n, Fals {}) (notNum, notPort) _ =
+  (\n -> (n, True)) <$> propPrimary (delNodes [n] net') (notNum, notPort) numFals
+  where
+    (numFals, net') = newNode net Tru'
+
+notExpand net _ _ updated = pure (net, updated)
+
+
+-- Erase should be connected to the main port atm, change this logic later
+-- when this isn't the case
+eraseAll :: (Aux3 s, MonadState StateInfo m) ⇒ Net Lang → (s, Node) → Node → m (Net Lang)
+eraseAll net (node, numNode) nodeErase = do
+  let ((net',mE)    , i)  = auxDispatch net   (node^.aux1) Aux1
+      ((net'', mE2) , i2) = auxDispatch net'  (node^.aux2) Aux2
+      ((net''', mE3), i3) = auxDispatch net'' (node^.aux3) Aux3
+  incGraphSizeStep (i + i2 + i3 - 2)
+  return (deleteRewire [numNode, nodeErase] (catMaybes [mE, mE2, mE3]) net''')
+  where
+    auxDispatch net FreeNode      _   = ((net, Nothing), 0)
+    auxDispatch net (Auxiliary _) aux = (erase net aux, 1)
+    erase net port = (relink net' (numNode, port) (numE, Prim), Just numE)
+      where
+        (numE, net') = newNode net Erase'
