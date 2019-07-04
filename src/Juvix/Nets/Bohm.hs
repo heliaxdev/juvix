@@ -143,7 +143,7 @@ reduce net = update undefined
               Not (Primary node) _ →
                 case langToProperPort net node of
                   Nothing      → pure (net, isChanged)
-                  Just x       → notExpand net x (n, port) isChanged
+                  Just x       → notExpand net (node, x) (n, port) isChanged
               IfElse (Primary node) _ _ _ →
                 case langToProperPort net node of
                   Just Fals {} → updated <$> ifElseRule net node (n, port) False
@@ -165,7 +165,10 @@ reduce net = update undefined
                   Just Lambda {} → updated <$> fanInAux2 net n (node, Lambda')
                   -- fan in should interact with all!, update later
                   _              → pure (net, isChanged)
-              Erase {} → updated <$> eraseAll net (port, n)
+              Erase (Primary node) →
+                case langToProperPort net node of
+                  Just x  → updated <$> eraseAll net (x, node) n
+                  Nothing → pure (net, isChanged)
               _ → pure (net, isChanged)
 
 propPrimary ::
@@ -273,20 +276,20 @@ fanInAux2 net numFan (numOther, otherLang) = do
                                , auxiliary1 = Link (Port Aux1 other1)
                                , auxiliary2 = Link (Port Aux1 other2)
                                }
-
+-- TODO :: delete node coming in!
 notExpand :: (MonadState StateInfo f, Aux2 s)
           ⇒ Net Lang
-          → ProperPort
+          → (Node, ProperPort)
           → (Node, s)
           → Bool
           → f (Net Lang, Bool)
-notExpand net (Tru {}) (notNum, notPort) _ =
-  (\n -> (n, True)) <$> propPrimary net' (notNum, notPort) numFals
+notExpand net (n, Tru {}) (notNum, notPort) _ =
+  (\n -> (n, True)) <$> propPrimary (delNodes [n] net') (notNum, notPort) numFals
   where
     (numFals, net') = newNode net Fals'
 
-notExpand net (Fals {}) (notNum, notPort) _ =
-  (\n -> (n, True)) <$> propPrimary net' (notNum, notPort) numFals
+notExpand net (n, Fals {}) (notNum, notPort) _ =
+  (\n -> (n, True)) <$> propPrimary (delNodes [n] net') (notNum, notPort) numFals
   where
     (numFals, net') = newNode net Tru'
 
@@ -295,16 +298,16 @@ notExpand net _ _ updated = pure (net, updated)
 
 -- Erase should be connected to the main port atm, change this logic later
 -- when this isn't the case
-eraseAll :: (Aux3 s, MonadState StateInfo m) ⇒ Net Lang → (s, Node) → m (Net Lang)
-eraseAll net (node, numNode) = do
-  let (net', i)    = auxDispatch net   (node^.aux1) Aux1
-      (net'', i2)  = auxDispatch net'  (node^.aux2) Aux2
-      (net''', i3) = auxDispatch net'' (node^.aux3) Aux3
+eraseAll :: (Aux3 s, MonadState StateInfo m) ⇒ Net Lang → (s, Node) → Node → m (Net Lang)
+eraseAll net (node, numNode) nodeErase = do
+  let ((net',mE)    , i)  = auxDispatch net   (node^.aux1) Aux1
+      ((net'', mE2) , i2) = auxDispatch net'  (node^.aux2) Aux2
+      ((net''', mE3), i3) = auxDispatch net'' (node^.aux3) Aux3
   incGraphSizeStep (i + i2 + i3 - 2)
-  return net'''
+  return (deleteRewire [numNode, nodeErase] (catMaybes [mE, mE2, mE3]) net''')
   where
-    auxDispatch net FreeNode      _   = (net, 0)
+    auxDispatch net FreeNode      _   = ((net, Nothing), 0)
     auxDispatch net (Auxiliary _) aux = (erase net aux, 1)
-    erase net port = relink net' (numNode, port) (numE, Prim)
+    erase net port = (relink net' (numNode, port) (numE, Prim), Just numE)
       where
         (numE, net') = newNode net Erase'
