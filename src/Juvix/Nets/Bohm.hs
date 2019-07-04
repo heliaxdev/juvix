@@ -190,7 +190,7 @@ ifElseRule ::
 ifElseRule net numPrimOnly (numAuxs, auxs) pred = do
   incGraphSizeStep (-1)
   let (numErase, net') = newNode net Erase'
-  return $ delNodes [numPrimOnly, numAuxs]
+  return $ deleteRewire [numPrimOnly, numAuxs] [numErase]
          $ if pred
            then rewire (rewire net' (Prim, Auxiliary numErase)
                                     (Aux2, auxs^.aux2))
