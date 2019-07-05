@@ -159,6 +159,15 @@ reduce net = update undefined
                   Just lam@(App {}) → updated <$> anihilateRewireAuxTogether net (n, port) (node, lam)
                   Just FanIn {}     → updated <$> fanInAux2 net node (n, App')
                   _                 → pure (net, isChanged)
+              Cdr (Primary node) _ →
+                case langToProperPort net node of
+                  Just Nil {} → updated <$> propPrimary net (n, port) node
+              Nil (Primary node) →
+                case langToProperPort net node of
+                  Just c@Cdr {} → updated <$> propPrimary net (node, c) n
+              Cons (Primary node) _ _ →
+                case langToProperPort net node of
+                  Just Cdr {} → undefined
               FanIn (Primary node) _ _ →
                 case langToProperPort net node of
                   Just App {}    → updated <$> fanInAux2 net n (node, App')
@@ -192,12 +201,12 @@ ifElseRule net numPrimOnly (numAuxs, auxs) pred = do
   let (numErase, net') = newNode net Erase'
   return $ deleteRewire [numPrimOnly, numAuxs] [numErase]
          $ if pred
-           then rewire (rewire net' (Prim, Auxiliary numErase)
-                                    (Aux2, auxs^.aux2))
+           then rewire (relinkAux net' (auxs^.aux2, Aux2)
+                                       (numErase, Prim))
                        (Aux1, auxs^.aux1)
                        (Aux3, auxs^.aux3)
-           else rewire (rewire net' (Prim, Auxiliary numErase)
-                                    (Aux3, auxs^.aux3))
+           else rewire (relinkAux  net' (auxs^.aux3, Aux3)
+                                        (numErase, Prim))
                        (Aux1, auxs^.aux1)
                        (Aux2, auxs^.aux2)
 
@@ -311,3 +320,8 @@ eraseAll net (node, numNode) nodeErase = do
     erase net port = (relink net' (numNode, port) (numE, Prim), Just numE)
       where
         (numE, net') = newNode net Erase'
+
+consCar net (cons, numCons) (car, numCar)
+  = rewire net' (Aux2, cons^.aux2) (Aux1, car^.aux1)
+  where
+    (erase, net') = newNode net Erase'

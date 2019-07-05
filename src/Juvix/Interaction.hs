@@ -186,14 +186,22 @@ link net (node1, port1) (node2, port2) =
 relink ∷ Net a → (Node, PortType) → (Node, PortType) → Net a
 relink net (oldNode, port) new@(newNode, _newPort) =
   case findEdge net oldNode port of
-    Just relink@(nodeToRelink, _) -> insEdge (nodeToRelink, newNode, Edge relink new) net
-    Nothing                       -> net -- The port was really free to begin with!
+    Just relink@(nodeToRelink, _) → insEdge (nodeToRelink, newNode, Edge relink new) net
+    Nothing                       → net -- The port was really free to begin with!
+
+-- | like relink, but handles an Aux in the first argument
+relinkAux :: Net a → (Auxiliary, PortType) → (Node, PortType) → Net a
+relinkAux net (Auxiliary a, pb) newNode = relink net (a, pb) newNode
+relinkAux net _                 _       = net
 
 -- | rewire is used to wire two auxiliary nodes together
 -- when the main nodes annihilate each other
 rewire ∷ Net a → (PortType, Auxiliary) → (PortType, Auxiliary) → Net a
-rewire net (pa, (Auxiliary a)) (pb, (Auxiliary b)) = link net (a, pa) (b, pb)
-rewire net _ _                                     = net
+rewire net (pa, (Auxiliary a)) (pb, (Auxiliary b)) =
+  case findEdge net b pb of
+    Just x  → relink net (a, pa) x
+    Nothing → net
+rewire net _ _ = net
 
 newNode ∷ DynGraph gr ⇒ gr a b → a → (Node, gr a b)
 newNode graph lang = (succ maxNum, insNode (succ maxNum, lang) graph)
