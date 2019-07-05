@@ -167,7 +167,8 @@ reduce net = update undefined
                   Just c@Cdr {} → updated <$> propPrimary net (node, c) n
               Cons (Primary node) _ _ →
                 case langToProperPort net node of
-                  Just Cdr {} → undefined
+                  Just c@Cdr {} → updated <$> (consCdr net (port, n) (c, node))
+                  Just c@Car {} → updated <$> (consCar net (port, n) (c, node))
               FanIn (Primary node) _ _ →
                 case langToProperPort net node of
                   Just App {}    → updated <$> fanInAux2 net n (node, App')
@@ -321,7 +322,45 @@ eraseAll net (node, numNode) nodeErase = do
       where
         (numE, net') = newNode net Erase'
 
-consCar net (cons, numCons) (car, numCar)
-  = rewire net' (Aux2, cons^.aux2) (Aux1, car^.aux1)
+consCar :: (MonadState StateInfo m, Aux2 s) ⇒ Net Lang → (s, Node) → (s, Node) → m (Net Lang)
+consCar net (cons, numCons) (car, numCar) = do
+  incGraphSizeStep (-1)
+  return $ deleteRewire [numCons, numCar] [erase]
+         $ rewire (relinkAux net' (cons^.aux1, Aux1) (erase, Prim))
+                  (Aux2, cons^.aux2)
+                  (Aux1, car^.aux1)
   where
     (erase, net') = newNode net Erase'
+
+
+consCdr :: (MonadState StateInfo m, Aux2 s) ⇒ Net Lang → (s, Node) → (s, Node) → m (Net Lang)
+consCdr net (cons, numCons) (cdr, numCdr) = do
+  incGraphSizeStep (-1)
+  return $ deleteRewire [numCons, numCdr] [erase]
+         $ rewire (relinkAux net' (cons^.aux2, Aux2) (erase, Prim))
+                  (Aux1, cons^.aux1)
+                  (Aux1, cdr^.aux1)
+  where
+    (erase, net') = newNode net Erase'
+
+testNilNil :: (MonadState StateInfo m, Aux1 s) ⇒ Net Lang → (s, Node) → Node → m (Net Lang)
+testNilNil net (test, numTest) numNil = do
+  incGraphSizeStep (-1)
+  return $ deleteRewire [numTest, numNil] [true]
+         $ relinkAux net' (test^.aux1, Aux1) (true, Prim)
+  where
+    (true, net') = newNode net Tru'
+
+testNilCons :: (MonadState StateInfo m, Aux2 s) ⇒ Net Lang → (s, Node) → (s, Node) → m (Net Lang)
+testNilCons net (cons, numCons) (test, numTest) = do
+  incGraphSizeStep 1
+  return $ deleteRewire [numCons, numTest] [erase1, erase2, false]
+         $ foldl' (\n (a1,a2) → relinkAux n a1 a2)
+                  net'''
+                  [((cons^.aux1, Aux1), (erase1, Prim))
+                  ,((cons^.aux2, Aux2), (erase2, Prim))
+                  ,((test^.aux1, Aux1), (false , Prim))]
+  where
+    (erase1, net')   = newNode net   Erase'
+    (erase2, net'')  = newNode net'  Erase'
+    (false,  net''') = newNode net'' Fals'
