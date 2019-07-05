@@ -11,7 +11,7 @@ import qualified Data.Map.Strict            as Map
 import qualified Data.Set                   as Set
 import           Prelude                    (error)
 import           Protolude                  hiding (State, link, reduce,
-                                                    runState)
+                                                    runState, empty)
 import           Control.Lens
 
 import           Juvix.NodeInterface
@@ -150,6 +150,9 @@ langToPort :: Net a → Node → (a → Maybe b) → Maybe b
 langToPort graph n f = do
   context ← fst (match n graph)
   f (snd (labNode' context))
+
+emptyNet :: Net a
+emptyNet = empty
 -- Graph manipulation ----------------------------------------------------------
 runNet ∷ (Net a → State StateInfo (Net a)) → Net a → (Net a, StateInfo)
 runNet f net = runState (f net) (Info netSize 0 0 netSize netSize)

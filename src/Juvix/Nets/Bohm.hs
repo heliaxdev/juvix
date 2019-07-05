@@ -4,7 +4,7 @@
 module Juvix.Nets.Bohm where
 
 import           Control.Lens
-import           Protolude hiding (link)
+import           Protolude hiding (link, reduce)
 
 import           Juvix.Interaction
 import           Juvix.NodeInterface
@@ -119,10 +119,20 @@ langToProperPort net node = langToPort net node f
     f (Symbol' s)    = aux0FromGraph (\x -> Symbol x s) net node
     f (Curried' c i) = aux1FromGraph (\x y -> Curried x y c i) net node
 -- Rewrite rules----------------------------------------------------------------
-reduce net = update undefined
+
+reduceAll ∷ MonadState StateInfo m ⇒ Int → Net Lang → m (Net Lang)
+reduceAll = flip (untilNothingNTimesM reduce)
+
+reduce :: MonadState StateInfo m ⇒ Net Lang → m (Maybe (Net Lang))
+reduce net = do
+  (newNetLang, isChanged) ← foldrM update (net,False) netNodes
+  if isChanged then do
+    modify (\c → c {parallelSteps = parallelSteps c + 1})
+    return (Just newNetLang)
+    else
+    return Nothing
   where
     netNodes = nodes net
-    updated c = (c, True)
     update n (net, isChanged)
       | isBothPrimary net n = return (net, isChanged)
       | otherwise =
@@ -162,13 +172,16 @@ reduce net = update undefined
               Cdr (Primary node) _ →
                 case langToProperPort net node of
                   Just Nil {} → updated <$> propPrimary net (n, port) node
+                  _              → pure (net, isChanged)
               Nil (Primary node) →
                 case langToProperPort net node of
                   Just c@Cdr {} → updated <$> propPrimary net (node, c) n
+                  _              → pure (net, isChanged)
               Cons (Primary node) _ _ →
                 case langToProperPort net node of
                   Just c@Cdr {} → updated <$> (consCdr net (port, n) (c, node))
                   Just c@Car {} → updated <$> (consCar net (port, n) (c, node))
+                  _              → pure (net, isChanged)
               FanIn (Primary node) _ _ →
                 case langToProperPort net node of
                   Just App {}    → updated <$> fanInAux2 net n (node, App')
@@ -179,7 +192,26 @@ reduce net = update undefined
                 case langToProperPort net node of
                   Just x  → updated <$> eraseAll net (x, node) n
                   Nothing → pure (net, isChanged)
+              Eq (Primary node) _ _   → curryOnInt net (Eq'  , n) node isChanged
+              Div (Primary node) _ _  → curryOnInt net (Div' , n) node isChanged
+              Sub (Primary node) _ _  → curryOnInt net (Sub' , n) node isChanged
+              Prod (Primary node) _ _ → curryOnInt net (Prod', n) node isChanged
+              Mod (Primary node) _ _  → curryOnInt net (Mod' , n) node isChanged
+              More (Primary node) _ _ → curryOnInt net (More', n) node isChanged
+              Less (Primary node) _ _ → curryOnInt net (Less', n) node isChanged
+              Meq (Primary node) _ _  → curryOnInt net (Meq' , n) node isChanged
+              Leq (Primary node) _ _  → curryOnInt net (Leq' , n) node isChanged
               _ → pure (net, isChanged)
+
+updated :: a -> (a, Bool)
+updated c = (c, True)
+
+curryOnInt ::
+  MonadState StateInfo f ⇒ Net Lang → (Lang, Node) → Node → Bool → f (Net Lang, Bool)
+curryOnInt net (x, n) node isChanged =
+  case langToProperPort net node of
+    Just i@IntLit {} → updated <$> curryRule net (x, n) (i, node)
+    _                → pure (net, isChanged)
 
 propPrimary ::
   (MonadState StateInfo m, Aux2 s) ⇒ Net Lang → (Node, s) → Node → m (Net Lang)
@@ -294,12 +326,12 @@ notExpand :: (MonadState StateInfo f, Aux2 s)
           → Bool
           → f (Net Lang, Bool)
 notExpand net (n, Tru {}) (notNum, notPort) _ =
-  (\n -> (n, True)) <$> propPrimary (delNodes [n] net') (notNum, notPort) numFals
+  updated <$> propPrimary (delNodes [n] net') (notNum, notPort) numFals
   where
     (numFals, net') = newNode net Fals'
 
 notExpand net (n, Fals {}) (notNum, notPort) _ =
-  (\n -> (n, True)) <$> propPrimary (delNodes [n] net') (notNum, notPort) numFals
+  updated <$> propPrimary (delNodes [n] net') (notNum, notPort) numFals
   where
     (numFals, net') = newNode net Tru'
 
@@ -364,3 +396,17 @@ testNilCons net (cons, numCons) (test, numTest) = do
     (erase1, net')   = newNode net   Erase'
     (erase2, net'')  = newNode net'  Erase'
     (false,  net''') = newNode net'' Fals'
+
+
+curryRule :: MonadState StateInfo m ⇒ Net Lang → (Lang, Node) → (ProperPort, Node) → m (Net Lang)
+curryRule net (langNode, numNode) ((IntLit _ i), numInt) = do
+  incGraphSizeStep (-1)
+  return $ deleteRewire [numNode, numInt] [curr]
+         $ linkAll net' currNode
+  where
+    (curr, net') = newNode net (Curried' i langNode)
+    currNode     = RELAuxiliary1 { node       = curr
+                                 , primary    = ReLink numNode Aux2
+                                 , auxiliary1 = ReLink numNode Aux1
+                                 }
+curryRule net _ _ = return net
