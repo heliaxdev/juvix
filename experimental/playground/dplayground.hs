@@ -72,14 +72,14 @@ type Context = [(Name, Type)]
 type Env = [Value]
 iEval :: ITerm -> Env -> Value
 iEval (Ann  e _)    d  =  cEval e d
-iEval (Free  x)     d  =  vfree x
+iEval (Free  x)    _d  =  vfree x
 iEval (Bound  ii)   d  =  d !! ii --(!!) :: [a] -> Int -> a. It's the list lookup operator. 
 iEval (e1 :@: e2)   d  =  vapp (iEval e1 d) (cEval e2 d)
-iEval Star          d  =  VStar
+iEval Star         _d  =  VStar
 iEval (Pi ty ty')   d  =  VPi (cEval ty d)(\ x -> cEval ty' (x : d))
 --evaluation of Nat
-iEval Nat                  d  =  VNat 
-iEval Zero                 d  =  VZero
+iEval Nat                 _d  =  VNat 
+iEval Zero                _d  =  VZero
 iEval (Succ k)             d  =  VSucc (cEval k d)
 iEval (NatElim m mz ms k)  d
   = let mzVal = cEval mz d
@@ -88,8 +88,8 @@ iEval (NatElim m mz ms k)  d
           case kVal of
             VZero      -> mzVal
             VSucc l    -> msVal `vapp` l `vapp` rec l
-            VNeutral k -> VNeutral
-                          (NNatElim (cEval m d) mzVal msVal k)
+            VNeutral n -> VNeutral
+                          (NNatElim (cEval m d) mzVal msVal n)
             _          -> error "internal: eval natElim"
     in rec (cEval k d)
 --evaluation of Vec
@@ -102,14 +102,15 @@ iEval (VecElim a m mn mc k xs)  d  =
         mcVal  =  cEval mc d
         rec kVal xsVal =
           case xsVal of
-            VNil _          ->  mnVal
-            VCons _ l x xs  ->  foldl vapp mcVal [l, x, xs, rec l xs]
-            VNeutral n      ->  VNeutral
+            VNil _           ->  mnVal
+            VCons _ l x xs_  ->  foldl vapp mcVal [l, x, xs_, rec l xs_]
+            VNeutral n       ->  VNeutral
                                  (NVecElim  (cEval a d) (cEval m d)
                                             mnVal mcVal kVal n)
             _                ->  error "internal: eval vecElim"
     in rec (cEval k d) (cEval xs d)
 --evaluation of Eq
+iEval (Refl x y)                d  =  VRefl (cEval x d) (cEval y d)
 iEval (Eq a x y)                d  =  VEq (cEval a d) (cEval x d) (cEval y d)
 iEval (EqElim a m mr x y eq)    d  =
   let mrVal  =  cEval mr d
@@ -125,6 +126,7 @@ iEval (EqElim a m mr x y eq)    d  =
 vapp :: Value -> Value -> Value
 vapp (VLam f)      v  =  f v
 vapp (VNeutral n)  v  =  VNeutral (NApp n v)
+vapp _ _              =  error "this term is ill-typed"
 
 cEval :: CTerm -> Env -> Value
 cEval (Inf  ii)   d  =  iEval ii d
@@ -136,24 +138,31 @@ cEval (Lam  e)    d  =  VLam (\ x -> cEval e (x : d))
 iSubst :: Int -> ITerm -> ITerm -> ITerm
 iSubst ii r (Ann e ty)     =  Ann (cSubst ii r e) (cSubst ii r ty)
 iSubst ii r (Bound j)      =  if ii == j then r else Bound j
-iSubst ii r (Free y)       =  Free y
+iSubst _ii _r (Free y)     =  Free y
 iSubst ii r (e1 :@: e2)    =  iSubst ii r e1 :@: cSubst ii r e2
-iSubst ii r Star           =  Star
+iSubst _ii _r Star         =  Star
 iSubst ii r (Pi ty ty')    =  Pi  (cSubst ii r ty) (cSubst (ii + 1) r ty')
 --for Nat
-iSubst ii r Nat            =  Nat
-iSubst ii r  (NatElim m mz ms n)
+iSubst _ii _r Nat          =  Nat
+iSubst _ii _r Zero         =  Zero
+iSubst ii r (Succ n)       =  Succ (cSubst ii r n)
+iSubst ii r (NatElim m mz ms n)
                            =  NatElim (cSubst ii r m)
                                       (cSubst ii r mz) (cSubst ii r ms)
-                                      (cSubst ii r ms)
+                                      (cSubst ii r n)
 --for Vec
 iSubst ii r  (Vec a n)     =  Vec (cSubst ii r a) (cSubst ii r n)
+iSubst ii r  (Nil a)       =  Nil (cSubst ii r a)
+iSubst ii r  (Cons a n x xs)
+                           =  Cons (cSubst ii r a) (cSubst ii r n)
+                                     (cSubst ii r x) (cSubst ii r xs)
 iSubst ii r  (VecElim a m mn mc n xs)
                            =  VecElim (cSubst ii r a) (cSubst ii r m)
                                         (cSubst ii r mn) (cSubst ii r mc)
                                         (cSubst ii r n) (cSubst ii r xs)
 --for Eq
 iSubst ii r  (Eq a x y)    =  Eq (cSubst ii r a) (cSubst ii r x) (cSubst ii r y)
+iSubst ii r  (Refl x y)    =  Refl (cSubst ii r x) (cSubst ii r y)
 iSubst ii r  (EqElim a m mr x y eq)
                            =  EqElim (cSubst ii r a) (cSubst ii r m)
                                      (cSubst ii r mr) (cSubst ii r x)
@@ -171,12 +180,12 @@ quote0 = quote 0
 quote :: Int -> Value -> CTerm
 quote ii (VLam f)      =  Lam (quote (ii + 1) (f (vfree (Quote ii))))
 quote ii (VNeutral n)  =  Inf (neutralQuote ii n)
-quote ii VStar         =  Inf Star
+quote _ii VStar        =  Inf Star
 quote ii (VPi v f)     =  Inf (Pi (quote ii v)(quote (ii + 1)(f (vfree(Quote ii)))))
 --for Nat
-quote ii VNat       =  Inf Nat
-quote ii VZero      =  Inf Zero
-quote ii (VSucc n)  =  Inf (Succ (quote ii n))
+quote _ii VNat         =  Inf Nat
+quote _ii VZero        =  Inf Zero
+quote ii (VSucc n)     =  Inf (Succ (quote ii n))
 --for Vec
 quote ii (VVec a n)         =  Inf (Vec (quote ii a) (quote ii n))
 quote ii (VNil a)           =  Inf (Nil (quote ii a))
@@ -189,11 +198,20 @@ quote ii (VRefl x y)        =  Inf (Refl (quote ii x) (quote ii y))
 neutralQuote :: Int -> Neutral -> ITerm
 neutralQuote ii (NFree x)   =  boundfree ii x
 neutralQuote ii (NApp n v)  =  neutralQuote ii n :@: quote ii v
-
+neutralQuote ii (NNatElim m z s n)
+  =  NatElim (quote ii m) (quote ii z) (quote ii s) (Inf (neutralQuote ii n))
+neutralQuote ii (NVecElim a m mn mc n xs)
+  =  VecElim (quote ii a) (quote ii m)
+               (quote ii mn) (quote ii mc)
+               (quote ii n) (Inf (neutralQuote ii xs))
+neutralQuote ii (NEqElim a m mr x y eq)
+  =  EqElim (quote ii a) (quote ii m) (quote ii mr)
+                 (quote ii x) (quote ii y)
+                 (Inf (neutralQuote ii eq))
 --checks if the variable occurring at the head of the application is a bound variable or a free name
 boundfree :: Int -> Name -> ITerm
 boundfree ii (Quote k)     =  Bound (ii - k - 1)
-boundfree ii x             =  Free x
+boundfree _ii x             =  Free x
 
 --Type checking
 
@@ -209,7 +227,7 @@ iType ii g (Ann e rho)
         let ty = cEval rho []
         cType ii g e ty
         return ty
-iType ii g Star
+iType _ii _g Star
   =  return VStar
 iType ii g (Pi rho rho')
   = do cType ii g rho VStar
@@ -217,7 +235,7 @@ iType ii g (Pi rho rho')
        cType (ii + 1) ((Local ii, ty): g)
              (cSubst 0 (Free (Local ii))rho') VStar
        return VStar
-iType ii g (Free x)
+iType _ii g (Free x)
   =  case lookup x g of
         Just ty  ->  return ty
         Nothing  ->  throwError "unknown identifier"
@@ -228,8 +246,8 @@ iType ii g (e1 :@: e2)
                              return (ty' (cEval e2 []))
          _           ->  throwError "illegal application"
 --type checker for Nat
-iType ii g Nat                  =  return VStar
-iType ii g Zero                 =  return VNat
+iType _ii _g Nat                =  return VStar
+iType _ii _g Zero               =  return VNat
 iType ii g (Succ k)             = 
   do cType ii g k VNat
      return VNat
@@ -262,7 +280,7 @@ iType ii g (VecElim a m mn mc k vs) =
   do  cType ii g a VStar
       let aVal = cEval a []
       cType ii g m
-        (  VPi VNat (\k -> VPi (VVec aVal k) (\ _ -> VStar)))
+        (  VPi VNat (\k_ -> VPi (VVec aVal k_) (\ _ -> VStar)))
       let mVal = cEval m []
       cType ii g mn (foldl vapp mVal [VZero, VNil aVal])
       cType ii g mc
@@ -287,21 +305,20 @@ iType ii g (EqElim a m mr x y eq) =
   do  cType ii g a VStar
       let aVal = cEval a []
       cType ii g m
-        (VPi aVal (\ x ->
-         VPi aVal (\ y ->
-         VPi (VEq aVal x y) (\ _ -> VStar)))) 
+        (VPi aVal (\ x_ ->
+         VPi aVal (\ y_ ->
+         VPi (VEq aVal x_ y_) (\ _ -> VStar)))) 
       let mVal = cEval m []
       cType ii g mr
-        (VPi aVal (\ x ->
-         foldl vapp mVal [x, x]))
+        (VPi aVal (\ x_ ->
+         foldl vapp mVal [x_, x_]))
       cType ii g x aVal
       let xVal = cEval x []
       cType ii g y aVal
       let yVal = cEval y []
       cType ii g eq (VEq aVal xVal yVal)
-      let eqVal = cEval eq []
       return (foldl vapp mVal [xVal, yVal])
-iType ii g _                       =  throwError "ill-defined type"
+iType _ii _g _                     =  throwError "ill-defined type"
 
 --checkable terms takes a type as input and returns ().
 cType :: Int -> Context -> CTerm -> Type -> Result ()
@@ -311,7 +328,7 @@ cType ii g (Inf e) v
 cType ii g (Lam e) (VPi ty ty')
   =  cType (ii + 1) ((Local ii, ty) : g)
            (cSubst 0 (Free (Local ii)) e) (ty' (vfree (Local ii)))
-cType ii g _ _
+cType _ii _g _ _
   =  throwError "type mismatch" 
 
 
