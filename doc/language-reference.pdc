@@ -1,9 +1,16 @@
 ---
 title: Juvix — Language Reference
+lang: en-GB
+titlepage: true
+titlepage-color: "06386e"
+titlepage-text-color: "FFFFFF"
+titlepage-rule-color: "FFFFFF"
+titlepage-rule-height: 1
+toc-own-page: true
 mainfont: DejaVuSerifCondensed
 fontsize: 7pt
 author: Christopher Goes
-date: \textit{Prerelease}
+date: \today \ - \textit{Prerelease}
 urlcolor: cyan
 abstract: Juvix encapsulates a high-level frontend syntax, dependent-linearly-typed core language, and parallelizable
           low-level execution model into a single unified stack for writing formally verifiable, efficient smart contracts which can be
@@ -16,7 +23,6 @@ abstract: Juvix encapsulates a high-level frontend syntax, dependent-linearly-ty
           An interchain abstraction layer representing ledgers as first-class objects facilitates stateful
           contract deployment, seamless cross-chain programming, and typesafe runtime reconfiguration.
 header-includes:
-    - \usepackage{fancyhdr}
     - \usepackage{graphicx}
     - \usepackage{hyperref}
     - \usepackage{bussproofs}
@@ -25,12 +31,6 @@ header-includes:
     - \usepackage{cmll}
     - \usepackage{tikz}
     - \usetikzlibrary{arrows,automata}
-    - \pagestyle{fancy}
-    - \fancyhead[RE,LO]{Juvix — Language Reference}
-    - \fancyhead[LE,RO]{}
-    - \fancyhead[CO,CE]{}
-    - \fancyfoot[CO,CE]{}
-    - \fancyfoot[LE,RO]{\thepage}
 ---
 
 \pagebreak
