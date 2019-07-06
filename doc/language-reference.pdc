@@ -23,6 +23,8 @@ header-includes:
     - \usepackage{amsmath}
     - \usepackage{spaghettinet}
     - \usepackage{cmll}
+    - \usepackage{tikz}
+    - \usetikzlibrary{arrows,automata}
     - \pagestyle{fancy}
     - \fancyhead[RE,LO]{Juvix — Language Reference}
     - \fancyhead[LE,RO]{}
@@ -35,7 +37,7 @@ header-includes:
 
 # Motivation
 
-# Prior Work
+# Prior work
 
 ## Dependently-typed languages
 
@@ -96,7 +98,25 @@ Why will Juvix fix these problems?
     1. Safe cross-contract optimization using known types
     1. Safe upgrades (prove semantical equivalence, anyone can upgrade contract)
 
-# Components
+# Architectural overview
+
+\begin{tikzpicture}[->, >=stealth, shorten >=1pt, auto, node distance = 5cm, semithick]
+  \tikzstyle{every state}=[fill=red, draw=none, text=white]
+
+  \node[state] (frontend)                               {Juvix / Frontend};
+  \node[state] (core)     [below of = frontend]         {Juvix / Core};
+  \node[state] (eal)      [below left of = core]        {Juvix / ELL};
+  \node[state] (inet)     [below of = eal]              {Juvix / INet};
+  \node[state] (machine)  [below right of = inet]       {Underlying Machine};
+
+  \path (frontend)  edge node {\textit{DESUGAR}}    (core);
+  \path (core)      edge node {\textit{INFER}}      (eal);
+  \path (eal)       edge node {\textit{TRANSFORM}}  (inet);
+  \path (inet)      edge node {\textit{ABSALG}}     (machine);
+  \path (core)      edge node {\textit{DIRECT}}     (machine);
+\end{tikzpicture}
+
+\pagebreak
 
 # Frontend language
 
@@ -423,6 +443,8 @@ more things
 ## Syntax
 
 ## Semantics
+
+# Elementary linear logic
 
 # Low-level execution model
 
