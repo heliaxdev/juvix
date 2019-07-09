@@ -1,11 +1,11 @@
 {-# OPTIONS_GHC -Wall #-}
---Dependent type implementation following 
+--Dependent type implementation following
 --"A tutorial implementation of a dependently typed lambda calculus"
 
-import Control.Monad.Except --enable throwError 
+import           Control.Monad.Except
 
--- Inferable terms 
-data ITerm 
+-- Inferable terms
+data ITerm
   =  Ann    CTerm CTerm --annotated terms
   |  Star --(STAR) Star (the type of types) is now a term
   |  Pi CTerm CTerm --(PI) dependent function space
@@ -24,17 +24,17 @@ data ITerm
   |  Refl CTerm CTerm --data constructor of Eq
   |  EqElim CTerm CTerm CTerm CTerm CTerm CTerm --eliminator of Eq
   deriving (Show, Eq)
-  
+
 --Checkable terms
 data CTerm
-  =  Inf  ITerm --(CHK) Inf is the constructor that embeds ITerm to CTerm 
+  =  Inf  ITerm --(CHK) Inf is the constructor that embeds ITerm to CTerm
   |  Lam  CTerm --(LAM) Lam stands for Lambda abstractions
   deriving (Show, Eq)
 
 data Name
   =  Global  String --Global variables are represented by name thus type string
   |  Local   Int --to convert a bound variable into a free one
-  |  Quote   Int 
+  |  Quote   Int
   deriving (Show, Eq)
 
 --Values can now also be VStar or VPi
@@ -52,6 +52,15 @@ data Value
   | VRefl Value Value --extensions for Eq
   | VEq Value Value Value
 
+dumbShow :: Value -> String
+dumbShow (VLam _)     = "lambda"
+dumbShow (VStar)      = "*"
+dumbShow (VPi v f)    = "pi " ++ dumbShow v ++ " -> lambda"
+dumbShow (VNeutral n) = "neutral"
+dumbShow (VNat)       = "Nat"
+dumbShow (VZero)      = "Z"
+dumbShow (VSucc v)    = "S " ++ dumbShow v
+
 --A neutral term is either a variable or an application of a neutral term to a value
 data Neutral
   = NFree Name
@@ -65,7 +74,7 @@ vfree :: Name -> Value
 vfree n = VNeutral (NFree n)
 
 --Contexts map variables to their types.
-type Type    = Value 
+type Type    = Value
 type Context = [(Name, Type)]
 
 --Evaluation
@@ -73,12 +82,12 @@ type Env = [Value]
 iEval :: ITerm -> Env -> Value
 iEval (Ann  e _)    d  =  cEval e d
 iEval (Free  x)    _d  =  vfree x
-iEval (Bound  ii)   d  =  d !! ii --(!!) :: [a] -> Int -> a. It's the list lookup operator. 
+iEval (Bound  ii)   d  =  d !! ii --(!!) :: [a] -> Int -> a. It's the list lookup operator.
 iEval (e1 :@: e2)   d  =  vapp (iEval e1 d) (cEval e2 d)
 iEval Star         _d  =  VStar
 iEval (Pi ty ty')   d  =  VPi (cEval ty d)(\ x -> cEval ty' (x : d))
 --evaluation of Nat
-iEval Nat                 _d  =  VNat 
+iEval Nat                 _d  =  VNat
 iEval Zero                _d  =  VZero
 iEval (Succ k)             d  =  VSucc (cEval k d)
 iEval (NatElim m mz ms k)  d
@@ -117,20 +126,20 @@ iEval (EqElim a m mr x y eq)    d  =
       rec eqVal =
         case eqVal of
           VRefl _ z -> mrVal `vapp` z
-          VNeutral n ->  
+          VNeutral n ->
             VNeutral (NEqElim  (cEval a d) (cEval m d) mrVal
                                 (cEval x d) (cEval y d) n)
           _ -> error "internal: eval eqElim"
   in rec (cEval eq d)
 
 vapp :: Value -> Value -> Value
-vapp (VLam f)      v  =  f v
-vapp (VNeutral n)  v  =  VNeutral (NApp n v)
-vapp _ _              =  error "this term is ill-typed"
+vapp (VLam f)      v =  f v
+vapp (VNeutral n)  v =  VNeutral (NApp n v)
+vapp _ _             =  error "this term is ill-typed"
 
 cEval :: CTerm -> Env -> Value
-cEval (Inf  ii)   d  =  iEval ii d
-cEval (Lam  e)    d  =  VLam (\ x -> cEval e (x : d))
+cEval (Inf  ii)   d =  iEval ii d
+cEval (Lam  e)    d =  VLam (\ x -> cEval e (x : d))
 
 --Substitution
 
@@ -166,12 +175,12 @@ iSubst ii r  (Refl x y)    =  Refl (cSubst ii r x) (cSubst ii r y)
 iSubst ii r  (EqElim a m mr x y eq)
                            =  EqElim (cSubst ii r a) (cSubst ii r m)
                                      (cSubst ii r mr) (cSubst ii r x)
-                                     (cSubst ii r y) (cSubst ii r eq) 
+                                     (cSubst ii r y) (cSubst ii r eq)
 
 --substitution function for checkable terms
 cSubst :: Int -> ITerm -> CTerm -> CTerm
-cSubst ii r (Inf e)      =  Inf (iSubst ii r e)
-cSubst ii r (Lam e)      =  Lam (cSubst (ii + 1) r e)
+cSubst ii r (Inf e) =  Inf (iSubst ii r e)
+cSubst ii r (Lam e) =  Lam (cSubst (ii + 1) r e)
 
 --Quotation: takes a value back to a term
 quote0 :: Value -> CTerm
@@ -210,8 +219,8 @@ neutralQuote ii (NEqElim a m mr x y eq)
                  (Inf (neutralQuote ii eq))
 --checks if the variable occurring at the head of the application is a bound variable or a free name
 boundfree :: Int -> Name -> ITerm
-boundfree ii (Quote k)     =  Bound (ii - k - 1)
-boundfree _ii x             =  Free x
+boundfree ii (Quote k) =  Bound (ii - k - 1)
+boundfree _ii x        =  Free x
 
 --Type checking
 
@@ -237,8 +246,8 @@ iType ii g (Pi rho rho')
        return VStar
 iType _ii g (Free x)
   =  case lookup x g of
-        Just ty  ->  return ty
-        Nothing  ->  throwError "unknown identifier"
+        Just ty ->  return ty
+        Nothing ->  throwError "unknown identifier"
 iType ii g (e1 :@: e2)
   = do si <- iType ii g e1
        case si of
@@ -248,7 +257,7 @@ iType ii g (e1 :@: e2)
 --type checker for Nat
 iType _ii _g Nat                =  return VStar
 iType _ii _g Zero               =  return VNat
-iType ii g (Succ k)             = 
+iType ii g (Succ k)             =
   do cType ii g k VNat
      return VNat
 iType ii g (NatElim m mz ms k)  =
@@ -284,8 +293,8 @@ iType ii g (VecElim a m mn mc k vs) =
       let mVal = cEval m []
       cType ii g mn (foldl vapp mVal [VZero, VNil aVal])
       cType ii g mc
-        (  VPi VNat (\ l -> 
-           VPi aVal (\ y -> 
+        (  VPi VNat (\ l ->
+           VPi aVal (\ y ->
            VPi (VVec aVal l) (\ ys ->
            VPi (foldl vapp mVal [l, ys]) (\ _ ->
            (foldl vapp mVal [VSucc l, VCons aVal l y ys]))))))
@@ -307,7 +316,7 @@ iType ii g (EqElim a m mr x y eq) =
       cType ii g m
         (VPi aVal (\ x_ ->
          VPi aVal (\ y_ ->
-         VPi (VEq aVal x_ y_) (\ _ -> VStar)))) 
+         VPi (VEq aVal x_ y_) (\ _ -> VStar))))
       let mVal = cEval m []
       cType ii g mr
         (VPi aVal (\ x_ ->
@@ -324,11 +333,25 @@ iType _ii _g _                     =  throwError "ill-defined type"
 cType :: Int -> Context -> CTerm -> Type -> Result ()
 cType ii g (Inf e) v
   =  do v' <- iType ii g e
-        unless (quote0 v == quote0 v') (throwError "type mismatch") --throwError only when ty ==ty' is false.
+        unless (quote0 v == quote0 v') (throwError $ "type mismatch on quote: " ++ show (quote0 v) ++ " & " ++ show (quote0 v')) --throwError only when ty ==ty' is false.
 cType ii g (Lam e) (VPi ty ty')
   =  cType (ii + 1) ((Local ii, ty) : g)
            (cSubst 0 (Free (Local ii)) e) (ty' (vfree (Local ii)))
 cType _ii _g _ _
-  =  throwError "type mismatch" 
+  =  throwError "type mismatch, did not match"
 
+plusK :: CTerm -> ITerm
+plusK k = NatElim
+  (Inf (Pi (Inf Nat) (Inf (Pi (Inf Nat) (Inf Nat))))) -- motive
+  (Lam (Inf (Bound 0)))
+  (Lam (Lam (Lam (Inf ((Bound 1) :@: (Inf (Succ (Inf (Bound 0)))))))))
+  k
 
+plusZero :: ITerm
+plusZero = plusK (Inf Zero)
+
+plusOne :: ITerm
+plusOne = plusK (Inf (Succ (Inf Zero)))
+
+plusTwo :: ITerm
+plusTwo = plusK (Inf (Succ (Inf (Succ (Inf Zero)))))
