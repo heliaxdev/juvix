@@ -311,8 +311,9 @@ iType ii g (Eq a x y) =
       cType ii g y aVal
       return VStar
 iType ii g (Refl x y)  =
-  do  cType ii g x VStar
-      let xVal = cEval x []
+  do  let xVal = cEval x []
+          yVal = cEval y []
+      cType ii g x VStar
       cType ii g y xVal
       return (VEq xVal yVal yVal)
 iType ii g (EqElim a m mr x y eq) =
