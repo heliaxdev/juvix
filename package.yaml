@@ -43,6 +43,9 @@ default-extensions:
   - TypeOperators
   - MultiParamTypeClasses
   - MultiWayIf
+  - TypeInType
+  - DerivingVia
+  - TypeApplications
 
 ghc-options:
   - -ferror-spans

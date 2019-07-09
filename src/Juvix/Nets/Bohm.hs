@@ -5,9 +5,9 @@
 module Juvix.Nets.Bohm where
 
 import           Control.Lens
-import           Protolude hiding (link, reduce)
 import           Prelude (Show(..))
 
+import           Juvix.Library hiding (link, reduce)
 import           Juvix.Interaction
 import           Juvix.NodeInterface
 
@@ -126,14 +126,14 @@ langToProperPort net node = langToPort net node f
     f (CurriedB' c) = aux1FromGraph (\x y -> CurriedB x y c) net node
 -- Rewrite rules----------------------------------------------------------------
 
-reduceAll ∷ MonadState StateInfo m ⇒ Int → Net Lang → m (Net Lang)
+reduceAll :: HasState "info" Info m => Int -> Net Lang -> m (Net Lang)
 reduceAll = flip (untilNothingNTimesM reduce)
 
-reduce :: MonadState StateInfo m ⇒ Net Lang → m (Maybe (Net Lang))
+reduce :: HasState "info" Info m ⇒ Net Lang → m (Maybe (Net Lang))
 reduce net = do
   (newNetLang, isChanged) ← foldrM update (net,False) netNodes
   if isChanged then do
-    modify (\c → c {parallelSteps = parallelSteps c + 1})
+    modify @"info" (\c → c {parallelSteps = parallelSteps c + 1})
     return (Just newNetLang)
     else
     return Nothing
@@ -212,23 +212,19 @@ reduce net = do
 updated :: a -> (a, Bool)
 updated c = (c, True)
 
-curryOnInt ::
-  MonadState StateInfo f ⇒ Net Lang → (Int → Int → Int, Node) → Node → Bool → f (Net Lang, Bool)
+curryOnInt :: HasState "info" Info f => Net Lang -> (Int -> Int -> Int, Node) -> Node -> Bool -> f (Net Lang, Bool)
 curryOnInt net (x, n) node isChanged =
   case langToProperPort net node of
     Just i@IntLit {} → updated <$> curryRule net (x, n) (i, node)
     _                → pure (net, isChanged)
 
-curryOnIntB ::
-  MonadState StateInfo f ⇒ Net Lang → (Int → Int → Bool, Node) → Node → Bool → f (Net Lang, Bool)
+curryOnIntB :: HasState "info" Info f => Net Lang -> (Int -> Int -> Bool, Node) -> Node -> Bool -> f (Net Lang, Bool)
 curryOnIntB net (x, n) node isChanged =
   case langToProperPort net node of
     Just i@IntLit {} → updated <$> curryRuleB net (x, n) (i, node)
     _                → pure (net, isChanged)
 
-
-propPrimary ::
-  (MonadState StateInfo m, Aux2 s) ⇒ Net Lang → (Node, s) → Node → m (Net Lang)
+propPrimary :: (Aux2 s, HasState "info" Info m) => Net Lang -> (Node, s) -> Node -> m (Net Lang)
 propPrimary net (numDel, nodeDel) numProp =
   let wire = relinkAux net (nodeDel^.aux1, Aux1) (numProp, Prim) in
   case auxToNode (nodeDel^.aux2) of
@@ -242,7 +238,7 @@ propPrimary net (numDel, nodeDel) numProp =
       return $ delNodes [numDel] $ wire
 
 ifElseRule ::
-  (MonadState StateInfo m, Aux3 s) ⇒ Net Lang → Node → (Node, s) → Bool → m (Net Lang)
+  (HasState "info" Info m, Aux3 s) ⇒ Net Lang → Node → (Node, s) → Bool → m (Net Lang)
 ifElseRule net numPrimOnly (numAuxs, auxs) pred = do
   incGraphSizeStep (-1)
   let (numErase, net') = newNode net Erase'
@@ -259,7 +255,7 @@ ifElseRule net numPrimOnly (numAuxs, auxs) pred = do
 
 
 anihilateRewireAux ::
-  (MonadState StateInfo m, Aux2 s) ⇒ Net a → Node → (Node, s) → m (Net a)
+ (HasState "info" Info m, Aux2 s) ⇒ Net a → Node → (Node, s) → m (Net a)
 anihilateRewireAux net numPrimOnly (numAuxs, auxs) = do
   incGraphSizeStep (-2)
   return $ delNodes [numPrimOnly, numAuxs]
@@ -268,7 +264,7 @@ anihilateRewireAux net numPrimOnly (numAuxs, auxs) = do
 
 -- used for app lambda!
 anihilateRewireAuxTogether ::
-  (MonadState StateInfo m, Aux2 s) ⇒ Net a → (Node, s) → (Node, s) → m (Net a)
+ (HasState "info" Info m, Aux2 s) ⇒ Net a → (Node, s) → (Node, s) → m (Net a)
 anihilateRewireAuxTogether net (numNode1, node1) (numNode2, node2) = do
   incGraphSizeStep (-2)
   return $ delNodes [numNode1, numNode2]
@@ -277,7 +273,7 @@ anihilateRewireAuxTogether net (numNode1, node1) (numNode2, node2) = do
                   (Aux2, node2^.aux2)
 
 -- o is Aux1 * is Aux2
-muExpand :: MonadState StateInfo m ⇒ Net Lang → Node → m (Net Lang)
+muExpand :: HasState "info" Info m ⇒ Net Lang → Node → m (Net Lang)
 muExpand net muNum = do
   incGraphSizeStep 2
   return $ deleteRewire [muNum] [fanIn, fanOut, newMu]
@@ -300,7 +296,7 @@ muExpand net muNum = do
                                }
 
 
-fanInAux2 :: MonadState StateInfo m ⇒ Net Lang → Node → (Node, Lang) → Int → m (Net Lang)
+fanInAux2 :: HasState "info" Info m ⇒ Net Lang → Node → (Node, Lang) → Int → m (Net Lang)
 fanInAux2 net numFan (numOther, otherLang) level = do
   incGraphSizeStep 2
   return $ deleteRewire [numFan, numOther] [other1, other2, fanIn1, fanIn2]
@@ -333,12 +329,12 @@ fanInAux2 net numFan (numOther, otherLang) level = do
                                , auxiliary2 = Link (Port Aux1 other2)
                                }
 -- TODO :: delete node coming in!
-notExpand :: (MonadState StateInfo f, Aux2 s)
-          ⇒ Net Lang
-          → (Node, ProperPort)
-          → (Node, s)
-          → Bool
-          → f (Net Lang, Bool)
+notExpand :: (Aux2 s, HasState "info" Info f)
+          => Net Lang
+          -> (Node, ProperPort)
+          -> (Node, s)
+          -> Bool
+          -> f (Net Lang, Bool)
 notExpand net (n, Tru {}) (notNum, notPort) _ =
   updated <$> propPrimary (delNodes [n] net') (notNum, notPort) numFals
   where
@@ -354,7 +350,7 @@ notExpand net _ _ updated = pure (net, updated)
 
 -- Erase should be connected to the main port atm, change this logic later
 -- when this isn't the case
-eraseAll :: (Aux3 s, MonadState StateInfo m) ⇒ Net Lang → (s, Node) → Node → m (Net Lang)
+eraseAll :: (Aux3 s, HasState "info" Info m) => Net Lang -> (s, Node) -> Node -> m (Net Lang)
 eraseAll net (node, numNode) nodeErase = do
   let ((net',mE)    , i)  = auxDispatch net   (node^.aux1) Aux1
       ((net'', mE2) , i2) = auxDispatch net'  (node^.aux2) Aux2
@@ -368,7 +364,7 @@ eraseAll net (node, numNode) nodeErase = do
       where
         (numE, net') = newNode net Erase'
 
-consCar :: (MonadState StateInfo m, Aux2 s) ⇒ Net Lang → (s, Node) → (s, Node) → m (Net Lang)
+consCar :: (HasState "info" Info m, Aux2 s1, Aux1 s2) => Net Lang -> (s1, Node) -> (s2, Node) -> m (Net Lang)
 consCar net (cons, numCons) (car, numCar) = do
   incGraphSizeStep (-1)
   return $ deleteRewire [numCons, numCar] [erase]
@@ -379,7 +375,7 @@ consCar net (cons, numCons) (car, numCar) = do
     (erase, net') = newNode net Erase'
 
 
-consCdr :: (MonadState StateInfo m, Aux2 s) ⇒ Net Lang → (s, Node) → (s, Node) → m (Net Lang)
+consCdr :: (HasState "info" Info m, Aux2 s) ⇒ Net Lang → (s, Node) → (s, Node) → m (Net Lang)
 consCdr net (cons, numCons) (cdr, numCdr) = do
   incGraphSizeStep (-1)
   return $ deleteRewire [numCons, numCdr] [erase]
@@ -389,7 +385,7 @@ consCdr net (cons, numCons) (cdr, numCdr) = do
   where
     (erase, net') = newNode net Erase'
 
-testNilNil :: (MonadState StateInfo m, Aux1 s) ⇒ Net Lang → (s, Node) → Node → m (Net Lang)
+testNilNil :: (HasState "info" Info m, Aux1 s) ⇒ Net Lang → (s, Node) → Node → m (Net Lang)
 testNilNil net (test, numTest) numNil = do
   incGraphSizeStep (-1)
   return $ deleteRewire [numTest, numNil] [true]
@@ -397,7 +393,7 @@ testNilNil net (test, numTest) numNil = do
   where
     (true, net') = newNode net Tru'
 
-testNilCons :: (MonadState StateInfo m, Aux2 s) ⇒ Net Lang → (s, Node) → (s, Node) → m (Net Lang)
+testNilCons :: (HasState "info" Info m, Aux2 s) ⇒ Net Lang → (s, Node) → (s, Node) → m (Net Lang)
 testNilCons net (cons, numCons) (test, numTest) = do
   incGraphSizeStep 1
   return $ deleteRewire [numCons, numTest] [erase1, erase2, false]
@@ -413,12 +409,12 @@ testNilCons net (cons, numCons) (test, numTest) = do
 
 
 curryRuleGen
-  :: MonadState StateInfo m =>
-     (t -> a)
-     -> Net a
-     -> (Int -> t, Node)
-     -> (ProperPort, Node)
-     -> m (Net a)
+ :: HasState "info" Info m =>
+    (t -> a)
+    -> Net a
+    -> (Int -> t, Node)
+    -> (ProperPort, Node)
+    -> m (Net a)
 curryRuleGen con net (nodeF, numNode) ((IntLit _ i), numInt) = do
   incGraphSizeStep (-1)
   return $ deleteRewire [numNode, numInt] [curr]
@@ -431,17 +427,17 @@ curryRuleGen con net (nodeF, numNode) ((IntLit _ i), numInt) = do
                                  }
 curryRuleGen _ net _ _ = return net
 
-curryRule :: MonadState StateInfo m
-          ⇒ Net Lang
-          → (Int → Int → Int, Node)
-          → (ProperPort, Node)
-          → m (Net Lang)
+curryRule :: HasState "info" Info m
+         ⇒ Net Lang
+         → (Int → Int → Int, Node)
+         → (ProperPort, Node)
+         → m (Net Lang)
 curryRule = curryRuleGen Curried'
 
 
-curryRuleB :: MonadState StateInfo m
-          ⇒ Net Lang
-          → (Int → Int → Bool, Node)
-          → (ProperPort, Node)
-          → m (Net Lang)
+curryRuleB :: HasState "info" Info m
+         ⇒ Net Lang
+         → (Int → Int → Bool, Node)
+         → (ProperPort, Node)
+         → m (Net Lang)
 curryRuleB = curryRuleGen CurriedB'

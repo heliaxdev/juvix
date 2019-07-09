@@ -5,15 +5,13 @@ module Juvix.Interaction (module Juvix.Interaction
                          , delNodes
                          , nodes) where
 
-import           Control.Monad.State.Strict
 import           Data.Graph.Inductive
 import qualified Data.Map.Strict            as Map
 import qualified Data.Set                   as Set
 import           Prelude                    (error)
-import           Protolude                  hiding (State, link, reduce,
-                                                    runState, empty)
 import           Control.Lens
 
+import           Juvix.Library              hiding (link, reduce, empty)
 import           Juvix.NodeInterface
 
 data PortType = Prim
@@ -49,26 +47,40 @@ data Relink
 
 type Net a = Gr a EdgeInfo
 
--- | StateInfo Stores diagnostic data on how much memory a particular graph reduction uses
-data StateInfo = Info { memoryAllocated  :: Integer
-                      , sequentalSteps   :: Integer
-                      , parallelSteps    :: Integer
-                      , biggestGraphSize :: Integer
-                      , currentGraphSize :: Integer
-                      } deriving (Show)
+-- | Info Stores diagnostic data on how much memory a particular graph reduction uses
+data Info = Info { memoryAllocated  :: Integer
+                 , sequentalSteps   :: Integer
+                 , parallelSteps    :: Integer
+                 , biggestGraphSize :: Integer
+                 , currentGraphSize :: Integer
+                 } deriving (Show)
 
-sequentalStep ∷ MonadState StateInfo m ⇒ m ()
-sequentalStep = modify' (\c -> c {sequentalSteps = sequentalSteps c + 1})
+data InfoNet a = InfoNet {net :: Net a, info :: Info} deriving (Show, Generic)
 
-incGraphSizeStep :: MonadState StateInfo m ⇒ Integer → m ()
+newtype EnvNetInfo b a = EnvI (State (InfoNet b) a)
+  deriving (Functor, Applicative, Monad)
+  deriving (HasState "info" Info) via
+    Rename "info" (Field "info" () (MonadState (State (InfoNet b))))
+  deriving (HasState "net" (Net b)) via
+    Rename "net" (Field "net" () (MonadState (State (InfoNet b))))
+
+runInfoNet :: EnvNetInfo b a → InfoNet b → (a, InfoNet b)
+runInfoNet (EnvI m) = runState m
+
+-- sequentalStep ∷ MonadState StateInfo m ⇒ m ()
+sequentalStep :: HasState "info" Info m ⇒ m ()
+sequentalStep = modify'  @"info" (\c → c {sequentalSteps = sequentalSteps c + 1})
+
+-- incGraphSizeStep :: MonadState StateInfo m ⇒ Integer → m ()
+incGraphSizeStep :: HasState "info" Info m ⇒ Integer → m ()
 incGraphSizeStep n = do
-  Info memAlloced seqStep parallelSteps largestGraph currGraph <- get
+  Info memAlloced seqStep parallelSteps largestGraph currGraph ← get @"info"
   let memoryAllocated | n > 0 = memAlloced + n
                       | otherwise = memAlloced
       currentGraphSize = n + currGraph
       biggestGraphSize = max currentGraphSize largestGraph
       sequentalSteps = succ seqStep
-  put Info {memoryAllocated, currentGraphSize, biggestGraphSize, sequentalSteps, parallelSteps}
+  put @"info" Info {memoryAllocated, currentGraphSize, biggestGraphSize, sequentalSteps, parallelSteps}
 
 -- Graph to more typed construction---------------------------------------------
 aux0FromGraph :: (Prim b, Graph gr) ⇒ (Primary → b) → gr a EdgeInfo → Node → Maybe b
@@ -142,7 +154,7 @@ auxFromGraph conv constructor graph num =
 isBothPrimary ∷ Graph gr ⇒ gr a EdgeInfo → Node → Bool
 isBothPrimary net node =
   null
-  $ filter (\ (Edge (_, p) (_, p')) -> p == Prim && p' == Prim)
+  $ filter (\ (Edge (_, p) (_, p')) → p == Prim && p' == Prim)
   $ fmap fst
   $ lneighbors net node
 
@@ -154,7 +166,8 @@ langToPort graph n f = do
 emptyNet :: Net a
 emptyNet = empty
 -- Graph manipulation ----------------------------------------------------------
-runNet ∷ (Net a → State StateInfo (Net a)) → Net a → (Net a, StateInfo)
+-- runNet ∷ (Net a → State StateInfo (Net a)) → Net a → (Net a, StateInfo)
+runNet :: Graph gr => (gr a1 b -> State Info a2) -> gr a1 b -> (a2, Info)
 runNet f net = runState (f net) (Info netSize 0 0 netSize netSize)
   where
     netSize = toInteger (length (nodes net))

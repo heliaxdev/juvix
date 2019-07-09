@@ -1,8 +1,4 @@
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE DerivingVia #-}
-
-{-# LANGUAGE TypeInType #-}
 
 module Juvix.Bohm.Translation(astToNet, netToAst) where
 
@@ -113,10 +109,9 @@ netToAst = undefined
 -- Helper Functions-------------------------------------------------------------
 
 -- | Creates a fan if the port is taken, and prepares to be connected
--- chaseAndCreateFan :: Net B.Lang → (Node, PortType) → (Node, Net B.Lang, PortType)
---chaseAndCreateFan :: MonadState Env m ⇒ (Node, PortType) → m (Node, PortType)
-chaseAndCreateFan :: (HasState "level" Int m, HasState "net" (Net B.Lang) m) ⇒
-                    (Node, PortType) → m (Node, PortType)
+chaseAndCreateFan :: (HasState "level" Int m, HasState "net" (Net B.Lang) m)
+                  ⇒ (Node, PortType)
+                  → m (Node, PortType)
 chaseAndCreateFan (num,port) = do
   net ← get @"net"
   lev ← get @"level"
