@@ -355,3 +355,16 @@ plusOne = plusK (Inf (Succ (Inf Zero)))
 
 plusTwo :: ITerm
 plusTwo = plusK (Inf (Succ (Inf (Succ (Inf Zero)))))
+
+plusZeroIsIdentity :: CTerm -> ITerm
+plusZeroIsIdentity k = NatElim
+  (Inf (Pi (Inf Nat) (Inf (Eq (Inf Nat) (Inf (plusZero :@: (Inf (Bound 0)))) (Inf (Bound 0))))))
+  (Inf (Eq (Inf Nat) (Inf Zero) (Inf Zero)))
+  (Lam (Lam (Inf (Bound 0)))) -- note: this is wrong, need to use eqElim I think
+  k
+
+plusZeroIsIdentityZero :: ITerm
+plusZeroIsIdentityZero = plusZeroIsIdentity (Inf Zero)
+
+zeroEqualsZero :: ITerm
+zeroEqualsZero = Refl (Inf Nat) (Inf Zero)
