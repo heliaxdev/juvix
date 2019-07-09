@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
@@ -38,8 +39,7 @@ data Lang
  | Lambda'
  | Symbol' SomeSymbol
  | App'
- | FanIn'
- | FanOut'
+ | FanIn' Int
  | Curried' (Int → Int)
  | CurriedB' (Int → Bool)
  | Erase'
@@ -74,8 +74,7 @@ data ProperPort
  | Lambda  {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
  | Symbol  {_prim :: Primary, _symb :: SomeSymbol}
  | App     {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | FanIn   {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
- | FanOut  {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary}
+ | FanIn   {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary, _lab :: Int}
    -- Lang could be a tighter bound, but that would require more boiler plate
  | Curried  {_prim :: Primary, _aux1 :: Auxiliary, _curried :: (Int → Int)}
  | CurriedB {_prim :: Primary, _aux1 :: Auxiliary, _curriedB :: (Int → Bool)}
@@ -118,13 +117,13 @@ langToProperPort net node = langToPort net node f
     f Leq'     = aux2FromGraph Leq     net node
     f Lambda'  = aux2FromGraph Lambda  net node
     f App'     = aux2FromGraph App     net node
-    f FanIn'   = aux2FromGraph FanIn   net node
-    f FanOut'  = aux2FromGraph FanOut  net node
+
     f Erase'   = aux0FromGraph Erase   net node
-    f (IntLit' i)    = aux0FromGraph (\x -> IntLit x i) net node
-    f (Symbol' s)    = aux0FromGraph (\x -> Symbol x s) net node
-    f (Curried' c)   = aux1FromGraph (\x y -> Curried x y c) net node
-    f (CurriedB' c)  = aux1FromGraph (\x y -> CurriedB x y c) net node
+    f (FanIn' i)    = aux2FromGraph (\p a1 a2 → FanIn p a1 a2 i)  net node
+    f (IntLit' i)   = aux0FromGraph (\x -> IntLit x i) net node
+    f (Symbol' s)   = aux0FromGraph (\x -> Symbol x s) net node
+    f (Curried' c)  = aux1FromGraph (\x y -> Curried x y c) net node
+    f (CurriedB' c) = aux1FromGraph (\x y -> CurriedB x y c) net node
 -- Rewrite rules----------------------------------------------------------------
 
 reduceAll ∷ MonadState StateInfo m ⇒ Int → Net Lang → m (Net Lang)
@@ -169,12 +168,12 @@ reduce net = do
               Lambda (Primary node) _ _ →
                 case langToProperPort net node of
                   Just app@(App {}) → updated <$> anihilateRewireAuxTogether net (n, port) (node, app)
-                  Just FanIn {}     → updated <$> fanInAux2 net node (n, Lambda')
+                  Just FanIn {_lab} → updated <$> fanInAux2 net node (n, Lambda') _lab
                   _                 → pure (net, isChanged)
               App (Primary node) _ _ →
                 case langToProperPort net node of
                   Just lam@(App {}) → updated <$> anihilateRewireAuxTogether net (n, port) (node, lam)
-                  Just FanIn {}     → updated <$> fanInAux2 net node (n, App')
+                  Just FanIn {_lab} → updated <$> fanInAux2 net node (n, App') _lab
                   _                 → pure (net, isChanged)
               Cdr (Primary node) _ →
                 case langToProperPort net node of
@@ -182,17 +181,17 @@ reduce net = do
                   _           → pure (net, isChanged)
               Nil (Primary node) →
                 case langToProperPort net node of
-                  Just c@Cdr {} → updated <$> propPrimary net (node, c) n
+                  Just c@Cdr {} → updated <$>  propPrimary net (node, c) n
                   _             → pure (net, isChanged)
               Cons (Primary node) _ _ →
                 case langToProperPort net node of
                   Just c@Cdr {} → updated <$> (consCdr net (port, n) (c, node))
                   Just c@Car {} → updated <$> (consCar net (port, n) (c, node))
                   _             → pure (net, isChanged)
-              FanIn (Primary node) _ _ →
+              FanIn (Primary node) _ _ level →
                 case langToProperPort net node of
-                  Just App {}    → updated <$> fanInAux2 net n (node, App')
-                  Just Lambda {} → updated <$> fanInAux2 net n (node, Lambda')
+                  Just App    {} → updated <$> fanInAux2 net n (node, App')    level
+                  Just Lambda {} → updated <$> fanInAux2 net n (node, Lambda') level
                   -- fan in should interact with all!, update later
                   _              → pure (net, isChanged)
               Erase (Primary node) →
@@ -231,7 +230,7 @@ curryOnIntB net (x, n) node isChanged =
 propPrimary ::
   (MonadState StateInfo m, Aux2 s) ⇒ Net Lang → (Node, s) → Node → m (Net Lang)
 propPrimary net (numDel, nodeDel) numProp =
-  let wire = rewire net (Aux1, nodeDel^.aux1) (Prim, Auxiliary numProp) in
+  let wire = relinkAux net (nodeDel^.aux1, Aux1) (numProp, Prim) in
   case auxToNode (nodeDel^.aux2) of
     Just _ -> do
       sequentalStep
@@ -286,9 +285,9 @@ muExpand net muNum = do
                  net'''
                  [nodeFanIn, nodeFanOut]
   where
-    (fanIn, net')   = newNode net FanIn'
-    (fanOut, net'') = newNode net' FanOut'
-    (newMu, net''') = newNode net'' FanOut'
+    (fanIn, net')   = newNode net (FanIn' 0)
+    (fanOut, net'') = newNode net' (FanIn' 0)
+    (newMu, net''') = newNode net'' (FanIn' 0)
     nodeFanIn = RELAuxiliary2 { node       = fanIn
                               , primary    = ReLink muNum Aux1
                               , auxiliary1 = Link (Port Aux1 newMu)
@@ -301,8 +300,8 @@ muExpand net muNum = do
                                }
 
 
-fanInAux2 :: MonadState StateInfo m ⇒ Net Lang → Node → (Node, Lang) → m (Net Lang)
-fanInAux2 net numFan (numOther, otherLang) = do
+fanInAux2 :: MonadState StateInfo m ⇒ Net Lang → Node → (Node, Lang) → Int → m (Net Lang)
+fanInAux2 net numFan (numOther, otherLang) level = do
   incGraphSizeStep 2
   return $ deleteRewire [numFan, numOther] [other1, other2, fanIn1, fanIn2]
          $ foldr (flip linkAll)
@@ -311,8 +310,8 @@ fanInAux2 net numFan (numOther, otherLang) = do
   where
     (other1, net')    = newNode net    otherLang
     (other2, net'')   = newNode net'   otherLang
-    (fanIn1, net''')  = newNode net''  FanIn'
-    (fanIn2, net'''') = newNode net''' FanIn'
+    (fanIn1, net''')  = newNode net''  (FanIn' level)
+    (fanIn2, net'''') = newNode net''' (FanIn' level)
     nodeOther1 = RELAuxiliary2 { node       = other1
                                , primary    = ReLink numFan Aux1
                                , auxiliary1 = Link (Port Aux1 fanIn2)
