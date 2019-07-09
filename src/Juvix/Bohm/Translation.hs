@@ -11,7 +11,7 @@ import           Juvix.Interaction
 import qualified Juvix.Nets.Bohm      as B
 import qualified Juvix.Bohm.Type      as BT
 
-data Env = Env {level :: Int, net :: Net B.Lang}
+data Env = Env {level :: Int, net' :: Net B.Lang}
          deriving (Show, Generic)
 
 newtype EnvState a = EnvS (State Env a)
@@ -19,7 +19,7 @@ newtype EnvState a = EnvS (State Env a)
   deriving (HasState "level" Int) via
     Rename "level" (Field "level" () (MonadState (State Env)))
   deriving (HasState "net" (Net B.Lang)) via
-    Rename "net" (Field "net" () (MonadState (State Env)))
+    Rename "net'" (Field "net'" () (MonadState (State Env)))
 
 execEnvState :: EnvState a -> Env -> Env
 execEnvState (EnvS m) e = execState m e
@@ -36,9 +36,9 @@ linkM node1I node2I =
   modify @"net" (\n → link n node1I node2I)
 
 astToNet :: BT.Bohm → Net B.Lang
-astToNet bohm = net
+astToNet bohm = net'
   where
-    Env {net} = execEnvState (recursive bohm Map.empty) (Env 0 G.empty)
+    Env {net'} = execEnvState (recursive bohm Map.empty) (Env 0 G.empty)
     -- we return the port which the node above it in the AST connects to!
     recursive (BT.IntLit x) _context = (,) <$> newNodeM (B.IntLit' x) <*> pure Prim
     recursive BT.False'     _context = (,) <$> newNodeM B.Fals'       <*> pure Prim
