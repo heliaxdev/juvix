@@ -22,7 +22,7 @@ dependencies:
   - fgl
   - lens
   - parsec
-
+  - capability >= 0.2.0.0
 default-extensions:
   - NoImplicitPrelude
   - OverloadedStrings
@@ -33,7 +33,6 @@ default-extensions:
   - GADTs
   - ScopedTypeVariables
   - DeriveGeneric
-  - DeriveAnyClass
   - DerivingStrategies
   - FlexibleContexts
   - FlexibleInstances

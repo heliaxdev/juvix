@@ -3,6 +3,7 @@ resolver: lts-13.25
 packages:
 - .
 
-extra-deps: []
+extra-deps:
+- capability-0.2.0.0@sha256:7049527e0bede44f8aeabdd0f41c50ec78da5835796e6a477615502665127a62
 
 allow-newer: true

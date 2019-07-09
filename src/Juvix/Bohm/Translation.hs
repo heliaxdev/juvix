@@ -1,38 +1,48 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DerivingVia #-}
+
+{-# LANGUAGE TypeInType #-}
 
 module Juvix.Bohm.Translation(astToNet, netToAst) where
 
-import           Protolude hiding (link)
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict      as Map
 -- eventually abstract out this import
 import qualified Data.Graph.Inductive as G
 
+import           Juvix.Library        hiding (link)
 import           Juvix.Interaction
-import qualified Juvix.Nets.Bohm   as B
-import qualified Juvix.Bohm.Type   as BT
-import           Control.Lens
+import qualified Juvix.Nets.Bohm      as B
+import qualified Juvix.Bohm.Type      as BT
 
-data Env = Env {_level :: Int, _net :: Net B.Lang}
-         deriving (Show)
+data Env = Env {level :: Int, net :: Net B.Lang}
+         deriving (Show, Generic)
 
-makeLenses ''Env
+newtype EnvState a = EnvS (State Env a)
+  deriving (Functor, Applicative, Monad)
+  deriving (HasState "level" Int) via
+    Rename "level" (Field "level" () (MonadState (State Env)))
+  deriving (HasState "net" (Net B.Lang)) via
+    Rename "net" (Field "net" () (MonadState (State Env)))
 
-newNodeM :: MonadState Env m => B.Lang -> m Node
+execEnvState :: EnvState a -> Env -> Env
+execEnvState (EnvS m) e = execState m e
+
+newNodeM :: (HasState "net" (gr a b) m, G.DynGraph gr) ⇒ a → m Node
 newNodeM term = do
-  env ← get
-  let (numLam, net') = newNode (env^.net) term
-  put (set net net' env)
+  net ← get @"net"
+  let (numLam, net') = newNode (net) term
+  put @"net" net'
   pure numLam
 
-
-linkM :: MonadState Env m ⇒ (Node, PortType) → (Node, PortType) → m ()
+linkM :: HasState "net" (Net a) m ⇒ (Node, PortType) → (Node, PortType) → m ()
 linkM node1I node2I =
-  modify (over net (\n → link n node1I node2I))
+  modify @"net" (\n → link n node1I node2I)
 
 astToNet :: BT.Bohm → Net B.Lang
-astToNet bohm = finalEnv^.net
+astToNet bohm = net
   where
-    finalEnv = execState (recursive bohm Map.empty) (Env 0 G.empty)
+    Env {net} = execEnvState (recursive bohm Map.empty) (Env 0 G.empty)
     -- we return the port which the node above it in the AST connects to!
     recursive (BT.IntLit x) _context = (,) <$> newNodeM (B.IntLit' x) <*> pure Prim
     recursive BT.False'     _context = (,) <$> newNodeM B.Fals'       <*> pure Prim
@@ -104,19 +114,21 @@ netToAst = undefined
 
 -- | Creates a fan if the port is taken, and prepares to be connected
 -- chaseAndCreateFan :: Net B.Lang → (Node, PortType) → (Node, Net B.Lang, PortType)
-chaseAndCreateFan :: MonadState Env m ⇒ (Node, PortType) → m (Node, PortType)
+--chaseAndCreateFan :: MonadState Env m ⇒ (Node, PortType) → m (Node, PortType)
+chaseAndCreateFan :: (HasState "level" Int m, HasState "net" (Net B.Lang) m) ⇒
+                    (Node, PortType) → m (Node, PortType)
 chaseAndCreateFan (num,port) = do
-  env ← get
-  case findEdge (env^.net) num port of
+  net ← get @"net"
+  lev ← get @"level"
+  case findEdge net num port of
     Nothing → pure (num, port)
     Just t1@(nConnected, connectedPort) → do
-      env ← get
-      put (over level succ env)
-      numFan ← newNodeM (B.FanIn' (env^.level))
+      put @"level" (succ lev)
+      numFan ← newNodeM (B.FanIn' lev)
       let nodeFan = RELAuxiliary2 { node       = numFan
                                   , primary    = Link (Port port          num)
                                   , auxiliary1 = Link (Port connectedPort nConnected)
                                   , auxiliary2 = Link FreePort
                                   }
-      modify (over net (\net → deleteEdge (linkAll net nodeFan) t1 (num,port)))
+      modify @"net" (\net → deleteEdge (linkAll net nodeFan) t1 (num,port))
       pure (numFan, Aux2)
