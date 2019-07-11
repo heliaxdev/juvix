@@ -5,7 +5,7 @@
 module Juvix.Nets.Bohm where
 
 import           Control.Lens
-import           Prelude (Show(..))
+import           Prelude (Show(..), error)
 
 import           Juvix.Library hiding (link, reduce)
 import           Juvix.Interaction
@@ -191,8 +191,9 @@ reduce = do
                   _             → pure isChanged
               FanIn (Primary node) _ _ level →
                 langToProperPort node >>= \case
-                  Just App    {} → True <$ fanInAux2 n (node, App')    level
-                  Just Lambda {} → True <$ fanInAux2 n (node, Lambda') level
+                  Just App     {} → True <$ fanInAux2 n (node, App')    level
+                  Just Lambda  {} → True <$ fanInAux2 n (node, Lambda') level
+                  Just f@FanIn {} → True <$ fanIns (n, port) (node, f)
                   -- fan in should interact with all!, update later
                   _              → pure isChanged
               Erase (Primary node) →
@@ -423,9 +424,20 @@ curryRule :: (HasState "info" Info m, HasState "net" (Net Lang) m)
          → m ()
 curryRule = curryRuleGen Curried'
 
-
 curryRuleB :: (HasState "info" Info m, HasState "net" (Net Lang) m)
          ⇒ (Int → Int → Bool, Node)
          → (ProperPort, Node)
          → m ()
 curryRuleB = curryRuleGen CurriedB'
+
+fanIns :: (HasState "info" Info m, HasState "net" (Net Lang) m)
+       ⇒ (Node, ProperPort) → (Node, ProperPort) → m ()
+fanIns (numf1, f1@FanIn {_lab = lab1}) (numf2, f2@FanIn {_lab = lab2})
+  | lab1 == lab2 = do
+      incGraphSizeStep (-2)
+      rewire (Aux1, f1^.aux1) (Aux2, f2^.aux2)
+      rewire (Aux2, f1^.aux2) (Aux1, f2^.aux1)
+      delNodesM [numf1, numf2]
+  | otherwise =
+    fanInAux2 numf1 (numf2, (FanIn' lab2)) lab1
+fanIns _ _ = error "send to fanIn nodes!"
