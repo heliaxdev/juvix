@@ -378,3 +378,10 @@ plusZeroIsIdentityZero = plusZeroIsIdentity (Inf Zero)
 
 zeroEqualsZero :: ITerm
 zeroEqualsZero = Refl (Inf Nat) (Inf Zero)
+
+--motive for plusK
+m = (Inf (Pi (Inf Nat) (Inf (Pi (Inf Nat) (Inf Nat)))))
+
+--type checking of applying 2nd argument of plusK. The type should be (m Zero).
+ctest2 = cType 0 [] (Lam (Inf (Bound 0))) 
+                        ((cEval m []) `vapp` VZero)
