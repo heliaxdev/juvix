@@ -243,7 +243,7 @@ iType ii g (Pi rho rho')
        let ty = cEval rho []
        cType (ii + 1) ((Local ii, ty): g)
              (cSubst 0 (Free (Local ii))rho') VStar
-       return VStar
+       return $ VPi ty (const VStar)
 iType _ii g (Free x)
   =  case lookup x g of
         Just ty ->  return ty
