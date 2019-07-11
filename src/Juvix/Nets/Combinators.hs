@@ -102,16 +102,16 @@ reduce = do
 -- | Deals with the case when two nodes annihilate each other
 annihilate ∷ (HasState "info" Info m, HasState "net" NetLang m)
            ⇒ Node → Node → ProperPort → ProperPort → m ()
-annihilate conNum1 conNum2 (Construct _ auxA auxB) (Construct _ auxC auxD) = do
+annihilate conNum1 conNum2 (Construct {}) (Construct {}) = do
   incGraphSizeStep (-2)
-  rewire (Aux1, auxA) (Aux2, auxD)
-  rewire (Aux2, auxB) (Aux1, auxC)
+  rewire (Aux1, conNum1) (Aux2, conNum2)
+  rewire (Aux2, conNum1) (Aux1, conNum2)
   delNodesM [conNum1, conNum2]
 
-annihilate conNum1 conNum2 (Duplicate _ auxA auxB) (Duplicate _ auxC auxD) = do
+annihilate conNum1 conNum2 (Duplicate {}) (Duplicate {}) = do
   incGraphSizeStep (-2)
-  rewire (Aux1, auxA) (Aux1, auxC)
-  rewire (Aux2, auxB) (Aux2, auxD)
+  rewire (Aux1, conNum1) (Aux1, conNum2)
+  rewire (Aux2, conNum1) (Aux2, conNum2)
   delNodesM [conNum1, conNum2]
 annihilate _ _ _ _ = error "the other nodes do not annihilate eachother"
 

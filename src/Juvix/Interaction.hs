@@ -211,18 +211,12 @@ relink (oldNode, port) new@(newNode, _newPort) = do
     Just re@(nodeToRelink, _) → put @"net" (insEdge (nodeToRelink, newNode, Edge re new) net)
     Nothing                   → pure () -- The port was really free to begin with!
 
--- | like relink, but handles an Aux in the first argument
-relinkAux :: HasState "net" (Net a) m ⇒ (Auxiliary, PortType) → (Node, PortType) → m ()
-relinkAux (Auxiliary a, pb) newNode = relink (a, pb) newNode
-relinkAux  _                 _      = pure ()
-
 -- | rewire is used to wire two auxiliary nodes together
 -- when the main nodes annihilate each other
-rewire ∷ HasState "net" (Net a) m ⇒ (PortType, Auxiliary) → (PortType, Auxiliary) → m ()
-rewire (pa, (Auxiliary a)) (pb, (Auxiliary b)) = do
+rewire ∷ HasState "net" (Net a) m ⇒ (PortType, Node) → (PortType, Node) → m ()
+rewire (pa, a) (pb, b) = do
   net ← get @"net"
   traverse_ (relink (a, pa)) (findEdge net b pb)
-rewire _ _ = pure ()
 
 newNode ∷ (DynGraph gr, HasState "net" (gr a b) m) ⇒ a → m Node
 newNode lang = do

@@ -130,7 +130,7 @@ reduceAll = untilNothingNTimesM reduce
 
 reduce :: (HasState "info" Info m, HasState "net" (Net Lang) m) ⇒ m Bool
 reduce = do
-  net <- get @"net"
+  net       ← get @"net"
   isChanged ← foldrM update False (nodes net)
   if isChanged then do
     modify @"info" (\c → c {parallelSteps = parallelSteps c + 1})
@@ -150,11 +150,11 @@ reduce = do
               And (Primary node) _ _ → do
                 langToProperPort node >>= \case
                   Just Fals {} → True <$ propPrimary (n, port) node
-                  Just Tru  {} → True <$ anihilateRewireAux node (n, port)
+                  Just Tru  {} → True <$ anihilateRewireAux node n
                   _            → pure isChanged
               Or (Primary node) _ _ →
                 langToProperPort node >>= \case
-                  Just Fals {} → True <$ anihilateRewireAux node (n, port)
+                  Just Fals {} → True <$ anihilateRewireAux node n
                   Just Tru  {} → True <$ propPrimary (n, port) node
                   _            → pure isChanged
               Not (Primary node) _ →
@@ -163,17 +163,17 @@ reduce = do
                   Just x       → notExpand (node, x) (n, port) isChanged
               IfElse (Primary node) _ _ _ →
                 langToProperPort node >>= \case
-                  Just Fals {} → True <$ ifElseRule node (n, port) False
-                  Just Tru  {} → True <$ ifElseRule node (n, port) True
+                  Just Fals {} → True <$ ifElseRule node n False
+                  Just Tru  {} → True <$ ifElseRule node n True
                   _            → pure isChanged
               Lambda (Primary node) _ _ →
                 langToProperPort node >>= \case
-                  Just app@(App {}) → True <$ anihilateRewireAuxTogether (n, port) (node, app)
+                  Just App {}       → True <$ anihilateRewireAuxTogether n node
                   Just FanIn {_lab} → True <$ fanInAux2 node (n, Lambda') _lab
                   _                 → pure isChanged
               App (Primary node) _ _ →
                 langToProperPort node >>= \case
-                  Just lam@(App {}) → True <$ anihilateRewireAuxTogether (n, port) (node, lam)
+                  Just App {}       → True <$ anihilateRewireAuxTogether n node
                   Just FanIn {_lab} → True <$ fanInAux2 node (n, App') _lab
                   _                 → pure isChanged
               Cdr (Primary node) _ →
@@ -186,9 +186,9 @@ reduce = do
                   _             → pure isChanged
               Cons (Primary node) _ _ →
                 langToProperPort node >>= \case
-                  Just c@Cdr {} → True <$ consCdr (port, n) (c, node)
-                  Just c@Car {} → True <$ consCar (port, n) (c, node)
-                  _             → pure isChanged
+                  Just Cdr {} → True <$ consCdr n node
+                  Just Car {} → True <$ consCar n node
+                  _           → pure isChanged
               FanIn (Primary node) _ _ level →
                 langToProperPort node >>= \case
                   Just App     {} → True <$ fanInAux2 n (node, App')    level
@@ -228,7 +228,7 @@ curryOnIntB (x, n) node isChanged = langToProperPort node >>=
 propPrimary :: (Aux2 s, HasState "info" Info m, HasState "net" (Net Lang) m)
             ⇒ (Node, s) → Node → m ()
 propPrimary (numDel, nodeDel) numProp = do
-  relinkAux (nodeDel^.aux1, Aux1) (numProp, Prim)
+  relink (numDel, Aux1) (numProp, Prim)
   case auxToNode (nodeDel^.aux2) of
     Just _ -> do
       sequentalStep
@@ -239,35 +239,35 @@ propPrimary (numDel, nodeDel) numProp = do
       incGraphSizeStep (-1)
       delNodesM [numDel]
 
-ifElseRule :: (HasState "info" Info m, HasState "net" (Net Lang) m,  Aux3 s)
-           ⇒ Node → (Node, s) → Bool → m ()
-ifElseRule numPrimOnly (numAuxs, auxs) pred = do
+ifElseRule :: (HasState "info" Info m, HasState "net" (Net Lang) m)
+           ⇒ Node → Node → Bool → m ()
+ifElseRule numPrimOnly numAuxs pred = do
   incGraphSizeStep (-1)
   numErase ← newNode Erase'
   if pred
     then do
-    relinkAux (auxs^.aux2, Aux2) (numErase, Prim)
-    rewire    (Aux1, auxs^.aux1) (Aux3, auxs^.aux3)
+    relink (numAuxs, Aux2) (numErase, Prim)
+    rewire (Aux1, numAuxs) (Aux3, numAuxs)
     else do
-    relinkAux (auxs^.aux3, Aux3) (numErase, Prim)
-    rewire    (Aux1, auxs^.aux1) (Aux2, auxs^.aux2)
+    relink (numAuxs, Aux3) (numErase, Prim)
+    rewire (Aux1, numAuxs) (Aux2, numAuxs)
   deleteRewire [numPrimOnly, numAuxs] [numErase]
 
 
-anihilateRewireAux :: (HasState "info" Info m, Aux2 s, HasState "net" (Net a) m)
-                   ⇒ Node → (Node, s) → m ()
-anihilateRewireAux numPrimOnly (numAuxs, auxs) = do
+anihilateRewireAux :: (HasState "info" Info m, HasState "net" (Net a) m)
+                   ⇒ Node → Node → m ()
+anihilateRewireAux numPrimOnly numAuxs = do
   incGraphSizeStep (-2)
-  rewire (Aux1, auxs^.aux1) (Aux2, auxs^.aux2)
+  rewire (Aux1, numAuxs) (Aux2, numAuxs)
   delNodesM [numPrimOnly, numAuxs]
 
 -- used for app lambda!
-anihilateRewireAuxTogether :: (HasState "info" Info m, HasState "net" (Net a) m, Aux2 s)
-                           ⇒ (Node, s) → (Node, s) → m ()
-anihilateRewireAuxTogether (numNode1, node1) (numNode2, node2) = do
+anihilateRewireAuxTogether :: (HasState "info" Info m, HasState "net" (Net Lang) m)
+                           ⇒ Node → Node → m ()
+anihilateRewireAuxTogether numNode1 numNode2 = do
   incGraphSizeStep (-2)
-  rewire (Aux1, node1^.aux1) (Aux1, node2^.aux1)
-  rewire (Aux2, node1^.aux2) (Aux2, node2^.aux2)
+  rewire (Aux1, numNode1) (Aux1, numNode2)
+  rewire (Aux2, numNode1) (Aux2, numNode2)
   delNodesM [numNode1, numNode2]
 
 -- o is Aux1 * is Aux2
@@ -361,43 +361,43 @@ eraseAll (node, numNode) nodeErase = do
       relink (numNode, port) (numE, Prim)
       return (Just numE)
 
-consCar :: (HasState "info" Info m, Aux2 s1, Aux1 s2, HasState "net" (Net Lang) m)
-        ⇒ (s1, Node) → (s2, Node) → m ()
-consCar (cons, numCons) (car, numCar) = do
+consCar :: (HasState "info" Info m, HasState "net" (Net Lang) m)
+        ⇒ Node → Node → m ()
+consCar numCons numCar = do
   incGraphSizeStep (-1)
   erase ← newNode Erase'
-  relinkAux (cons^.aux1, Aux1) (erase, Prim)
-  rewire    (Aux2, cons^.aux2) (Aux1, car^.aux1)
+  relink (numCons, Aux1) (erase, Prim)
+  rewire (Aux2, numCons) (Aux1, numCar)
   deleteRewire [numCons, numCar] [erase]
 
-consCdr :: (HasState "info" Info m, HasState "net" (Net Lang) m, Aux2 s)
-        ⇒ (s, Node) → (s, Node) → m ()
-consCdr (cons, numCons) (cdr, numCdr) = do
+consCdr :: (HasState "info" Info m, HasState "net" (Net Lang) m)
+        ⇒ Node → Node → m ()
+consCdr numCons numCdr = do
   incGraphSizeStep (-1)
   erase ← newNode Erase'
-  relinkAux (cons^.aux2, Aux2) (erase, Prim)
-  rewire    (Aux1, cons^.aux1) (Aux1, cdr^.aux1)
+  relink (numCons, Aux2) (erase, Prim)
+  rewire (Aux1, numCons) (Aux1, numCdr)
   deleteRewire [numCons, numCdr] [erase]
 
-testNilNil :: (HasState "info" Info m, HasState "net" (Net Lang) m, Aux1 s)
-           ⇒ (s, Node) → Node → m ()
-testNilNil (test, numTest) numNil = do
+testNilNil :: (HasState "info" Info m, HasState "net" (Net Lang) m)
+           ⇒ Node → Node → m ()
+testNilNil numTest numNil = do
   incGraphSizeStep (-1)
   true ← newNode Tru'
-  relinkAux (test^.aux1, Aux1) (true, Prim)
+  relink (numTest, Aux1) (true, Prim)
   deleteRewire [numTest, numNil] [true]
 
-testNilCons :: (HasState "info" Info m, HasState "net" (Net Lang) m, Aux2 s)
-            ⇒ (s, Node) → (s, Node) → m ()
-testNilCons (cons, numCons) (test, numTest) = do
+testNilCons :: (HasState "info" Info m, HasState "net" (Net Lang) m)
+            ⇒ Node → Node → m ()
+testNilCons numCons numTest = do
   incGraphSizeStep 1
   erase1 ← newNode Erase'
   erase2 ← newNode Erase'
   false  ← newNode Fals'
-  traverse_ (uncurry relinkAux)
-            [((cons^.aux1, Aux1), (erase1, Prim))
-            ,((cons^.aux2, Aux2), (erase2, Prim))
-            ,((test^.aux1, Aux1), (false , Prim))]
+  traverse_ (uncurry relink)
+            [((numCons, Aux1), (erase1, Prim))
+            ,((numCons, Aux2), (erase2, Prim))
+            ,((numTest, Aux1), (false , Prim))]
   deleteRewire [numCons, numTest] [erase1, erase2, false]
 
 
@@ -432,11 +432,11 @@ curryRuleB = curryRuleGen CurriedB'
 
 fanIns :: (HasState "info" Info m, HasState "net" (Net Lang) m)
        ⇒ (Node, ProperPort) → (Node, ProperPort) → m ()
-fanIns (numf1, f1@FanIn {_lab = lab1}) (numf2, f2@FanIn {_lab = lab2})
+fanIns (numf1, FanIn {_lab = lab1}) (numf2, FanIn {_lab = lab2})
   | lab1 == lab2 = do
       incGraphSizeStep (-2)
-      rewire (Aux1, f1^.aux1) (Aux2, f2^.aux2)
-      rewire (Aux2, f1^.aux2) (Aux1, f2^.aux1)
+      rewire (Aux1, numf1) (Aux2, numf2)
+      rewire (Aux2, numf1) (Aux1, numf2)
       delNodesM [numf1, numf2]
   | otherwise =
     fanInAux2 numf1 (numf2, (FanIn' lab2)) lab1
