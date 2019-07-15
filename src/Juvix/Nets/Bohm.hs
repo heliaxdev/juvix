@@ -11,13 +11,15 @@ import           Juvix.Library hiding (link, reduce)
 import           Juvix.Interaction
 import           Juvix.NodeInterface
 
-data InfixB = Or' | And' | Eq' | Neq' | More' | Less' | Meq' | Leq' deriving Show
+data InfixB =  Eq' | Neq' | More' | Less' | Meq' | Leq' deriving Show
 
 data Infix = Mu' | Div' | Sub' | Add' | Prod' | Mod' deriving Show
 
 data Lang
  = Infix Infix
  | InfixB InfixB
+ | And'
+ | Or'
  | Not'
  | Cons'
  | Car'
@@ -32,9 +34,9 @@ data Lang
  | Symbol' SomeSymbol
  | App'
  | FanIn' Int
- -- Could introduce a tighter bound on the tag
- | Curried'  Infix (Int → Int)
- | CurriedB' InfixB (Int → Bool)
+ -- tag for curried' is not needed but maybe useful later?
+ | Curried'  (Int → Int)
+ | CurriedB' (Int → Bool)
  | Erase'
  deriving Show
 
@@ -70,10 +72,8 @@ data ProperPort
  | FanIn   {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary, _lab :: Int}
  | Erase   {_prim :: Primary}
    -- Lang could be a tighter bound, but that would require more boiler plate
- | Curried  {_prim :: Primary, _aux1 :: Auxiliary
-            , _tag :: Infix, _curried :: (Int → Int) }
- | CurriedB {_prim :: Primary, _aux1 :: Auxiliary
-            , _tagB :: InfixB, _curriedB :: (Int → Bool) }
+ | Curried  {_prim :: Primary, _aux1 :: Auxiliary, _curried :: (Int → Int) }
+ | CurriedB {_prim :: Primary, _aux1 :: Auxiliary, _curriedB :: (Int → Bool) }
  deriving Show
 
 instance Show ((->) a b) where
@@ -87,8 +87,6 @@ makeFieldsNoPrefix ''ProperPort
 langToProperPort :: HasState "net" (Net Lang) m ⇒ Node → m (Maybe ProperPort)
 langToProperPort node = langToPort node (\l -> f l node)
   where
-    f (InfixB Or')    = aux2FromGraph Or
-    f (InfixB And')   = aux2FromGraph And
     f (InfixB Meq')   = aux2FromGraph Meq
     f (InfixB Eq')    = aux2FromGraph Eq
     f (InfixB Neq')   = aux2FromGraph Neq
@@ -101,6 +99,8 @@ langToProperPort node = langToPort node (\l -> f l node)
     f (Infix Add')    = aux2FromGraph Add
     f (Infix Prod')   = aux2FromGraph Prod
     f (Infix Mod')    = aux2FromGraph Mod
+    f Or'             = aux2FromGraph Or
+    f And'            = aux2FromGraph And
     f Not'            = aux1FromGraph Not
     f Cons'           = aux2FromGraph Cons
     f Car'            = aux1FromGraph Car
@@ -116,8 +116,8 @@ langToProperPort node = langToPort node (\l -> f l node)
     f (FanIn' i)      = aux2FromGraph (\p a1 a2 → FanIn p a1 a2 i)
     f (IntLit' i)     = aux0FromGraph (\x -> IntLit x i)
     f (Symbol' s)     = aux0FromGraph (\x -> Symbol x s)
-    f (Curried'  t c) = aux1FromGraph (\x y -> Curried x y t c)
-    f (CurriedB' t c) = aux1FromGraph (\x y -> CurriedB x y t c)
+    f (Curried'  c) = aux1FromGraph (\x y -> Curried x y c)
+    f (CurriedB' c) = aux1FromGraph (\x y -> CurriedB x y c)
 -- Rewrite rules----------------------------------------------------------------
 reduceAll :: (HasState "info" Info f, HasState "net" (Net Lang) f)
           ⇒ Int → f ()
@@ -195,26 +195,35 @@ reduce = do
                 langToProperPort node >>= \case
                   Just x  → True <$ eraseAll (x, node) n
                   Nothing → pure isChanged
-              Eq   (Primary node) _ _ → curryOnIntB ((==), n, Eq') node isChanged
-              More (Primary node) _ _ → curryOnIntB ((>) , n, More') node isChanged
-              Less (Primary node) _ _ → curryOnIntB ((<) , n, Less') node isChanged
-              Meq  (Primary node) _ _ → curryOnIntB ((>=), n, Meq') node isChanged
-              Leq  (Primary node) _ _ → curryOnIntB ((<=), n, Leq') node isChanged
-              Div  (Primary node) _ _ → curryOnInt  (div , n, Div') node isChanged
-              Sub  (Primary node) _ _ → curryOnInt  ((-) , n, Sub') node isChanged
-              Prod (Primary node) _ _ → curryOnInt  ((*) , n, Prod') node isChanged
-              Mod  (Primary node) _ _ → curryOnInt  (mod , n, Mod') node isChanged
+              Curried (Primary node) _ _ →
+                langToProperPort node >>= \case
+                  Just i@IntLit {} → True <$ curryInt (n, port) (node, i)
+                  _                → pure isChanged
+              CurriedB (Primary node) _ _ →
+                langToProperPort node >>= \case
+                  Just i@IntLit {} → True <$ curryIntB (n, port) (node, i)
+                  _                → pure isChanged
+              Eq   (Primary node) _ _ → curryOnIntB ((==), n) node isChanged
+              More (Primary node) _ _ → curryOnIntB ((>) , n) node isChanged
+              Less (Primary node) _ _ → curryOnIntB ((<) , n) node isChanged
+              Meq  (Primary node) _ _ → curryOnIntB ((>=), n) node isChanged
+              Leq  (Primary node) _ _ → curryOnIntB ((<=), n) node isChanged
+              Add  (Primary node) _ _ → curryOnInt  ((*) , n) node isChanged
+              Sub  (Primary node) _ _ → curryOnInt  ((-) , n) node isChanged
+              Div  (Primary node) _ _ → curryOnInt  (div , n) node isChanged
+              Prod (Primary node) _ _ → curryOnInt  ((*) , n) node isChanged
+              Mod  (Primary node) _ _ → curryOnInt  (mod , n) node isChanged
               _ → pure isChanged
 
 curryOnInt :: (HasState "info" Info f, HasState "net" (Net Lang) f)
-           ⇒ (Int → Int → Int, Node, Infix) → Node → Bool → f Bool
+           ⇒ (Int → Int → Int, Node) → Node → Bool → f Bool
 curryOnInt opInfo node isChanged =
   langToProperPort node >>= \case
     Just i@IntLit {} → True <$ curryRule opInfo (i, node)
     _                → pure isChanged
 
 curryOnIntB :: (HasState "info" Info f, HasState "net" (Net Lang) f)
-            ⇒ (Int → Int → Bool, Node, InfixB) → Node → Bool → f Bool
+            ⇒ (Int → Int → Bool, Node) → Node → Bool → f Bool
 curryOnIntB opInfo node isChanged =
   langToProperPort node >>= \case
     Just i@IntLit {} → True <$ curryRuleB opInfo (i, node)
@@ -397,13 +406,13 @@ testNilCons numCons numTest = do
 
 
 curryRuleGen :: (HasState "info" Info m, HasState "net" (Net a) m)
-              ⇒ (b → t → a)
-              → (Int → t, Node, b)
+              ⇒ (t → a)
+              → (Int → t, Node)
               → (ProperPort, Node)
               → m ()
-curryRuleGen con (nodeF, numNode, lang) ((IntLit _ i), numInt) = do
+curryRuleGen con (nodeF, numNode) ((IntLit _ i), numInt) = do
   incGraphSizeStep (-1)
-  curr         ← newNode (con lang (nodeF i))
+  curr         ← newNode (con (nodeF i))
   let currNode = RELAuxiliary1 { node       = curr
                                , primary    = ReLink numNode Aux2
                                , auxiliary1 = ReLink numNode Aux1
@@ -414,13 +423,13 @@ curryRuleGen con (nodeF, numNode, lang) ((IntLit _ i), numInt) = do
 curryRuleGen _ _ _ = pure ()
 
 curryRule :: (HasState "info" Info m, HasState "net" (Net Lang) m)
-         ⇒ (Int → Int → Int, Node, Infix)
+         ⇒ (Int → Int → Int, Node)
          → (ProperPort, Node)
          → m ()
 curryRule = curryRuleGen Curried'
 
 curryRuleB :: (HasState "info" Info m, HasState "net" (Net Lang) m)
-         ⇒ (Int → Int → Bool, Node, InfixB)
+         ⇒ (Int → Int → Bool, Node)
          → (ProperPort, Node)
          → m ()
 curryRuleB = curryRuleGen CurriedB'
@@ -438,12 +447,26 @@ fanIns (numf1, FanIn {_lab = lab1}) (numf2, FanIn {_lab = lab2})
 fanIns _ _ = error "send to fanIn nodes!"
 
 
-curryIntB (numCurr, Curried {_tag, _curried}) (numInt, intNode) =
-  case _tag of
-    Mu' → undefined
-
-curryIntB _ _ = error "sent in a non curry node"
-
-curryInt (numCurr, CurriedB {_tagB, _curriedB}) (numInt, intNode) = undefined
+curryInt :: (HasState "info" Info m, HasState "net" (Net Lang) m)
+         ⇒ (Node, ProperPort) → (Node, ProperPort) → m ()
+curryInt (numCurr, Curried {_curried}) (numInt, (IntLit _ i)) = do
+  incGraphSizeStep (-1)
+  intLit ← newNode (IntLit' (_curried i))
+  relink (numInt, Prim) (intLit, Prim)
+  deleteRewire [numCurr, numInt] [intLit]
 
 curryInt _ _ = error "sent in a non curry node"
+
+curryIntB :: (HasState "info" Info m, HasState "net" (Net Lang) m)
+          ⇒ (Node, ProperPort) → (Node, ProperPort) → m ()
+curryIntB (numCurr, CurriedB {_curriedB}) (numInt, (IntLit _ i)) = do
+  incGraphSizeStep (-1)
+  let app = _curriedB i
+  node ← newNode
+          (case app of
+            True  → Tru'
+            False → Fals')
+  relink (numInt, Prim) (node, Prim)
+  deleteRewire [numCurr, numInt] [node]
+
+curryIntB _ _ = error "sent in a non curry node"

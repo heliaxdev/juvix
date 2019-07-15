@@ -14,6 +14,8 @@ test3 = runNet (reduceAll 1) . astToNet <$> parseBohm "((lambda x. (x x)) (lambd
 
 test4 = runNet (reduceAll 10) . astToNet <$> parseBohm "(lambda y. (lambda x. (y x)) 2 3)"
 
+test5 = runNet (reduceAll 10) . astToNet <$> parseBohm "(2 + 2)"
+
 printTestn n = showNet "test.dot" net
   where
     Right (InfoNet {net = net}) = n
