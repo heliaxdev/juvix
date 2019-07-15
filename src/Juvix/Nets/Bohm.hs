@@ -11,34 +11,33 @@ import           Juvix.Library hiding (link, reduce)
 import           Juvix.Interaction
 import           Juvix.NodeInterface
 
-data InfixB =  Eq' | Neq' | More' | Less' | Meq' | Leq' deriving Show
+data InfixB = Eq' | Neq' | More' | Less' | Meq' | Leq' deriving Show
 
 data Infix = Mu' | Div' | Sub' | Add' | Prod' | Mod' deriving Show
 
 data Lang
- = Infix Infix
- | InfixB InfixB
- | And'
- | Or'
- | Not'
- | Cons'
- | Car'
- | Cdr'
- | Nil'
- | TestNil'
- | IfElse'
- | Tru'
- | Fals'
- | IntLit' Int
- | Lambda'
- | Symbol' SomeSymbol
- | App'
- | FanIn' Int
- -- tag for curried' is not needed but maybe useful later?
- | Curried'  (Int → Int)
- | CurriedB' (Int → Bool)
- | Erase'
- deriving Show
+  = Infix Infix
+  | InfixB InfixB
+  | And'
+  | Or'
+  | Not'
+  | Cons'
+  | Car'
+  | Cdr'
+  | Nil'
+  | TestNil'
+  | IfElse'
+  | Tru'
+  | Fals'
+  | IntLit' Int
+  | Lambda'
+  | Symbol' SomeSymbol
+  | App'
+  | FanIn' Int
+  | Curried'  (Int → Int)
+  | CurriedB' (Int → Bool)
+  | Erase'
+  deriving Show
 
 
 data ProperPort
@@ -72,7 +71,7 @@ data ProperPort
  | FanIn   {_prim :: Primary, _aux1 :: Auxiliary, _aux2 :: Auxiliary, _lab :: Int}
  | Erase   {_prim :: Primary}
    -- Lang could be a tighter bound, but that would require more boiler plate
- | Curried  {_prim :: Primary, _aux1 :: Auxiliary, _curried :: (Int → Int) }
+ | Curried  {_prim :: Primary, _aux1 :: Auxiliary, _curried  :: (Int → Int) }
  | CurriedB {_prim :: Primary, _aux1 :: Auxiliary, _curriedB :: (Int → Bool) }
  deriving Show
 
@@ -87,37 +86,37 @@ makeFieldsNoPrefix ''ProperPort
 langToProperPort :: HasState "net" (Net Lang) m ⇒ Node → m (Maybe ProperPort)
 langToProperPort node = langToPort node (\l -> f l node)
   where
-    f (InfixB Meq')   = aux2FromGraph Meq
-    f (InfixB Eq')    = aux2FromGraph Eq
-    f (InfixB Neq')   = aux2FromGraph Neq
-    f (InfixB More')  = aux2FromGraph More
-    f (InfixB Less')  = aux2FromGraph Less
-    f (InfixB Leq')   = aux2FromGraph Leq
-    f (Infix Mu')     = aux2FromGraph Mu
-    f (Infix Div')    = aux2FromGraph Div
-    f (Infix Sub')    = aux2FromGraph Sub
-    f (Infix Add')    = aux2FromGraph Add
-    f (Infix Prod')   = aux2FromGraph Prod
-    f (Infix Mod')    = aux2FromGraph Mod
-    f Or'             = aux2FromGraph Or
-    f And'            = aux2FromGraph And
-    f Not'            = aux1FromGraph Not
-    f Cons'           = aux2FromGraph Cons
-    f Car'            = aux1FromGraph Car
-    f Cdr'            = aux1FromGraph Cdr
-    f Nil'            = aux0FromGraph Nil
-    f TestNil'        = aux1FromGraph TestNil
-    f IfElse'         = aux3FromGraph IfElse
-    f Tru'            = aux0FromGraph Tru
-    f Fals'           = aux0FromGraph Fals
-    f Lambda'         = aux2FromGraph Lambda
-    f App'            = aux2FromGraph App
-    f Erase'          = aux0FromGraph Erase
-    f (FanIn' i)      = aux2FromGraph (\p a1 a2 → FanIn p a1 a2 i)
-    f (IntLit' i)     = aux0FromGraph (\x -> IntLit x i)
-    f (Symbol' s)     = aux0FromGraph (\x -> Symbol x s)
-    f (Curried'  c) = aux1FromGraph (\x y -> Curried x y c)
-    f (CurriedB' c) = aux1FromGraph (\x y -> CurriedB x y c)
+    f (InfixB Meq')  = aux2FromGraph Meq
+    f (InfixB Eq')   = aux2FromGraph Eq
+    f (InfixB Neq')  = aux2FromGraph Neq
+    f (InfixB More') = aux2FromGraph More
+    f (InfixB Less') = aux2FromGraph Less
+    f (InfixB Leq')  = aux2FromGraph Leq
+    f (Infix Mu')    = aux2FromGraph Mu
+    f (Infix Div')   = aux2FromGraph Div
+    f (Infix Sub')   = aux2FromGraph Sub
+    f (Infix Add')   = aux2FromGraph Add
+    f (Infix Prod')  = aux2FromGraph Prod
+    f (Infix Mod')   = aux2FromGraph Mod
+    f Or'            = aux2FromGraph Or
+    f And'           = aux2FromGraph And
+    f Not'           = aux1FromGraph Not
+    f Cons'          = aux2FromGraph Cons
+    f Car'           = aux1FromGraph Car
+    f Cdr'           = aux1FromGraph Cdr
+    f Nil'           = aux0FromGraph Nil
+    f TestNil'       = aux1FromGraph TestNil
+    f IfElse'        = aux3FromGraph IfElse
+    f Tru'           = aux0FromGraph Tru
+    f Fals'          = aux0FromGraph Fals
+    f Lambda'        = aux2FromGraph Lambda
+    f App'           = aux2FromGraph App
+    f Erase'         = aux0FromGraph Erase
+    f (FanIn' i)     = aux2FromGraph (\p a1 a2 → FanIn p a1 a2 i)
+    f (IntLit' i)    = aux0FromGraph (\x -> IntLit x i)
+    f (Symbol' s)    = aux0FromGraph (\x -> Symbol x s)
+    f (Curried'  c)  = aux1FromGraph (\x y -> Curried x y c)
+    f (CurriedB' c)  = aux1FromGraph (\x y -> CurriedB x y c)
 -- Rewrite rules----------------------------------------------------------------
 reduceAll :: (HasState "info" Info f, HasState "net" (Net Lang) f)
           ⇒ Int → f ()
@@ -336,7 +335,6 @@ notExpand (n, Fals {}) (notNum, notPort) _ = do
   pure True
 
 notExpand _ _ updated = pure updated
-
 
 -- Erase should be connected to the main port atm, change this logic later
 -- when this isn't the case
