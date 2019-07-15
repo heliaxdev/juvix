@@ -33,8 +33,8 @@ data Lang
  | App'
  | FanIn' Int
  -- Could introduce a tighter bound on the tag
- | Curried'  Lang (Int → Int)
- | CurriedB' Lang (Int → Bool)
+ | Curried'  Infix (Int → Int)
+ | CurriedB' InfixB (Int → Bool)
  | Erase'
  deriving Show
 
@@ -71,9 +71,9 @@ data ProperPort
  | Erase   {_prim :: Primary}
    -- Lang could be a tighter bound, but that would require more boiler plate
  | Curried  {_prim :: Primary, _aux1 :: Auxiliary
-            , _tag :: Lang, _curried :: (Int → Int) }
+            , _tag :: Infix, _curried :: (Int → Int) }
  | CurriedB {_prim :: Primary, _aux1 :: Auxiliary
-            , _tag :: Lang, _curriedB :: (Int → Bool) }
+            , _tagB :: InfixB, _curriedB :: (Int → Bool) }
  deriving Show
 
 instance Show ((->) a b) where
@@ -195,26 +195,26 @@ reduce = do
                 langToProperPort node >>= \case
                   Just x  → True <$ eraseAll (x, node) n
                   Nothing → pure isChanged
-              Eq   (Primary node) _ _ → curryOnIntB ((==), n, InfixB Eq') node isChanged
-              More (Primary node) _ _ → curryOnIntB ((>) , n, InfixB More') node isChanged
-              Less (Primary node) _ _ → curryOnIntB ((<) , n, InfixB Less') node isChanged
-              Meq  (Primary node) _ _ → curryOnIntB ((>=), n, InfixB Meq') node isChanged
-              Leq  (Primary node) _ _ → curryOnIntB ((<=), n, InfixB Leq') node isChanged
-              Div  (Primary node) _ _ → curryOnInt  (div , n, Infix Div') node isChanged
-              Sub  (Primary node) _ _ → curryOnInt  ((-) , n, Infix Sub') node isChanged
-              Prod (Primary node) _ _ → curryOnInt  ((*) , n, Infix Prod') node isChanged
-              Mod  (Primary node) _ _ → curryOnInt  (mod , n, Infix Mod') node isChanged
+              Eq   (Primary node) _ _ → curryOnIntB ((==), n, Eq') node isChanged
+              More (Primary node) _ _ → curryOnIntB ((>) , n, More') node isChanged
+              Less (Primary node) _ _ → curryOnIntB ((<) , n, Less') node isChanged
+              Meq  (Primary node) _ _ → curryOnIntB ((>=), n, Meq') node isChanged
+              Leq  (Primary node) _ _ → curryOnIntB ((<=), n, Leq') node isChanged
+              Div  (Primary node) _ _ → curryOnInt  (div , n, Div') node isChanged
+              Sub  (Primary node) _ _ → curryOnInt  ((-) , n, Sub') node isChanged
+              Prod (Primary node) _ _ → curryOnInt  ((*) , n, Prod') node isChanged
+              Mod  (Primary node) _ _ → curryOnInt  (mod , n, Mod') node isChanged
               _ → pure isChanged
 
 curryOnInt :: (HasState "info" Info f, HasState "net" (Net Lang) f)
-           ⇒ (Int → Int → Int, Node, Lang) → Node → Bool → f Bool
+           ⇒ (Int → Int → Int, Node, Infix) → Node → Bool → f Bool
 curryOnInt opInfo node isChanged =
   langToProperPort node >>= \case
     Just i@IntLit {} → True <$ curryRule opInfo (i, node)
     _                → pure isChanged
 
 curryOnIntB :: (HasState "info" Info f, HasState "net" (Net Lang) f)
-            ⇒ (Int → Int → Bool, Node, Lang) → Node → Bool → f Bool
+            ⇒ (Int → Int → Bool, Node, InfixB) → Node → Bool → f Bool
 curryOnIntB opInfo node isChanged =
   langToProperPort node >>= \case
     Just i@IntLit {} → True <$ curryRuleB opInfo (i, node)
@@ -397,8 +397,8 @@ testNilCons numCons numTest = do
 
 
 curryRuleGen :: (HasState "info" Info m, HasState "net" (Net a) m)
-              ⇒ (Lang → t → a)
-              → (Int → t, Node, Lang)
+              ⇒ (b → t → a)
+              → (Int → t, Node, b)
               → (ProperPort, Node)
               → m ()
 curryRuleGen con (nodeF, numNode, lang) ((IntLit _ i), numInt) = do
@@ -414,13 +414,13 @@ curryRuleGen con (nodeF, numNode, lang) ((IntLit _ i), numInt) = do
 curryRuleGen _ _ _ = pure ()
 
 curryRule :: (HasState "info" Info m, HasState "net" (Net Lang) m)
-         ⇒ (Int → Int → Int, Node, Lang)
+         ⇒ (Int → Int → Int, Node, Infix)
          → (ProperPort, Node)
          → m ()
 curryRule = curryRuleGen Curried'
 
 curryRuleB :: (HasState "info" Info m, HasState "net" (Net Lang) m)
-         ⇒ (Int → Int → Bool, Node, Lang)
+         ⇒ (Int → Int → Bool, Node, InfixB)
          → (ProperPort, Node)
          → m ()
 curryRuleB = curryRuleGen CurriedB'
@@ -440,13 +440,10 @@ fanIns _ _ = error "send to fanIn nodes!"
 
 curryIntB (numCurr, Curried {_tag, _curried}) (numInt, intNode) =
   case _tag of
-    InfixB x →
-      case x of
-        Eq' → undefined
-    _ → error "send in an infixB to curry"
+    Mu' → undefined
 
 curryIntB _ _ = error "sent in a non curry node"
 
-curryInt (numCurr, CurriedB {_tag, _curriedB}) (numInt, intNode) = undefined
+curryInt (numCurr, CurriedB {_tagB, _curriedB}) (numInt, intNode) = undefined
 
 curryInt _ _ = error "sent in a non curry node"
