@@ -53,13 +53,18 @@ data Value
   | VEq Value Value Value
 
 dumbShow :: Value -> String
-dumbShow (VLam _)     = "lambda"
-dumbShow (VStar)      = "*"
-dumbShow (VPi v f)    = "pi " ++ dumbShow v ++ " -> lambda"
-dumbShow (VNeutral n) = "neutral"
-dumbShow (VNat)       = "Nat"
-dumbShow (VZero)      = "Z"
-dumbShow (VSucc v)    = "S " ++ dumbShow v
+dumbShow (VLam _)         = "lambda"
+dumbShow (VStar)          = "*"
+dumbShow (VPi v _f)       = "pi " ++ dumbShow v ++ " -> lambda"
+dumbShow (VNeutral _n)    = "neutral"
+dumbShow (VNat)           = "Nat"
+dumbShow (VZero)          = "Z"
+dumbShow (VSucc v)        = "S " ++ dumbShow v
+dumbShow (VNil t)         = "Vec" ++ dumbShow t ++ " 0"
+dumbShow (VCons a k x xs) = "Cons" ++ foldl (++) [] (map dumbShow [a, k, x, xs])
+dumbShow (VVec t l)       = "Vec" ++ dumbShow t ++ "Length" ++ dumbShow l
+dumbShow (VRefl x y)      = "Refl" ++ dumbShow x ++ dumbShow y
+dumbShow (VEq _ _ _)       = "Eq"
 
 --A neutral term is either a variable or an application of a neutral term to a value
 data Neutral
@@ -380,8 +385,10 @@ zeroEqualsZero :: ITerm
 zeroEqualsZero = Refl (Inf Nat) (Inf Zero)
 
 --motive for plusK
-m = (Inf (Pi (Inf Nat) (Inf (Pi (Inf Nat) (Inf Nat)))))
+mplusk :: CTerm
+mplusk = (Inf (Pi (Inf Nat) (Inf (Pi (Inf Nat) (Inf Nat)))))
 
 --type checking of applying 2nd argument of plusK. The type should be (m Zero).
+ctest2 :: Result ()
 ctest2 = cType 0 [] (Lam (Inf (Bound 0))) 
-                        ((cEval m []) `vapp` VZero)
+                        ((cEval mplusk []) `vapp` VZero)
