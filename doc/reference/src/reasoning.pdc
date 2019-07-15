@@ -1,6 +1,6 @@
 Why will Juvix fix these problems?
 
-## Efficient compilation
+## Machine-time-efficient compilation
 
 ### Compiler-level optimizations
 
@@ -20,14 +20,14 @@ Why will Juvix fix these problems?
 
 1. Interaction nets, custom rewrite rules, optimal lambda reduction
 
-## Time-efficient formal proof constructions
+## Developer-time-efficient formal proof constructions
 
 1. Assistance for proof generation, ecosystem for composable proofs
     1. Libraries of proofs for common functionality
     1. Graph search for asserted properties
     1. "Prototype first, proofs later"
 
-## Not just safe - possible
+## Expanding the frontier of possible complexity
 
 1. Make safety cheaper, smart contracts need it, enable more complex systems
     1. Correctness necessary
@@ -40,4 +40,7 @@ Why will Juvix fix these problems?
     1. Safe cross-contract optimization using known types
     1. Safe upgrades (prove semantical equivalence, anyone can upgrade contract)
 
+## Cross-ledger targeting
 
+1. Juvix frontend & core languages are pretty independent of machine-level VM or hardware.
+1. Can target anything from EVM to FPGA.
