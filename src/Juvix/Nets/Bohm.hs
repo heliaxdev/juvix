@@ -161,24 +161,14 @@ reduce = do
                   Just Fals {} → True <$ ifElseRule node n False
                   Just Tru  {} → True <$ ifElseRule node n True
                   _            → pure isChanged
-              Lambda (Primary node) _ _ →
-                langToProperPort node >>= \case
-                  Just App {}       → True <$ anihilateRewireAuxTogether n node
-                  Just FanIn {_lab} → True <$ fanInAux2 node (n, Lambda') _lab
-                  _                 → pure isChanged
               App (Primary node) _ _ →
                 langToProperPort node >>= \case
-                  Just App {}       → True <$ anihilateRewireAuxTogether n node
-                  Just FanIn {_lab} → True <$ fanInAux2 node (n, App') _lab
-                  _                 → pure isChanged
+                  Just Lambda {} → True <$ anihilateRewireAuxTogether node n
+                  _              → pure isChanged
               Cdr (Primary node) _ →
                 langToProperPort node >>= \case
                   Just Nil {} → True <$ propPrimary (n, port) node
                   _           → pure isChanged
-              Nil (Primary node) →
-                langToProperPort node >>= \case
-                  Just c@Cdr {} → True <$ propPrimary (node, c) n
-                  _             → pure isChanged
               Cons (Primary node) _ _ →
                 langToProperPort node >>= \case
                   Just Cdr {} → True <$ consCdr n node
@@ -204,6 +194,7 @@ reduce = do
                   Just i@IntLit {} → True <$ curryIntB (n, port) (node, i)
                   _                → pure isChanged
               Eq   (Primary node) _ _ → curryOnIntB ((==), n) node isChanged
+              Neq  (Primary node) _ _ → curryOnIntB ((/=), n) node isChanged
               More (Primary node) _ _ → curryOnIntB ((>) , n) node isChanged
               Less (Primary node) _ _ → curryOnIntB ((<) , n) node isChanged
               Meq  (Primary node) _ _ → curryOnIntB ((>=), n) node isChanged
