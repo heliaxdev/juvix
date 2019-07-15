@@ -234,8 +234,8 @@ type Result a = Either String a --when type checking fails, it throws an error.
 --error message for inferring/checking types
 errorMsg :: Value -> Value -> String
 errorMsg expectedT gotT = 
-  "Type mismatched. Expected type is " ++ show (quote0 expectedT) 
-  ++ " but got " ++ show (quote0 gotT) ++ " type."
+  "Type mismatched. Expected type is " ++ show (dumbShow expectedT) 
+  ++ " but got " ++ show (dumbShow gotT) ++ " type."
 
 --inferable terms has type as output.
 iType0 :: Context -> ITerm -> Result Type
