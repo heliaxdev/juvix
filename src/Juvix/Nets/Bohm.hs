@@ -11,28 +11,20 @@ import           Juvix.Library hiding (link, reduce)
 import           Juvix.Interaction
 import           Juvix.NodeInterface
 
+data InfixB = Or' | And' | Eq' | Neq' | More' | Less' | Meq' | Leq' deriving Show
+
+data Infix = Mu' | Div' | Sub' | Add' | Prod' | Mod' deriving Show
+
 data Lang
- = Or'
- | And'
+ = Infix Infix
+ | InfixB InfixB
  | Not'
- | Eq'
- | Neq'
- | More'
- | Less'
- | Meq'
- | Leq'
  | Cons'
  | Car'
  | Cdr'
  | Nil'
  | TestNil'
  | IfElse'
- | Mu'
- | Div'
- | Sub'
- | Add'
- | Prod'
- | Mod'
  | Tru'
  | Fals'
  | IntLit' Int
@@ -95,35 +87,35 @@ makeFieldsNoPrefix ''ProperPort
 langToProperPort :: HasState "net" (Net Lang) m ⇒ Node → m (Maybe ProperPort)
 langToProperPort node = langToPort node (\l -> f l node)
   where
-    f Or'      = aux2FromGraph Or
-    f And'     = aux2FromGraph And
-    f Not'     = aux1FromGraph Not
-    f Meq'     = aux2FromGraph Meq
-    f Eq'      = aux2FromGraph Eq
-    f Neq'     = aux2FromGraph Neq
-    f More'    = aux2FromGraph More
-    f Less'    = aux2FromGraph Less
-    f Cons'    = aux2FromGraph Cons
-    f Car'     = aux1FromGraph Car
-    f Cdr'     = aux1FromGraph Cdr
-    f Nil'     = aux0FromGraph Nil
-    f TestNil' = aux1FromGraph TestNil
-    f IfElse'  = aux3FromGraph IfElse
-    f Mu'      = aux2FromGraph Mu
-    f Div'     = aux2FromGraph Div
-    f Sub'     = aux2FromGraph Sub
-    f Add'     = aux2FromGraph Add
-    f Prod'    = aux2FromGraph Prod
-    f Mod'     = aux2FromGraph Mod
-    f Tru'     = aux0FromGraph Tru
-    f Fals'    = aux0FromGraph Fals
-    f Leq'     = aux2FromGraph Leq
-    f Lambda'  = aux2FromGraph Lambda
-    f App'     = aux2FromGraph App
-    f Erase'   = aux0FromGraph Erase
-    f (FanIn' i)    = aux2FromGraph (\p a1 a2 → FanIn p a1 a2 i)
-    f (IntLit' i)   = aux0FromGraph (\x -> IntLit x i)
-    f (Symbol' s)   = aux0FromGraph (\x -> Symbol x s)
+    f (InfixB Or')    = aux2FromGraph Or
+    f (InfixB And')   = aux2FromGraph And
+    f (InfixB Meq')   = aux2FromGraph Meq
+    f (InfixB Eq')    = aux2FromGraph Eq
+    f (InfixB Neq')   = aux2FromGraph Neq
+    f (InfixB More')  = aux2FromGraph More
+    f (InfixB Less')  = aux2FromGraph Less
+    f (InfixB Leq')   = aux2FromGraph Leq
+    f (Infix Mu')     = aux2FromGraph Mu
+    f (Infix Div')    = aux2FromGraph Div
+    f (Infix Sub')    = aux2FromGraph Sub
+    f (Infix Add')    = aux2FromGraph Add
+    f (Infix Prod')   = aux2FromGraph Prod
+    f (Infix Mod')    = aux2FromGraph Mod
+    f Not'            = aux1FromGraph Not
+    f Cons'           = aux2FromGraph Cons
+    f Car'            = aux1FromGraph Car
+    f Cdr'            = aux1FromGraph Cdr
+    f Nil'            = aux0FromGraph Nil
+    f TestNil'        = aux1FromGraph TestNil
+    f IfElse'         = aux3FromGraph IfElse
+    f Tru'            = aux0FromGraph Tru
+    f Fals'           = aux0FromGraph Fals
+    f Lambda'         = aux2FromGraph Lambda
+    f App'            = aux2FromGraph App
+    f Erase'          = aux0FromGraph Erase
+    f (FanIn' i)      = aux2FromGraph (\p a1 a2 → FanIn p a1 a2 i)
+    f (IntLit' i)     = aux0FromGraph (\x -> IntLit x i)
+    f (Symbol' s)     = aux0FromGraph (\x -> Symbol x s)
     f (Curried'  t c) = aux1FromGraph (\x y -> Curried x y t c)
     f (CurriedB' t c) = aux1FromGraph (\x y -> CurriedB x y t c)
 -- Rewrite rules----------------------------------------------------------------
@@ -203,15 +195,15 @@ reduce = do
                 langToProperPort node >>= \case
                   Just x  → True <$ eraseAll (x, node) n
                   Nothing → pure isChanged
-              Eq   (Primary node) _ _ → curryOnIntB ((==), n, Eq') node isChanged
-              More (Primary node) _ _ → curryOnIntB ((>) , n, More') node isChanged
-              Less (Primary node) _ _ → curryOnIntB ((<) , n, Less') node isChanged
-              Meq  (Primary node) _ _ → curryOnIntB ((>=), n, Meq') node isChanged
-              Leq  (Primary node) _ _ → curryOnIntB ((<=), n, Leq') node isChanged
-              Div  (Primary node) _ _ → curryOnInt  (div , n, Div') node isChanged
-              Sub  (Primary node) _ _ → curryOnInt  ((-) , n, Sub') node isChanged
-              Prod (Primary node) _ _ → curryOnInt  ((*) , n, Prod') node isChanged
-              Mod  (Primary node) _ _ → curryOnInt  (mod , n, Mod') node isChanged
+              Eq   (Primary node) _ _ → curryOnIntB ((==), n, InfixB Eq') node isChanged
+              More (Primary node) _ _ → curryOnIntB ((>) , n, InfixB More') node isChanged
+              Less (Primary node) _ _ → curryOnIntB ((<) , n, InfixB Less') node isChanged
+              Meq  (Primary node) _ _ → curryOnIntB ((>=), n, InfixB Meq') node isChanged
+              Leq  (Primary node) _ _ → curryOnIntB ((<=), n, InfixB Leq') node isChanged
+              Div  (Primary node) _ _ → curryOnInt  (div , n, Infix Div') node isChanged
+              Sub  (Primary node) _ _ → curryOnInt  ((-) , n, Infix Sub') node isChanged
+              Prod (Primary node) _ _ → curryOnInt  ((*) , n, Infix Prod') node isChanged
+              Mod  (Primary node) _ _ → curryOnInt  (mod , n, Infix Mod') node isChanged
               _ → pure isChanged
 
 curryOnInt :: (HasState "info" Info f, HasState "net" (Net Lang) f)
@@ -448,7 +440,10 @@ fanIns _ _ = error "send to fanIn nodes!"
 
 curryIntB (numCurr, Curried {_tag, _curried}) (numInt, intNode) =
   case _tag of
-    Eq' → undefined
+    InfixB x →
+      case x of
+        Eq' → undefined
+    _ → error "send in an infixB to curry"
 
 curryIntB _ _ = error "sent in a non curry node"
 

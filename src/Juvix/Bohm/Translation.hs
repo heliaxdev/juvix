@@ -38,19 +38,19 @@ astToNet bohm = net'
     recursive (BT.IsNil b)   context = genericAux1PrimArg b B.TestNil' context
     recursive (BT.Not b)     context = genericAux1PrimArg b B.Not'     context
     recursive (BT.Application b1 b2)    c = genericAux2PrimArg b1 b2 B.App'  c
-    recursive (BT.Infix' BT.Mult b1 b2) c = genericAux2PrimArg b1 b2 B.Prod' c
-    recursive (BT.Infix' BT.Plus b1 b2) c = genericAux2PrimArg b1 b2 B.Add'  c
-    recursive (BT.Infix' BT.Sub b1 b2)  c = genericAux2PrimArg b1 b2 B.Sub'  c
-    recursive (BT.Infix' BT.Mod b1 b2)  c = genericAux2PrimArg b1 b2 B.Mod'  c
-    recursive (BT.Infix' BT.Or b1 b2)   c = genericAux2PrimArg b1 b2 B.Or'   c
-    recursive (BT.Infix' BT.And b1 b2)  c = genericAux2PrimArg b1 b2 B.And'  c
-    recursive (BT.Infix' BT.Eq b1 b2)   c = genericAux2PrimArg b1 b2 B.Eq'   c
-    recursive (BT.Infix' BT.Neq b1 b2)  c = genericAux2PrimArg b1 b2 B.Neq'  c
-    recursive (BT.Infix' BT.Lt b1 b2)   c = genericAux2PrimArg b1 b2 B.Less' c
-    recursive (BT.Infix' BT.Gt b1 b2)   c = genericAux2PrimArg b1 b2 B.More' c
-    recursive (BT.Infix' BT.Ge b1 b2)   c = genericAux2PrimArg b1 b2 B.Meq'  c
-    recursive (BT.Infix' BT.Le b1 b2)   c = genericAux2PrimArg b1 b2 B.Leq'  c
-    recursive (BT.Infix' BT.Division b1 b2) c = genericAux2PrimArg b1 b2 B.Div' c
+    recursive (BT.Infix' BT.Mult b1 b2) c = genericAux2PrimArg b1 b2 (B.Infix B.Prod') c
+    recursive (BT.Infix' BT.Plus b1 b2) c = genericAux2PrimArg b1 b2 (B.Infix B.Add')  c
+    recursive (BT.Infix' BT.Sub b1 b2)  c = genericAux2PrimArg b1 b2 (B.Infix B.Sub')  c
+    recursive (BT.Infix' BT.Mod b1 b2)  c = genericAux2PrimArg b1 b2 (B.Infix B.Mod')  c
+    recursive (BT.Infix' BT.Or b1 b2)   c = genericAux2PrimArg b1 b2 (B.InfixB B.Or')   c
+    recursive (BT.Infix' BT.And b1 b2)  c = genericAux2PrimArg b1 b2 (B.InfixB B.And')  c
+    recursive (BT.Infix' BT.Eq b1 b2)   c = genericAux2PrimArg b1 b2 (B.InfixB B.Eq')   c
+    recursive (BT.Infix' BT.Neq b1 b2)  c = genericAux2PrimArg b1 b2 (B.InfixB B.Neq')  c
+    recursive (BT.Infix' BT.Lt b1 b2)   c = genericAux2PrimArg b1 b2 (B.InfixB B.Less') c
+    recursive (BT.Infix' BT.Gt b1 b2)   c = genericAux2PrimArg b1 b2 (B.InfixB B.More') c
+    recursive (BT.Infix' BT.Ge b1 b2)   c = genericAux2PrimArg b1 b2 (B.InfixB B.Meq')  c
+    recursive (BT.Infix' BT.Le b1 b2)   c = genericAux2PrimArg b1 b2 (B.InfixB B.Leq')  c
+    recursive (BT.Infix' BT.Division b1 b2) c = genericAux2PrimArg b1 b2 (B.Infix B.Div') c
     recursive (BT.Cons b1 b2) c = genericAux2 (b1, Aux2) (b2, Aux1) (B.Cons', Prim) c
     recursive (BT.Symbol' s) context =
       case context Map.!? s of
@@ -70,7 +70,7 @@ astToNet bohm = net'
       (numBound, portBound) ← recursive bound context
       recursive body (Map.insert sym (numBound, portBound) context)
     recursive (BT.Letrec sym body) context = do
-      numMu          ← newNode B.Mu'
+      numMu          ← newNode (B.Infix B.Mu')
       (bNode, bPort) ← recursive body (Map.insert sym (numMu, Aux2) context)
       link (numMu, Aux1) (bNode, bPort)
       pure (numMu, Prim)

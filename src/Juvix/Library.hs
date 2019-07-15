@@ -5,6 +5,6 @@ module Juvix.Library ( module Protolude
                      ) where
 
 import Protolude hiding (state, get, put, modify, gets, MonadState(..), (:.:)
-                        , reader, local, ask, asks, MonadReader(..))
+                        , reader, local, ask, asks, MonadReader(..), Fixity(..))
 import Capability.State
 import Capability.Reader
