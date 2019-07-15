@@ -53,13 +53,18 @@ data Value
   | VEq Value Value Value
 
 dumbShow :: Value -> String
-dumbShow (VLam _)     = "lambda"
-dumbShow (VStar)      = "*"
-dumbShow (VPi v f)    = "pi " ++ dumbShow v ++ " -> lambda"
-dumbShow (VNeutral n) = "neutral"
-dumbShow (VNat)       = "Nat"
-dumbShow (VZero)      = "Z"
-dumbShow (VSucc v)    = "S " ++ dumbShow v
+dumbShow (VLam _)         = "lambda"
+dumbShow (VStar)          = "*"
+dumbShow (VPi v _f)       = "pi " ++ dumbShow v ++ " -> lambda"
+dumbShow (VNeutral _n)    = "neutral"
+dumbShow (VNat)           = "Nat"
+dumbShow (VZero)          = "Z"
+dumbShow (VSucc v)        = "S " ++ dumbShow v
+dumbShow (VNil t)         = "Vec" ++ dumbShow t ++ " 0"
+dumbShow (VCons a k x xs) = "Cons" ++ foldl (++) [] (map dumbShow [a, k, x, xs])
+dumbShow (VVec t l)       = "Vec" ++ dumbShow t ++ "Length" ++ dumbShow l
+dumbShow (VRefl x y)      = "Refl" ++ dumbShow x ++ dumbShow y
+dumbShow (VEq _ _ _)       = "Eq"
 
 --A neutral term is either a variable or an application of a neutral term to a value
 data Neutral
@@ -135,7 +140,7 @@ iEval (EqElim a m mr x y eq)    d  =
 vapp :: Value -> Value -> Value
 vapp (VLam f)      v =  f v
 vapp (VNeutral n)  v =  VNeutral (NApp n v)
-vapp _ _             =  error "this term is ill-typed"
+vapp _ _             =  error "this term is ill-typed for application"
 
 cEval :: CTerm -> Env -> Value
 cEval (Inf  ii)   d =  iEval ii d
@@ -225,6 +230,12 @@ boundfree _ii x        =  Free x
 --Type checking
 
 type Result a = Either String a --when type checking fails, it throws an error.
+
+--error message for inferring/checking types
+errorMsg :: Value -> Value -> String
+errorMsg expectedT gotT = 
+  "Type mismatched. Expected type is " ++ show (dumbShow expectedT) 
+  ++ " but got " ++ show (dumbShow gotT) ++ " type."
 
 --inferable terms has type as output.
 iType0 :: Context -> ITerm -> Result Type
@@ -337,18 +348,18 @@ iType ii g (EqElim a m mr x y eq) =
       let yVal = cEval y []
       cType ii g eq (VEq aVal xVal yVal)
       return (foldl vapp mVal [xVal, yVal])
-iType _ii _g _                     =  throwError "ill-defined type"
+iType _ii _g _                     =  throwError "Not an inferable term"
 
 --checkable terms takes a type as input and returns ().
 cType :: Int -> Context -> CTerm -> Type -> Result ()
 cType ii g (Inf e) v
   =  do v' <- iType ii g e
-        unless (quote0 v == quote0 v') (throwError $ "type mismatch on quote: " ++ show (quote0 v) ++ " & " ++ show (quote0 v')) --throwError only when ty ==ty' is false.
+        unless (quote0 v == quote0 v') (throwError (errorMsg v v')) --throwError only when ty ==ty' is false.
 cType ii g (Lam e) (VPi ty ty')
   =  cType (ii + 1) ((Local ii, ty) : g)
            (cSubst 0 (Free (Local ii)) e) (ty' (vfree (Local ii)))
 cType _ii _g _ _
-  =  throwError "type mismatch, did not match"
+  =  throwError "Type mismatch, not a checkable term"
 
 plusK :: CTerm -> ITerm
 plusK k = NatElim
@@ -380,8 +391,10 @@ zeroEqualsZero :: ITerm
 zeroEqualsZero = Refl (Inf Nat) (Inf Zero)
 
 --motive for plusK
-m = (Inf (Pi (Inf Nat) (Inf (Pi (Inf Nat) (Inf Nat)))))
+mplusk :: CTerm
+mplusk = (Inf (Pi (Inf Nat) (Inf (Pi (Inf Nat) (Inf Nat)))))
 
 --type checking of applying 2nd argument of plusK. The type should be (m Zero).
+ctest2 :: Result ()
 ctest2 = cType 0 [] (Lam (Inf (Bound 0))) 
-                        ((cEval m []) `vapp` VZero)
+                        ((cEval mplusk []) `vapp` VZero)
