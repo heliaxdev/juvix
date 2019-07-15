@@ -1,35 +1,36 @@
---Simply typed lambda calculus implementation following 
+--Simply typed lambda calculus implementation following
 --"A tutorial implementation of a dependently typed lambda calculus"
 
 
-import Control.Monad.Except --Enable throwError 
+import Control.Monad.Except --Enable throwError
+import Prelude
 
--- Inferable terms 
-data ITerm 
+-- Inferable terms
+data ITerm
   =  Ann    CTerm Type --Annotated terms
   |  Bound  Int --Bound variables of type Int because it's represented by de Bruijn indices
   |  Free   Name --Free variables of type name (see below)
   |  ITerm :@: CTerm --The infix constructor :@: denotes application
   deriving (Show, Eq)
-  
+
 --Checkable terms
 data CTerm
-  =  Inf  ITerm --(CHK) Inf is the constructor that embeds ITerm to CTerm 
+  =  Inf  ITerm --(CHK) Inf is the constructor that embeds ITerm to CTerm
   |  Lam  CTerm --(LAM) Lam stands for Lambda abstractions
   deriving (Show, Eq)
 
 data Name
   =  Global  String --Global variables are represented by name thus type string
   |  Local   Int --to convert a bound variable into a free one
-  |  Quote   Int 
+  |  Quote   Int
   deriving (Show, Eq)
 
 --Type is either base type or function type
 data Type
   = TFree Name --the Name data type is also Type identifiers
-  | Fun Type Type 
+  | Fun Type Type
   deriving (Show, Eq)
-    
+
 --Values are lambda abstractions or neutral terms
 data Value
   = VLam (Value -> Value)
@@ -47,11 +48,11 @@ vfree n = VNeutral (NFree n)
 --Evaluation
 
 type Env = [Value]
-type NameEnv v = [(Name, v)] 
+type NameEnv v = [(Name, v)]
 iEval :: ITerm -> (NameEnv Value,Env) -> Value
 iEval (Ann  e _)    d  =  cEval e d
 iEval (Free  x)     d  =  case lookup x (fst d) of Nothing ->  (vfree x); Just v -> v
-iEval (Bound  ii)   d  =  (snd d) !! ii --(!!) :: [a] -> Int -> a. It's the list lookup operator. 
+iEval (Bound  ii)   d  =  (snd d) !! ii --(!!) :: [a] -> Int -> a. It's the list lookup operator.
 iEval (e1 :@: e2)   d  =  vapp (iEval e1 d) (cEval e2 d)
 
 vapp :: Value -> Value -> Value
@@ -64,7 +65,7 @@ cEval (Lam  e)    d  =  VLam (\ x -> cEval e (((\(e, d) -> (e,  (x : d))) d)))
 
 --Contexts
 
-data Kind = Star --base type 
+data Kind = Star --base type
   deriving (Show)
 
 data Info --A name is either of a base type or of a type
@@ -119,7 +120,7 @@ cType ii g (Lam e) (Fun ty ty')
   =  cType  (ii + 1) ((Local ii, HasType ty) : g)
             (cSubst 0 (Free (Local ii)) e) ty'
 cType ii g _ _
-  =  throwError "type mismatch" 
+  =  throwError "type mismatch"
 
 --Substitution
 
@@ -159,11 +160,11 @@ const'   =  Lam (Lam (Inf (Bound 1)))
 tfree a  =  TFree (Global a)
 free x   =  Inf (Free (Global x))
 
-term1    =  Ann id' (Fun (tfree "a") (tfree "a")) :@: free "y" 
+term1    =  Ann id' (Fun (tfree "a") (tfree "a")) :@: free "y"
 term2    =  Ann const' (Fun  (Fun (tfree "b") (tfree "b"))
                               (Fun  (tfree "a")
                                     (Fun (tfree "b") (tfree "b"))))
-            :@: id' :@: free "y" 
+            :@: id' :@: free "y"
 
 env1     =  [  (Global "y", HasType (tfree "a")),
                 (Global "a", HasKind Star)]
