@@ -62,7 +62,7 @@ dumbShow (VZero)          = "Z"
 dumbShow (VSucc v)        = "S " ++ dumbShow v
 dumbShow (VNil t)         = "Vec" ++ dumbShow t ++ " 0"
 dumbShow (VCons a k x xs) = "Cons" ++ foldl (++) [] (map dumbShow [a, k, x, xs])
-dumbShow (VVec t l)       = "Vec" ++ dumbShow t ++ "Length" ++ dumbShow l
+dumbShow (VVec t l)       = "Vec" ++ dumbShow t ++ " Length " ++ dumbShow l
 dumbShow (VRefl x y)      = "Refl" ++ dumbShow x ++ dumbShow y
 dumbShow (VEq _ _ _)       = "Eq"
 
@@ -140,7 +140,8 @@ iEval (EqElim a m mr x y eq)    d  =
 vapp :: Value -> Value -> Value
 vapp (VLam f)      v =  f v
 vapp (VNeutral n)  v =  VNeutral (NApp n v)
-vapp _ _             =  error "this term is ill-typed for application"
+vapp (VPi t f)     v =  VLam f 
+vapp _             _ =  error "this term is ill-typed for application"
 
 cEval :: CTerm -> Env -> Value
 cEval (Inf  ii)   d =  iEval ii d
@@ -232,10 +233,10 @@ boundfree _ii x        =  Free x
 type Result a = Either String a --when type checking fails, it throws an error.
 
 --error message for inferring/checking types
-errorMsg :: Value -> Value -> String
-errorMsg expectedT gotT = 
-  "Type mismatched. Expected type is " ++ show (dumbShow expectedT) 
-  ++ " but got " ++ show (dumbShow gotT) ++ " type."
+errorMsg :: ITerm -> Value -> Value -> String
+errorMsg iterm expectedT gotT = 
+  "Type mismatched. " ++ show iterm ++ " is of type " ++ show (dumbShow gotT) ++ 
+  " but the expected type is " ++ show (dumbShow expectedT) ++ "." 
 
 --inferable terms has type as output.
 iType0 :: Context -> ITerm -> Result Type
@@ -354,10 +355,12 @@ iType _ii _g _                     =  throwError "Not an inferable term"
 cType :: Int -> Context -> CTerm -> Type -> Result ()
 cType ii g (Inf e) v
   =  do v' <- iType ii g e
-        unless (quote0 v == quote0 v') (throwError (errorMsg v v')) --throwError only when ty ==ty' is false.
+        unless (quote0 v == quote0 v') (throwError (errorMsg e v v')) --throwError only when ty ==ty' is false.
 cType ii g (Lam e) (VPi ty ty')
   =  cType (ii + 1) ((Local ii, ty) : g)
            (cSubst 0 (Free (Local ii)) e) (ty' (vfree (Local ii)))
+cType ii g (Lam e) (VLam f)
+  =  undefined
 cType _ii _g _ _
   =  throwError "Type mismatch, not a checkable term"
 
