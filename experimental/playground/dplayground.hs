@@ -140,7 +140,8 @@ iEval (EqElim a m mr x y eq)    d  =
 vapp :: Value -> Value -> Value
 vapp (VLam f)      v =  f v
 vapp (VNeutral n)  v =  VNeutral (NApp n v)
-vapp _ _             =  error "this term is ill-typed for application"
+vapp (VPi t f)     v =  VLam f 
+vapp _             _ =  error "this term is ill-typed for application"
 
 cEval :: CTerm -> Env -> Value
 cEval (Inf  ii)   d =  iEval ii d
@@ -358,6 +359,8 @@ cType ii g (Inf e) v
 cType ii g (Lam e) (VPi ty ty')
   =  cType (ii + 1) ((Local ii, ty) : g)
            (cSubst 0 (Free (Local ii)) e) (ty' (vfree (Local ii)))
+cType ii g (Lam e) (VLam f)
+  =  undefined
 cType _ii _g _ _
   =  throwError "Type mismatch, not a checkable term"
 
