@@ -72,5 +72,5 @@ bracketChecker (App t1 t2)    n = bracketCheckerTerm t2 n >> bracketCheckerTerm 
 
 bracketCheckerTerm :: HasThrow "typ" BracketErrors f => Term -> Integer -> f ()
 bracketCheckerTerm (Bang changeBy eal) n
-  | changeBy > n = throw @"typ" TooManyClosing
-  | otherwise    = bracketChecker eal (n - changeBy)
+  | changeBy + n < 0 = throw @"typ" TooManyClosing
+  | otherwise        = bracketChecker eal (n + changeBy)
