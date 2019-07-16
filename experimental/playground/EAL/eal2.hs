@@ -44,8 +44,8 @@ typeOf (Lambda sym symType term) = do
   pure (Lolly symType typeTerm)
 
 typeOf (App t1 t2) = do
-  typeT1 <- typeOfTerm t1
   typeT2 <- typeOfTerm t2
+  typeT1 <- typeOfTerm t1
   case typeT1 of
     Lolly arg target
       | arg == typeT2 → pure target
@@ -58,3 +58,19 @@ typeOfTerm (Bang n e)
   | n > 0 = BangT n <$> typeOf e
   | n < 0 = UBang n <$> typeOf e
   | otherwise = typeOf e
+
+-- Start of correct bracketing formula -----------------------------------------
+data BracketErrors = TooManyOpen
+                   | TooManyClosing
+                   deriving Show
+
+bracketChecker :: HasThrow "typ" BracketErrors f => Eal -> Integer -> f ()
+bracketChecker (Term _)       0 = pure ()
+bracketChecker (Term _)       _ = throw @"typ" TooManyOpen
+bracketChecker (Lambda _ _ t) n = bracketCheckerTerm t n
+bracketChecker (App t1 t2)    n = bracketCheckerTerm t2 n >> bracketCheckerTerm t1 n
+
+bracketCheckerTerm :: HasThrow "typ" BracketErrors f => Term -> Integer -> f ()
+bracketCheckerTerm (Bang changeBy eal) n
+  | changeBy > n = throw @"typ" TooManyClosing
+  | otherwise    = bracketChecker eal (n - changeBy)

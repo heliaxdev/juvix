@@ -56,8 +56,8 @@ typeOf (Term s) = do
     Nothing → throw @"typ" MissingOverUse
     Just x@(WrapT (_ :: Types a)) →
       case isBang (Proxy :: Proxy a) of
-        True  → put @"ctxt" (Map.delete s ctxt) >> pure x
-        False → pure x
+        True  → pure x
+        False → put @"ctxt" (Map.delete s ctxt) >> pure x
 
 typeOf (Lambda sym (symType :: Types a) t) = do
   modify @"ctxt" (Map.insert sym (WrapT symType))
@@ -123,7 +123,7 @@ type family (G a) :: Bool where
 data ArrowType where
   ArrowType ∷ (Arrowable a) ⇒ Proxy a → ArrowType
 
-deriving instance Show (ArrowType)
+deriving instance Show ArrowType
 
 class Bangable a ⇒ Arrowable a where
   isFromA :: Proxy a → (ArrowType, ArrowType)
