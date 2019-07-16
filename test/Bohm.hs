@@ -12,7 +12,7 @@ test2 = runNet (reduceAll 10) . astToNet <$> parseBohm "((lambda x. (x x)) (lamb
 
 test3 = runNet (reduceAll 1) . astToNet <$> parseBohm "((lambda x. (x x)) (lambda x. (x x)))"
 
-test4 = runNet (reduceAll 10) . astToNet <$> parseBohm "(lambda y. (lambda x. (y x)) (lambda x. x + 2) 3)"
+test4 = runNet (reduceAll 10) . astToNet <$> parseBohm "(lambda y. (lambda x. (y x)) (lambda x. 2 + x))"
 
 test5 = runNet (reduceAll 10) . astToNet <$> parseBohm "(2 + 2)"
 
