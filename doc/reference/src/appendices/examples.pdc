@@ -1,1 +1,6 @@
 Some cool examples!
+
+Possible ideas (all with proofs):
+- Fungible & nonfungible token contracts
+- Social recovery - complex predicate account
+- Prediction market with pluggable oracle
