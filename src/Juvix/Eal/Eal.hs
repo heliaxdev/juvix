@@ -3,6 +3,8 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
+module Juvix.Eal.Eal where
+
 import           Juvix.Library hiding (link, reduce)
 import           Data.Map.Strict as Map
 
