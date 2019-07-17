@@ -8,8 +8,12 @@ Why have dependently-typed languages not yet succeeded?
 1. Economics didn't favor safety (compile time, speed of development matters more)
 1. Not enough engineering effort dedicated (e.g. Idris has no? full-time engineers)
 
+## Linear languages
+
+Rust, partial. Haskell, working on it.
+
 ## Dependently-typed smart contracts
 
 One prior work [@safer-smart-contracts-through-type-driven-development] wrote an Idris [@idris-systems-programming-meets-full-dependent-types] backend targeting Ethereum's LLL language [@lisp-like-language]. Juvix shares many of the goals outlined in that paper, but the approach described failed to take advantage of well-known optimizations such as tail-call optimization and handicapped itself by compiling to LLL instead of directly to EVM opcodes. The effects system described therein may be a sensible model for smart contract programs written in Juvix but is out of scope of this paper.
 
-Formality [@formality] was a substantial inspiration for this work, particularly the low-level interaction net execution model. Juvix differs in its willingness to implement a larger core language and more complex low-level execution model and trade some simplicity for performance where the performance gains are substantial.
+Formality [@formality] was a substantial inspiration for this work, particularly the low-level interaction net execution model. Juvix differs in its decisions to include a frontend language in which programmers will write directly, implement a larger core language and more complex low-level execution model, trade some simplicity in compiler architecture for output performance where the performance gains are substantial, and automate the tedious beaurocracy of elementary affine logic box placement. In the future Juvix may support Formality Core as a compile target.
