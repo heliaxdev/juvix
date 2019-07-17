@@ -60,6 +60,15 @@ Define:
 
 ## Type inference
 
+Adapted from previous work [@feasible-algorithm-typing-eal].
+
+Why / notes
+
+- Boxes are unintuitive to write, add syntactic bureacracy
+- Inference will sometimes fail. In this case, programmer can be informed and suggested how else to write their function, or alternatively the bespoke encoding route can be taken.
+- Most terms one would want to compute (especially in smart contracts) are in the elementary complexity class
+- Allows better box placement than programmer might choose, compiler can pick from set of typeable EAL terms & instantiate with fewest number / optimally positioned boxes
+
 ### Box paths
 
 ### Parameterization
@@ -95,5 +104,3 @@ Define:
 Q: Can we just split up the context in the (app) rule without problems? Equivalent to zero-usage in QTT?
 
 think about how to correctly translate r = lam-case 1 -> 2Y; 2 -> 3Z, h = (r & x) -> a, constraints should reflect dependently-typed usage calculations (though maybe we don't care for >= 2 usages).
-
-
