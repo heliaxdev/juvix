@@ -1,6 +1,7 @@
 ## Zero-knowledge execution compression
 
 1. Run interaction nets in ZK
+1. Might benefit from the parallelism
 
 ## Deployment tooling layer
 
