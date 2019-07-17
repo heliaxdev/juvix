@@ -11,6 +11,10 @@ Define:
         1. $!^ma =\ !...!\ (m\ times)\ a\ if m ≥ 0$
         1. $!^ma = \bar{!}...\bar{!}\ (m\ times)\ a\ if\ m < 0$
 
+## Semantics
+
+- Define evaluation semantics, undefined behaviour.
+
 ## Typing rules
 
 \begin{figure}[h]

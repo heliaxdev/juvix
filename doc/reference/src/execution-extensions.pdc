@@ -1,4 +1,6 @@
-## Gas
+## Cost accounting
+
+"Gas"
 
 Methods:
 
@@ -17,9 +19,3 @@ Methods:
 1. Constant gas cost + size of storage diffs
     1. User must do all execution (e.g. in ZK), verification is O(1) or user pays circuit size (easy enough) + proportional cost for state changes
     1. Bottleneck: prover time. TinyRAM runs at ~1Hz for the prover at the moment (old paper though). Maybe inets could be a bit more efficient.
-
-## Persistent interaction system state
-
-More efficient than read-back after execution, just persist the graph of the state machine, many more optimizations automagically happen.
-
-Will be helpful for Juvix to be self-hosting or packaged as a runtime which can typecheck untrusted input.
