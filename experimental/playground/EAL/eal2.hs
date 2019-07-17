@@ -29,6 +29,34 @@ data TypeErrors = MisMatchArguments
                 deriving Show
 
 
+data BracketErrors = TooManyOpen
+                   | TooManyClosing
+                   deriving Show
+
+type Info = Map SomeSymbol Types
+
+newtype EnvError a = EnvError (ExceptT TypeErrors (State Info) a)
+  deriving (Functor, Applicative, Monad)
+  deriving (HasState "ctxt" Info) via
+    MonadState (ExceptT TypeErrors (State Info))
+  deriving (HasThrow "typ" TypeErrors) via
+    MonadError (ExceptT TypeErrors (State Info))
+
+runEnvError :: EnvError a -> (Either TypeErrors a, Info)
+runEnvError (EnvError a) = runState (runExceptT a) Map.empty
+
+newtype EitherBracket a =
+  EitherBracket { runEither :: (Either BracketErrors a) }
+  deriving (Functor, Applicative, Monad) via
+    Except BracketErrors
+  deriving (HasThrow "typ" BracketErrors) via
+    MonadError (Except BracketErrors)
+
+
+runTypeOf :: Eal → (Either TypeErrors Types, Info)
+runTypeOf e = (reverseBangs <$> t, state)
+  where (t, state) = runEnvError (typeOf e)
+
 typeOf :: (HasState "ctxt" (Map SomeSymbol Types) m, HasThrow "typ" TypeErrors m)
        ⇒ Eal → m Types
 typeOf (Term s) = do
@@ -46,10 +74,12 @@ typeOf (Lambda sym symType term) = do
 typeOf (App t1 t2) = do
   typeT2 <- typeOfTerm t2
   typeT1 <- typeOfTerm t1
-  case typeT1 of
+  case getTypeInsideBang typeT1 of
+    Lolly Forall target → pure target
     Lolly arg target
-      | arg == typeT2 → pure target
-      | otherwise     → throw @"typ" MisMatchArguments
+      | Forall == getTypeInsideBang arg
+        || arg == typeT2                 → pure target
+      | otherwise                       → throw @"typ" MisMatchArguments
     _ → throw @"typ" ExpectedFunction
 
 typeOfTerm :: (HasState "ctxt" (Map SomeSymbol Types) f, HasThrow "typ" TypeErrors f)
@@ -59,18 +89,61 @@ typeOfTerm (Bang n e)
   | n < 0 = UBang n <$> typeOf e
   | otherwise = typeOf e
 
--- Start of correct bracketing formula -----------------------------------------
-data BracketErrors = TooManyOpen
-                   | TooManyClosing
-                   deriving Show
+getTypeInsideBang :: Types → Types
+getTypeInsideBang (BangT _ t) = getTypeInsideBang t
+getTypeInsideBang (UBang _ t) = getTypeInsideBang t
+getTypeInsideBang t           = t
 
-bracketChecker :: HasThrow "typ" BracketErrors f => Eal -> Integer -> f ()
+reverseBangs :: Types → Types
+reverseBangs t = recursive t identity
+  where
+    -- Note this doesn't flatten all consecutive bangs and ubangs
+    recursive (BangT n (BangT m t)) cps = recursive (BangT (n + m) t) cps
+    recursive (UBang n (UBang m t)) cps = recursive (UBang (n + m) t) cps
+    recursive (BangT n (UBang m t)) cps = recursive t (UBang m . BangT n . cps)
+    recursive (UBang n (BangT m t)) cps = recursive t (BangT m . UBang n . cps)
+    recursive (BangT m t)           cps = recursive t (BangT m . cps)
+    recursive (UBang m t)           cps = recursive t (UBang m . cps)
+    recursive t                     cps = cps t
+-- Start of correct bracketing formula -----------------------------------------
+
+bracketChecker :: HasThrow "typ" BracketErrors f ⇒ Eal → Integer → f ()
 bracketChecker (Term _)       0 = pure ()
 bracketChecker (Term _)       _ = throw @"typ" TooManyOpen
 bracketChecker (Lambda _ _ t) n = bracketCheckerTerm t n
 bracketChecker (App t1 t2)    n = bracketCheckerTerm t2 n >> bracketCheckerTerm t1 n
 
-bracketCheckerTerm :: HasThrow "typ" BracketErrors f => Term -> Integer -> f ()
+bracketCheckerTerm :: HasThrow "typ" BracketErrors f ⇒ Term → Integer → f ()
 bracketCheckerTerm (Bang changeBy eal) n
   | changeBy + n < 0 = throw @"typ" TooManyClosing
   | otherwise        = bracketChecker eal (n + changeBy)
+
+
+runBracketChecker :: Eal → Either BracketErrors ()
+runBracketChecker t = runEither (bracketChecker t 0)
+
+exampleBracket :: Eal
+exampleBracket =
+  Lambda (someSymbolVal "y") Forall
+    (Bang 0 (Lambda (someSymbolVal "z") Forall
+               (Bang 1 (App (Bang 0 (App (Bang (-1) (Term (someSymbolVal "y")))
+                                         (Bang (-1) (Term (someSymbolVal "y")))))
+                            (Bang (-1) (Term (someSymbolVal "z")))))))
+
+exampleTypeOf :: Eal
+exampleTypeOf =
+  App
+    (Bang 1
+      (Lambda (someSymbolVal "y") (BangT 1 Forall)
+        (Bang (-1) (Term (someSymbolVal "y")))))
+    (Bang 1
+      (Lambda (someSymbolVal "y") Forall
+        (Bang (-1) (Term (someSymbolVal "y")))))
+
+
+
+exampleBracketRun :: Either BracketErrors ()
+exampleBracketRun = runBracketChecker exampleBracket
+
+exampleRun :: (Either TypeErrors Types, Info)
+exampleRun = runTypeOf exampleTypeOf
