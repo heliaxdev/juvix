@@ -2,12 +2,24 @@ In each case, two options: interaction net interpreter & direct compilation.
 
 ## LLVM
 
+Target LLVM IR, with parallel (thread?) support.
+
 ## Michelson
+
+Target Michelson. Will likely involve a lot of bespoke term compilation.
 
 ## WASM
 
+Target WASM. Parallelism?
+
 ## EVM
+
+Target EVM v1.x. Maybe pointless and should focus on eWASM instead.
 
 ## GPUs (CUDA / OpenCL)
 
+Excellent way to demonstrate parallelism.
+
 ## FPGA
+
+Parallelism + versatility, maybe there are large efficiency gains possible.
