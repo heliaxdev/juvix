@@ -68,7 +68,7 @@ natural    = T.natural    lexer
 symbol :: Stream s m Char ⇒ ParsecT s u m SomeSymbol
 symbol = someSymbolVal <$> identifier
 
--- Grammar----------------------------------------------------------------------
+-- Grammar ---------------------------------------------------------------------
 
 parseBohm :: String → Either ParseError Bohm
 parseBohm = parseBohm' ""
