@@ -61,9 +61,9 @@ data InfoNet a = InfoNet {net :: Net a, info :: Info} deriving (Show, Generic)
 newtype EnvNetInfo b a = EnvI (State (InfoNet b) a)
   deriving (Functor, Applicative, Monad)
   deriving (HasState "info" Info) via
-    Rename "info" (Field "info" () (MonadState (State (InfoNet b))))
+    Field "info" () (MonadState (State (InfoNet b)))
   deriving (HasState "net" (Net b)) via
-    Rename "net" (Field "net" () (MonadState (State (InfoNet b))))
+    Rename "net" (Field "net" (InfoNet b) (MonadState (State (InfoNet b))))
 
 runInfoNet :: EnvNetInfo b a → InfoNet b → (InfoNet b)
 runInfoNet (EnvI m) = execState m

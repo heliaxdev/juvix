@@ -1,8 +1,3 @@
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE StandaloneDeriving #-}
-
 module Juvix.Eal.Eal where
 
 import           Juvix.Library hiding (link, reduce)
@@ -24,12 +19,10 @@ data Types = Lolly Types Types
            | UBang Integer Types
            deriving (Show, Eq)
 
-
 data TypeErrors = MisMatchArguments
                 | MissingOverUse
                 | ExpectedFunction
                 deriving Show
-
 
 data BracketErrors = TooManyOpen
                    | TooManyClosing
@@ -39,8 +32,8 @@ type Info = Map SomeSymbol Types
 
 newtype EnvError a = EnvError (ExceptT TypeErrors (State Info) a)
   deriving (Functor, Applicative, Monad)
-  deriving (HasState "ctxt" Info) via
-    MonadState (ExceptT TypeErrors (State Info))
+  deriving (HasState "ctxt" (Map SomeSymbol Types)) via
+       MonadState (ExceptT TypeErrors (State Info))
   deriving (HasThrow "typ" TypeErrors) via
     MonadError (ExceptT TypeErrors (State Info))
 
@@ -54,6 +47,8 @@ newtype EitherBracket a =
   deriving (HasThrow "typ" BracketErrors) via
     MonadError (Except BracketErrors)
 
+runBracketChecker :: Eal → Either BracketErrors ()
+runBracketChecker t = runEither (bracketChecker t 0)
 
 runTypeOf :: Eal → (Either TypeErrors Types, Info)
 runTypeOf e = (reverseBangs <$> t, state)
@@ -74,15 +69,15 @@ typeOf (Lambda sym symType term) = do
   pure (Lolly symType typeTerm)
 
 typeOf (App t1 t2) = do
-  typeT2 <- typeOfTerm t2
-  typeT1 <- typeOfTerm t1
+  typeT2 ← typeOfTerm t2
+  typeT1 ← typeOfTerm t1
   case getTypeInsideBang typeT1 of
-    Lolly Forall target → pure target
+    Lolly Forall target                 → pure target
     Lolly arg target
-      | Forall == getTypeInsideBang arg
-        || arg == typeT2                 → pure target
+      | arg == typeT2
+      ∨ Forall == getTypeInsideBang arg → pure target
       | otherwise                       → throw @"typ" MisMatchArguments
-    _ → throw @"typ" ExpectedFunction
+    _                                   → throw @"typ" ExpectedFunction
 
 typeOfTerm :: (HasState "ctxt" (Map SomeSymbol Types) f, HasThrow "typ" TypeErrors f)
            ⇒ Term → f Types
@@ -119,33 +114,3 @@ bracketCheckerTerm :: HasThrow "typ" BracketErrors f ⇒ Term → Integer → f 
 bracketCheckerTerm (Bang changeBy eal) n
   | changeBy + n < 0 = throw @"typ" TooManyClosing
   | otherwise        = bracketChecker eal (n + changeBy)
-
-
-runBracketChecker :: Eal → Either BracketErrors ()
-runBracketChecker t = runEither (bracketChecker t 0)
-
-exampleBracket :: Eal
-exampleBracket =
-  Lambda (someSymbolVal "y") Forall
-    (Bang 0 (Lambda (someSymbolVal "z") Forall
-               (Bang 1 (App (Bang 0 (App (Bang (-1) (Term (someSymbolVal "y")))
-                                         (Bang (-1) (Term (someSymbolVal "y")))))
-                            (Bang (-1) (Term (someSymbolVal "z")))))))
-
-exampleTypeOf :: Eal
-exampleTypeOf =
-  App
-    (Bang 1
-      (Lambda (someSymbolVal "y") (BangT 1 Forall)
-        (Bang (-1) (Term (someSymbolVal "y")))))
-    (Bang 1
-      (Lambda (someSymbolVal "y") Forall
-        (Bang (-1) (Term (someSymbolVal "y")))))
-
-
-
-exampleBracketRun :: Either BracketErrors ()
-exampleBracketRun = runBracketChecker exampleBracket
-
-exampleRun :: (Either TypeErrors Types, Info)
-exampleRun = runTypeOf exampleTypeOf
