@@ -4,13 +4,14 @@
 
 module Juvix.Nets.Combinators where
 
-import           Prelude                          (error)
-import           Data.Foldable                    (foldrM)
+import           Prelude              (error)
+import           Data.Foldable        (foldrM)
 import           Control.Lens
 
-import           Juvix.Library                 hiding (reduce)
+import           Juvix.Library        hiding (reduce)
 import           Juvix.Interaction
 import           Juvix.NodeInterface
+import qualified Juvix.Utility.Helper as H
 
 -- Specific Port Type-----------------------------------------------------------
 
@@ -55,7 +56,7 @@ langToProperPort node = langToPort node f
 -- Graph manipulation ----------------------------------------------------------
 reduceAll ∷ (HasState "info" Info f, HasState "net" NetLang f)
           ⇒ Int → f ()
-reduceAll = untilNothingNTimesM reduce
+reduceAll = H.untilNothingNTimesM reduce
 
 reduce ∷ (HasState "info" Info m, HasState "net" NetLang m) ⇒ m Bool
 reduce = do

@@ -8,7 +8,6 @@ data Eal = Term SomeSymbol
          | App Term Term
          deriving Show
 
-
 data Term = Bang Integer Eal
           deriving Show
 

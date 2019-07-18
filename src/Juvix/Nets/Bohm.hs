@@ -10,6 +10,7 @@ import           Prelude (Show(..), error)
 import           Juvix.Library hiding (link, reduce)
 import           Juvix.Interaction
 import           Juvix.NodeInterface
+import qualified Juvix.Utility.Helper as H
 
 data InfixB = Eq' | Neq' | More' | Less' | Meq' | Leq' deriving Show
 
@@ -120,7 +121,7 @@ langToProperPort node = langToPort node (\l -> f l node)
 -- Rewrite rules----------------------------------------------------------------
 reduceAll :: (HasState "info" Info f, HasState "net" (Net Lang) f)
           ⇒ Int → f ()
-reduceAll = untilNothingNTimesM reduce
+reduceAll = H.untilNothingNTimesM reduce
 
 reduce :: (HasState "info" Info m, HasState "net" (Net Lang) m) ⇒ m Bool
 reduce = do

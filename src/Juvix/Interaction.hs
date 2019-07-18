@@ -63,7 +63,7 @@ newtype EnvNetInfo b a = EnvI (State (InfoNet b) a)
   deriving (HasState "info" Info) via
     Field "info" () (MonadState (State (InfoNet b)))
   deriving (HasState "net" (Net b)) via
-    Rename "net" (Field "net" (InfoNet b) (MonadState (State (InfoNet b))))
+    Field "net" () (MonadState (State (InfoNet b)))
 
 runInfoNet :: EnvNetInfo b a → InfoNet b → (InfoNet b)
 runInfoNet (EnvI m) = execState m
@@ -229,7 +229,7 @@ newNode lang = do
 
 
 delNodesM :: (Graph gr, HasState "net" (gr a b) f) ⇒ [Node] → f ()
-delNodesM xs = modify @"net" (delNodes xs)
+delNodesM = modify @"net" . delNodes
 
 deleteRewire ∷ HasState "net" (Net a) m ⇒ [Node] → [Node] → m ()
 deleteRewire oldNodesToDelete newNodes = do
@@ -251,10 +251,10 @@ auxToNode FreeNode         = Nothing
 findConflict ∷ Set.Set Node → [EdgeInfo] → [((Node, PortType), (Node, PortType))]
 findConflict nodes neighbors = Set.toList (foldr f mempty neighbors)
   where
-    f (Edge t1 t2@(_,_)) xs
-      | Map.member t1 makeMap && Map.member t2 makeMap =
-        Set.insert ((makeMap Map.! t2), (makeMap Map.! t1)) xs
-      | otherwise = xs
+    f (Edge t1 t2@(_,_)) xs =
+      case (makeMap Map.!? t2, makeMap Map.!? t1) of
+        (Just m2, Just m1) → Set.insert (m2, m1) xs
+        _                  → xs
     makeMap = foldr f mempty neighbors
       where
         f (Edge t1@(n1,_) t2@(n2,_)) hash
@@ -279,20 +279,3 @@ deleteEdge :: HasState "net" (Net a) f ⇒ (Node, PortType) → (Node, PortType)
 deleteEdge t1@(n1,_) t2@(n2,_)
   = modify @"net" (delAllLEdge (n1, n2, (Edge t1 t2))
                   . delAllLEdge (n2, n1, (Edge t2 t1)))
-
--- Utility functions -----------------------------------------------------------
-untilNothingNTimesM :: Monad f => f Bool -> Int -> f ()
-untilNothingNTimesM f n
-  | n <= 0  = pure ()
-  | otherwise = do
-      f >>= \case
-        True → untilNothingNTimesM f (pred n)
-        False → pure ()
-
-
-
-
-untilNothing ∷ (t → Maybe t) → t → t
-untilNothing f a = case f a of
-  Nothing → a
-  Just a  → untilNothing f a
