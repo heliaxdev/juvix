@@ -21,7 +21,7 @@ abstract: Juvix synthesizes a high-level frontend syntax, dependent-linearly-typ
           syntactical & semantic familiarity, and compatibility with existing blockchain virtual machines.
           Machine-assisted proof search, declarative deployment tooling, cogent type inference, and alternative spatiotemporal dataflow representations faciliate
           integration of low-developer-overhead property verification into the development process.
-          An interchain abstraction layer representing ledgers as first-class objects facilitates seamless cross-chain programming and typesafe runtime reconfiguration.
+          An interchain abstraction layer representing ledgers as first-class objects enables seamless cross-chain programming and typesafe runtime reconfiguration.
           \par
           This document is designed to be a first-principles explanation of Juvix. No familiarity with the theoretical background is assumed.
           Readers previously acquainted with the lambda calculus, sequent calculus, simply-typed lambda calculus, the calculus of constructions,
@@ -122,7 +122,7 @@ header-includes:
 
 !include src/machine-targets.pdc
 
-# Future Directions
+# Future directions
 
 !include src/future-directions.pdc
 

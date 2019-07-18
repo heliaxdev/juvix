@@ -307,6 +307,12 @@ more things
 
 ## Syntax
 
+As simple as possible.
+
 ## Semantics
 
+- Define evaluation semantics.
 
+## Typechecking
+
+- Lay out syntax-directed typechecker.

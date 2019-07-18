@@ -1,6 +1,13 @@
 ## Zero-knowledge execution compression
 
 1. Run interaction nets in ZK
+1. Might benefit from the parallelism
+
+## Zero-knowledge typing
+
+1. Earlier than execution compression.
+1. Inline ZK verifiers + proofs as custom node types.
+1. Type data as "private" or "public" at the monadic level, compiler-enforced.
 
 ## Deployment tooling layer
 
@@ -8,11 +15,13 @@
 1. Declarative-stateful deployment system Terraform-style.
 1. Blockchains accessible in REPL.
 
-## State machine integration
+## Persistent interaction system state
 
 1. Defined equalence semantics but implementation can change later
 1. Contracts themselves can call the compiler (needs more R&D)
 1. Bounties for proofs, sub-contract-upgrades, etc.
+1. More efficient than read-back after execution, just persist the graph of the state machine, many more optimizations automagically happen.
+1. Will be helpful for Juvix to be self-hosting or packaged as a runtime which can typecheck untrusted input.
 
 ## Interchain abstraction
 
@@ -20,7 +29,7 @@
 1. Targets multiple backends (Ethereum, Tezos, Cosmos) initially
 1. Avoid lock-in, separate choice of application and choice of consensus
 
-## Visual representation
+## Visual spatiotemporal dataflow representation
 
 1. Some (closest?) inspiration: Luna [@luna-lang]
 1. Could map depths of elementary linear logic terms to spacial depth in an execution visualization
