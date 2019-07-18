@@ -9,7 +9,8 @@ import           Data.Foldable        (foldrM)
 import           Control.Lens
 
 import           Juvix.Library        hiding (reduce)
-import           Juvix.Interaction
+import           Juvix.Backends.Interface
+import           Juvix.Backends.Env
 import           Juvix.NodeInterface
 import qualified Juvix.Utility.Helper as H
 
@@ -32,21 +33,19 @@ data Lang where
 
 deriving instance Show Lang
 
-type NetLang = Net Lang
-
 -- Graph to more typed construction---------------------------------------------
 -- Port manipulation
-conFromGraph ∷ HasState "net" (NetLang) m ⇒ Node → m (Maybe ProperPort)
+conFromGraph ∷ (DifferentRep net, HasState "net" (net Lang) m) ⇒ Node → m (Maybe ProperPort)
 conFromGraph = aux2FromGraph Construct
 
-dupFromGraph ∷ HasState "net" (NetLang) m ⇒ Node → m (Maybe ProperPort)
+dupFromGraph ∷ (DifferentRep net, HasState "net" (net Lang) m) ⇒ Node → m (Maybe ProperPort)
 dupFromGraph = aux2FromGraph Duplicate
 
-eraFromGraph ∷ HasState "net" (NetLang) m ⇒ Node → m (Maybe ProperPort)
+eraFromGraph ∷ (DifferentRep net, HasState "net" (net Lang) m) ⇒ Node → m (Maybe ProperPort)
 eraFromGraph = aux0FromGraph Erase
 
 -- a bit of extra repeat work in this function!
-langToProperPort ∷ HasState "net" (NetLang) m ⇒ Node → m (Maybe ProperPort)
+langToProperPort ∷ (DifferentRep net, HasState "net" (net Lang) m) ⇒ Node → m (Maybe ProperPort)
 langToProperPort node = langToPort node f
   where
     f Con = conFromGraph node
@@ -54,14 +53,13 @@ langToProperPort node = langToPort node f
     f Era = eraFromGraph node
 
 -- Graph manipulation ----------------------------------------------------------
-reduceAll ∷ (HasState "info" Info f, HasState "net" NetLang f)
-          ⇒ Int → f ()
+reduceAll ∷ InfoNetworkDiff net Lang m ⇒ Int → m ()
 reduceAll = H.untilNothingNTimesM reduce
 
-reduce ∷ (HasState "info" Info m, HasState "net" NetLang m) ⇒ m Bool
+reduce ∷ InfoNetworkDiff net Lang m ⇒ m Bool
 reduce = do
-  net <- get @"net"
-  isChanged ← foldrM update False (nodes net)
+  nodes' ← nodes
+  isChanged ← foldrM update False nodes'
   if isChanged then do
     modify @"info" (\c → c {parallelSteps = parallelSteps c + 1})
     pure isChanged
@@ -69,8 +67,8 @@ reduce = do
     pure isChanged
   where
     update n isChanged = do
-      net ← get @"net"
-      if (isBothPrimary net n)
+      both ← isBothPrimary n
+      if both
         then pure isChanged
         else
         langToProperPort n >>= \case
@@ -101,29 +99,28 @@ reduce = do
                   Just x  -> True <$ erase node n x
 
 -- | Deals with the case when two nodes annihilate each other
-annihilate ∷ (HasState "info" Info m, HasState "net" NetLang m)
+annihilate ∷ InfoNetwork net Lang m
            ⇒ Node → Node → ProperPort → ProperPort → m ()
 annihilate conNum1 conNum2 (Construct {}) (Construct {}) = do
   incGraphSizeStep (-2)
-  rewire (Aux1, conNum1) (Aux2, conNum2)
-  rewire (Aux2, conNum1) (Aux1, conNum2)
-  delNodesM [conNum1, conNum2]
+  rewire (conNum1, Aux1) (conNum2, Aux2)
+  rewire (conNum1, Aux2) (conNum2, Aux1)
+  delNodes [conNum1, conNum2]
 
 annihilate conNum1 conNum2 (Duplicate {}) (Duplicate {}) = do
   incGraphSizeStep (-2)
-  rewire (Aux1, conNum1) (Aux1, conNum2)
-  rewire (Aux2, conNum1) (Aux2, conNum2)
-  delNodesM [conNum1, conNum2]
+  rewire (conNum1, Aux1) (conNum2, Aux1)
+  rewire (conNum1, Aux2) (conNum2, Aux2)
+  delNodes [conNum1, conNum2]
 annihilate _ _ _ _ = error "the other nodes do not annihilate eachother"
 
 -- | Deals with the case when an Erase Node hits any other node
-erase ∷ (HasState "info" Info m, HasState "net" NetLang m)
-      ⇒ Node → Node → ProperPort → m ()
+erase ∷ InfoNetwork net Lang m ⇒ Node → Node → ProperPort → m ()
 erase conNum eraseNum port
   = case port of
       Construct {} → sequentalStep         *> rewire
       Duplicate {} → sequentalStep         *> rewire
-      Erase {}     → incGraphSizeStep (-2) *> delNodesM [conNum, eraseNum]
+      Erase {}     → incGraphSizeStep (-2) *> delNodes [conNum, eraseNum]
   where
     rewire = do
       eraA ← newNode Era
@@ -134,7 +131,7 @@ erase conNum eraseNum port
       deleteRewire [conNum, eraseNum] [eraA, eraB]
 
 -- | conDup deals with the case when Constructor and Duplicate share a primary
-conDup ∷ (HasState "info" Info m, HasState "net" NetLang m)
+conDup ∷ InfoNetwork net Lang m
        ⇒ Node → Node → ProperPort → ProperPort → m ()
 conDup conNum deconNum (Construct _ _auxA _auxB) (Duplicate _ _auxC _auxD) = do
   incGraphSizeStep 2

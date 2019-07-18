@@ -45,3 +45,12 @@ type Aux2 a = (Aux1 a, HasAux2 a Auxiliary)
 type Aux3 a = (Aux2 a, HasAux3 a Auxiliary)
 type Aux4 a = (Aux3 a, HasAux4 a Auxiliary)
 type Aux5 a = (Aux4 a, HasAux5 a Auxiliary)
+
+
+auxToPrimary :: Auxiliary → Primary
+auxToPrimary (Auxiliary node) = Primary node
+auxToPrimary FreeNode         = Free
+
+auxToNode :: Auxiliary → Maybe Node
+auxToNode (Auxiliary node) = Just node
+auxToNode FreeNode         = Nothing
