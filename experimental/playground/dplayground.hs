@@ -243,10 +243,6 @@ iType ii g (Ann e rho)
         return ty
 iType _ii _g Star
   =  return VStar
-iType ii g (Pi rho (Inf (Pi _ _)))
-  =  do cType ii g rho VStar
-        let ty = cEval rho []
-        return $ VPi ty (const VStar)
 iType ii g (Pi rho rho') 
   =  do cType ii g rho VStar
         let ty = cEval rho []
@@ -362,29 +358,29 @@ cType _ii _g _ _
   =  throwError "Type mismatch, not a checkable term"
 
   --motive for plusK
-mplusk :: CTerm
-mplusk = (Lam (Inf (Pi (Inf Nat) (Inf Nat))))
-
-plusK :: CTerm -> ITerm
-plusK k = NatElim
-  mplusk -- motive
-  (Lam (Inf (Bound 0)))
-  (Lam (Lam (Lam (Inf ((Bound 1) :@: (Inf (Succ (Inf (Bound 0)))))))))
-  k
-
+motivePlus :: CTerm
+motivePlus = (Lam (Inf (Pi (Inf Nat) (Inf Nat))))
+--following paper, plus add two Nats. plus :: Nat -> Nat -> Nat.
+plus :: CTerm -> ITerm
+plus = NatElim
+  motivePlus -- motive
+  (Lam (Inf (Bound 0))) --(\n -> n)
+  --(\k \rec \n -> Succ(rec n)), where rec is adding k
+  (Lam (Lam (Lam (Inf (Succ (Inf ((Bound 1) :@: Inf (Bound 0))))))))
+--plusZero adds zero to a Nat. plusZero :: Nat -> Nat.  
 plusZero :: ITerm
-plusZero = plusK (Inf Zero)
+plusZero = plus (Inf Zero)
 
 plusOne :: ITerm
-plusOne = plusK (Inf (Succ (Inf Zero)))
+plusOne = plus (Inf (Succ (Inf Zero)))
 
 plusTwo :: ITerm
-plusTwo = plusK (Inf (Succ (Inf (Succ (Inf Zero)))))
+plusTwo = plus (Inf (Succ (Inf (Succ (Inf Zero)))))
 
 plusZeroIsIdentity :: CTerm -> ITerm
 plusZeroIsIdentity k = NatElim
-  (Inf (Pi (Inf Nat) (Inf (Eq (Inf Nat) (Inf (plusZero :@: (Inf (Bound 0)))) (Inf (Bound 0))))))
-  (Inf (Eq (Inf Nat) (Inf Zero) (Inf Zero)))
+  (Lam (Inf (Eq (Inf Nat) (Inf (plusZero :@: (Inf (Bound 0)))) (Inf (Bound 0)))))
+  (Inf (Eq (Inf Nat) (Inf plusZero) (Inf Zero)))
   (Lam (Lam (Inf (Bound 0)))) -- note: this is wrong, need to use eqElim I think
   k
 
@@ -393,8 +389,3 @@ plusZeroIsIdentityZero = plusZeroIsIdentity (Inf Zero)
 
 zeroEqualsZero :: ITerm
 zeroEqualsZero = Refl (Inf Nat) (Inf Zero)
-
---type checking of applying 2nd argument of plusK. The type should be (m Zero).
-ctest2 :: Result ()
-ctest2 = cType 0 [] (Lam (Inf (Bound 0))) 
-                        ((cEval mplusk []) `vapp` VZero)
