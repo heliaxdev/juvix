@@ -1,6 +1,6 @@
 ## Overview
 
-Juvix translates the semantics of terms to interaction systems, consisting of node types, rewrite
+Juvix translates the semantics of a term to equivalent semantics for an interaction system, consisting of node types, rewrite
 rules, write-forward and read-back algorithms (for translating terms to and from nets, respectively),
 where elementary-affine-typed terms are in the general case reduced using the oracle-free variant
 of Lamping's optimal reduction algorithm.
@@ -63,7 +63,7 @@ Juvix does not yet implement these, but the compiler architecture has kept their
 
 ### Spacial memory contiguity
 
-Ensure correspondence between graphical locality and spacial locality in memory.
+Random access O(1) model is imperfect; sequential reads are faster. Ensure correspondence between graphical locality and spacial locality in memory, read nodes in blocks.
 
 ### Speculative execution
 

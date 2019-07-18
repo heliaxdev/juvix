@@ -8,7 +8,7 @@ Why have dependently-typed languages not yet succeeded?
 1. Economics didn't favor safety (compile time, speed of development matters more)
 1. Not enough engineering effort dedicated (e.g. Idris has no? full-time engineers)
 
-## Linear languages
+## Linearly-typed languages
 
 Rust, partial. Haskell, working on it.
 
