@@ -376,13 +376,13 @@ plusOne = plus (Inf (Succ (Inf Zero)))
 
 plusTwo :: ITerm
 plusTwo = plus (Inf (Succ (Inf (Succ (Inf Zero)))))
-
+--Proof of x + 0 = x
 plusZeroIsIdentity :: CTerm -> ITerm
-plusZeroIsIdentity k = NatElim
+plusZeroIsIdentity = NatElim --point-free style, x is omitted
   (Lam (Inf (Eq (Inf Nat) (Inf (plusZero :@: (Inf (Bound 0)))) (Inf (Bound 0)))))
-  (Inf (Eq (Inf Nat) (Inf plusZero) (Inf Zero)))
-  (Lam (Lam (Inf (Bound 0)))) -- note: this is wrong, need to use eqElim I think
-  k
+  (Inf (Refl (Inf Nat) (Inf Zero)))
+  undefined
+  
 
 plusZeroIsIdentityZero :: ITerm
 plusZeroIsIdentityZero = plusZeroIsIdentity (Inf Zero)
