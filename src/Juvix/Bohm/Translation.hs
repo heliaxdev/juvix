@@ -3,31 +3,30 @@
 module Juvix.Bohm.Translation(astToNet, netToAst) where
 
 import qualified Data.Map.Strict      as Map
--- eventually abstract out this import
-import qualified Data.Graph.Inductive as G
 
-import           Juvix.Library        hiding (link)
-import           Juvix.Interaction
+import           Juvix.Library        hiding (link, empty)
+import           Juvix.Backends.Graph
+import           Juvix.Backends.Interface
 import qualified Juvix.Nets.Bohm      as B
 import qualified Juvix.Bohm.Type      as BT
 
-data Env = Env {level :: Int, net' :: Net B.Lang}
-         deriving (Show, Generic)
+data Env net = Env {level :: Int, net' :: net B.Lang}
+             deriving (Generic)
 
-newtype EnvState a = EnvS (State Env a)
+newtype EnvState net a = EnvS (State (Env net) a)
   deriving (Functor, Applicative, Monad)
   deriving (HasState "level" Int) via
-    Rename "level" (Field "level" () (MonadState (State Env)))
-  deriving (HasState "net" (Net B.Lang)) via
-    Rename "net'" (Field "net'" () (MonadState (State Env)))
+    Rename "level" (Field "level" () (MonadState (State (Env net))))
+  deriving (HasState "net" (net B.Lang)) via
+    Rename "net'" (Field "net'" () (MonadState (State (Env net))))
 
-execEnvState :: EnvState a -> Env -> Env
-execEnvState (EnvS m) e = execState m e
+execEnvState :: Network net ⇒ EnvState net a → Env net → Env net
+execEnvState (EnvS m) = execState m
 
-astToNet :: BT.Bohm → Net B.Lang
+astToNet :: Network net ⇒ BT.Bohm → net B.Lang
 astToNet bohm = net'
   where
-    Env {net'} = execEnvState (recursive bohm Map.empty) (Env 0 G.empty)
+    Env {net'} = execEnvState (recursive bohm Map.empty) (Env 0 empty)
     -- we return the port which the node above it in the AST connects to!
     recursive (BT.IntLit x) _context = (,) <$> newNode (B.IntLit' x) <*> pure Prim
     recursive BT.False'     _context = (,) <$> newNode B.Fals'       <*> pure Prim
@@ -98,13 +97,13 @@ netToAst = undefined
 -- Helper Functions-------------------------------------------------------------
 
 -- | Creates a fan if the port is taken, and prepares to be connected
-chaseAndCreateFan :: (HasState "level" Int m, HasState "net" (Net B.Lang) m)
+chaseAndCreateFan :: (Network net, HasState "level" Int m, HasState "net" (net B.Lang) m)
                   ⇒ (Node, PortType)
                   → m (Node, PortType)
 chaseAndCreateFan (num,port) = do
-  net ← get @"net"
-  lev ← get @"level"
-  case findEdge net num port of
+  lev  ← get @"level"
+  edge ← findEdge (num, port)
+  case edge of
     Nothing → pure (num, port)
     Just t1@(nConnected, connectedPort) → do
       put @"level" (succ lev)

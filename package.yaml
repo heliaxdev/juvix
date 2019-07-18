@@ -24,6 +24,7 @@ dependencies:
   - parsec
   - capability >= 0.2.0.0
   - fgl-visualize
+  - enummapset
 default-extensions:
   - NoImplicitPrelude
   - OverloadedStrings
@@ -59,7 +60,6 @@ library:
   source-dirs: src
   exposed-modules:
     - Juvix
-    - Juvix.Interaction
     - Juvix.Utility
 
 executables:

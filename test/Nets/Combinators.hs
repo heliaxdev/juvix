@@ -1,47 +1,50 @@
 import           Data.Graph.Inductive
 
 import           Juvix.Nets.Combinators
-import           Juvix.Interaction
+import           Juvix.Backends.Graph
+import           Juvix.Backends.Interface
+import           Juvix.Backends.Env
+import           Juvix.Library
 
 -- Example Graphs --------------------------------------------------------------
-commute1 ∷ NetLang
+commute1 ∷ Net Lang
 commute1 = buildGr
            [( [ (Edge (2, Prim) (1, Prim), 2) ], 1, Con, [])
            ,([], 2, Dup, [])
            ]
 
-commute2 ∷ NetLang
+commute2 ∷ Net Lang
 commute2 = buildGr
            [ ( [(Edge (2, Prim) (1, Prim), 2)], 1, Con, [] )
            , ( [], 2, Era, [])
            ]
 
-commute3 ∷ NetLang
+commute3 ∷ Net Lang
 commute3 = buildGr
            [ ( [(Edge (2, Prim) (1, Prim), 2)], 1, Dup, [] )
            , ( [], 2, Era, [])
            ]
 
-annihilate1 ∷ NetLang
+annihilate1 ∷ Net Lang
 annihilate1 = buildGr
            [ ( [ (Edge (2, Prim) (1, Prim), 2) ], 1, Con, [])
            , ([], 2, Con, [])
            ]
 
-annihilate2 ∷ NetLang
+annihilate2 ∷ Net Lang
 annihilate2 = buildGr
            [ ( [ (Edge (2, Prim) (1, Prim), 2) ], 1, Dup, [])
            , ([], 2, Dup, [])
            ]
 
-annihilate3 ∷ NetLang
+annihilate3 ∷ Net Lang
 annihilate3 = buildGr
            [ ( [ (Edge (2, Prim) (1, Prim), 2) ], 1, Era, [])
            , ([], 2, Era, [])
            ]
 
-nonTerminating ∷ NetLang
-nonTerminating = buildGr
+nonTerminating ∷ FlipNet Lang
+nonTerminating = Flip $ buildGr
            [ ( [ (Edge (2, Prim) (1, Prim), 2)
                , (Edge (2, Aux1) (1, Aux2), 2)
                , (Edge (3, Prim) (1, Aux1), 3)
@@ -54,5 +57,5 @@ nonTerminating = buildGr
 -- Tests------------------------------------------------------------------------
 
 -- TODO: Write real tests
-test1 :: InfoNet Lang
-test1 = runNet (reduceAll 100) nonTerminating
+test1 :: InfoNet (FlipNet Lang)
+test1 = runFlipNet (reduceAll 100) nonTerminating
