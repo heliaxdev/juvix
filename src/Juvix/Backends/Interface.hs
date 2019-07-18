@@ -15,7 +15,14 @@ data PortType = Prim
               | Aux3
               | Aux4
               | Aux5
-              deriving (Ord,Eq, Show)
+              deriving (Ord,Eq, Show, Enum)
+
+portToF Prim = prim
+portToF Aux1 = aux1
+portToF Aux2 = aux2
+portToF Aux3 = aux3
+portToF Aux4 = aux4
+portToF Aux5 = aux5
 
 data NumPort = Port PortType Node
              | FreePort
