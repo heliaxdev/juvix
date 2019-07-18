@@ -140,7 +140,6 @@ iEval (EqElim a m mr x y eq)    d  =
 vapp :: Value -> Value -> Value
 vapp (VLam f)      v =  f v
 vapp (VNeutral n)  v =  VNeutral (NApp n v)
-vapp (VPi t f)     v =  VLam f 
 vapp _             _ =  error "this term is ill-typed for application"
 
 cEval :: CTerm -> Env -> Value
@@ -259,7 +258,7 @@ iType ii g (Pi rho rho')
         let ty = cEval rho []
         cType (ii + 1) ((Local ii, ty): g)
               (cSubst 0 (Free (Local ii))rho') VStar
-        return $ VPi ty (const VStar)
+        return VStar
 iType _ii g (Free x)
   =  case lookup x g of
         Just ty ->  return ty
@@ -364,9 +363,13 @@ cType ii g (Lam e) (VLam f)
 cType _ii _g _ _
   =  throwError "Type mismatch, not a checkable term"
 
+  --motive for plusK
+mplusk :: CTerm
+mplusk = (Lam (Inf (Pi (Inf Nat) (Inf Nat))))
+
 plusK :: CTerm -> ITerm
 plusK k = NatElim
-  (Inf (Pi (Inf Nat) (Inf (Pi (Inf Nat) (Inf Nat))))) -- motive
+  mplusk -- motive
   (Lam (Inf (Bound 0)))
   (Lam (Lam (Lam (Inf ((Bound 1) :@: (Inf (Succ (Inf (Bound 0)))))))))
   k
@@ -392,10 +395,6 @@ plusZeroIsIdentityZero = plusZeroIsIdentity (Inf Zero)
 
 zeroEqualsZero :: ITerm
 zeroEqualsZero = Refl (Inf Nat) (Inf Zero)
-
---motive for plusK
-mplusk :: CTerm
-mplusk = (Inf (Pi (Inf Nat) (Inf (Pi (Inf Nat) (Inf Nat)))))
 
 --type checking of applying 2nd argument of plusK. The type should be (m Zero).
 ctest2 :: Result ()
