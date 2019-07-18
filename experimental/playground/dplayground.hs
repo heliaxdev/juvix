@@ -231,12 +231,6 @@ boundfree _ii x        =  Free x
 
 type Result a = Either String a --when type checking fails, it throws an error.
 
---error message for inferring/checking types
-errorMsg :: ITerm -> Value -> Value -> String
-errorMsg iterm expectedT gotT = 
-  "Type mismatched. " ++ show iterm ++ " is of type " ++ show (dumbShow gotT) ++ 
-  " but the expected type is " ++ show (dumbShow expectedT) ++ "." 
-
 --inferable terms has type as output.
 iType0 :: Context -> ITerm -> Result Type
 iType0 = iType 0
@@ -350,6 +344,12 @@ iType ii g (EqElim a m mr x y eq) =
       return (foldl vapp mVal [xVal, yVal])
 iType _ii _g _                     =  throwError "Not an inferable term"
 
+--error message for inferring/checking types
+errorMsg :: ITerm -> Value -> Value -> String
+errorMsg iterm expectedT gotT = 
+  "Type mismatched. " ++ show iterm ++ " is of type " ++ show (dumbShow gotT) ++ 
+  " but the expected type is " ++ show (dumbShow expectedT) ++ "." 
+
 --checkable terms takes a type as input and returns ().
 cType :: Int -> Context -> CTerm -> Type -> Result ()
 cType ii g (Inf e) v
@@ -358,8 +358,6 @@ cType ii g (Inf e) v
 cType ii g (Lam e) (VPi ty ty')
   =  cType (ii + 1) ((Local ii, ty) : g)
            (cSubst 0 (Free (Local ii)) e) (ty' (vfree (Local ii)))
-cType ii g (Lam e) (VLam f)
-  =  undefined
 cType _ii _g _ _
   =  throwError "Type mismatch, not a checkable term"
 
