@@ -22,10 +22,11 @@ data NodeInfo a = NInfo { _typ     :: a
 makeLenses ''NodeInfo
 
 -- Run Function ----------------------------------------------------------------
-runFlipNet :: EnvNetInfo (Net b) a → Net b → InfoNet (Net b)
-runFlipNet f net = runNet f net (toInteger (length (ofNet net)))
+runMapNet :: EnvNetInfo (Net b) a → Net b → InfoNet (Net b)
+runMapNet f net = runNet f net (toInteger (length (ofNet net)))
 -- Network Instances  ----------------------------------------------------------
 
+-- TODO :: Bug in this implementation makes this not work, fix it!
 instance Network Net where
   link np1@(node1, port1) np2@(node2, port2) = do
     Net net ← get @"net"
@@ -73,9 +74,10 @@ instance Network Net where
     let delEdges node net
           = foldr (flip deleteAllPoints) net (Map.toList (node^.edges))
         delNodeAndEdges
-          = foldr (\nodeNum net → case Map.lookup nodeNum net of
-                      Just node → Map.delete nodeNum (delEdges node net)
-                      Nothing   → net)
+          = foldr (\nodeNum net →
+                     case Map.lookup nodeNum net of
+                       Just node → Map.delete nodeNum (delEdges node net)
+                       Nothing   → net)
     put @"net" (Net (delNodeAndEdges net xs))
 
   deleteRewire oldNodesToDelete newNodes = do
@@ -93,7 +95,6 @@ deleteAllPoints :: (Foldable t, Enum k)
 deleteAllPoints = foldr f
   where
     f (n, pt) = Map.adjust (over edges (Map.delete pt)) n
-
 
 neighbors :: [Node] → Map.EnumMap Node (NodeInfo a) → [EdgeInfo]
 neighbors oldNodes net = do

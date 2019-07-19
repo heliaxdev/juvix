@@ -3,6 +3,7 @@ import           Juvix.Bohm.Parser
 import           Juvix.Nets.Bohm
 import           Juvix.Visualize.Graph
 import           Juvix.Backends.Graph
+import           Juvix.Backends.Maps
 
 import Protolude
 
