@@ -379,9 +379,11 @@ plusTwo = plus (Inf (Succ (Inf (Succ (Inf Zero)))))
 --Proof of x + 0 = x
 plusZeroIsIdentity :: CTerm -> ITerm
 plusZeroIsIdentity = NatElim --point-free style, x is omitted
+  --motive is takes in x and returns the type Eq Nat (x+0) x, \x. Eq Nat (x + 0) x
   (Lam (Inf (Eq (Inf Nat) (Inf (plusZero :@: (Inf (Bound 0)))) (Inf (Bound 0)))))
-  (Inf (Refl (Inf Nat) (Inf Zero)))
-  undefined
+  (Inf (Refl (Inf Nat) (Inf Zero))) --m Zero, with type Eq Nat 0 0.
+  --inductive case, the result have to have type Eq Nat (k + 1 + 0) (k + 1) 
+  undefined 
   
 
 plusZeroIsIdentityZero :: ITerm
