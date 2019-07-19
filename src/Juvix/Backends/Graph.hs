@@ -54,7 +54,8 @@ instance Network FlipNet where
 
   isBothPrimary node = do
     net ← runFlip <$> get @"net"
-    pure $ null
+    pure $ not
+         $ null
          $ filter (\ (Edge (_, p) (_, p')) → p == Prim && p' == Prim)
          $ fmap fst
          $ lneighbors net node

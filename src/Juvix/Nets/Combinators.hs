@@ -68,7 +68,7 @@ reduce = do
   where
     update n isChanged = do
       both ← isBothPrimary n
-      if both
+      if not both
         then pure isChanged
         else
         langToProperPort n >>= \case

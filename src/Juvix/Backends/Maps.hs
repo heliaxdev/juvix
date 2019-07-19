@@ -80,12 +80,12 @@ instance Network Net where
                        Nothing   → net)
     put @"net" (Net (delNodeAndEdges net xs))
 
+  -- TODO :: Fix, does not properly work
   deleteRewire oldNodesToDelete newNodes = do
     Net net ← get @"net"
     let newNodeSet           = Set.fromList newNodes
         neighbor             = neighbors oldNodesToDelete net
         conflictingNeighbors = findConflict newNodeSet neighbor
-    traverse_ (uncurry link) conflictingNeighbors
     delNodes oldNodesToDelete
 
 deleteAllPoints :: (Foldable t, Enum k)

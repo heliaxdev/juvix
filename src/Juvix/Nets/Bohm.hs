@@ -138,12 +138,12 @@ reduce = do
   where
     update n isChanged = do
       both ← isBothPrimary n
-      if both
+      if not both
         then pure isChanged
         else
         langToProperPort n >>= \case
           Nothing → pure isChanged
-          Just port →
+          Just port → do
             case port of
               And (Primary node) _ _ → do
                 langToProperPort node >>= \case
@@ -211,7 +211,7 @@ reduce = do
 
 curryOnInt :: (InfoNetworkDiff net Lang m)
            ⇒ (Int → Int → Int, Node) → Node → Bool → m Bool
-curryOnInt opInfo node isChanged =
+curryOnInt opInfo node isChanged = do
   langToProperPort node >>= \case
     Just i@IntLit {} → True <$ curryRule opInfo (i, node)
     _                → pure isChanged
