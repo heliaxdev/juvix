@@ -15,9 +15,11 @@ import           Juvix.NodeInterface
 import           Juvix.Backends.Interface
 import           Juvix.Backends.Env
 
-data EdgeInfo = Edge (Node, PortType) (Node, PortType) deriving (Show, Eq)
+data EdgeInfo = Edge (Node, PortType) (Node, PortType)
+              deriving (Show, Eq)
 
-newtype Flip p a b = Flip { runFlip :: p b a } deriving (Show, Generic, Eq, Ord, Typeable)
+newtype Flip p a b = Flip { runFlip :: p b a }
+                   deriving (Show, Generic, Eq, Ord, Typeable)
 
 type Net a = Gr a EdgeInfo
 
@@ -25,7 +27,8 @@ type FlipNet = Flip Gr EdgeInfo
 
 -- Run Function ----------------------------------------------------------------
 runFlipNet :: EnvNetInfo (FlipNet b) a → FlipNet b → InfoNet (FlipNet b)
-runFlipNet f net = runNet f net (toInteger (length (Graph.nodes (runFlip net))))
+runFlipNet f net = runNet f net
+                          (toInteger (length (Graph.nodes (runFlip net))))
 -- Network Instances  ----------------------------------------------------------
 
 instance Network FlipNet where
