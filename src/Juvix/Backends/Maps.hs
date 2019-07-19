@@ -7,7 +7,7 @@ import           Control.Lens
 import qualified Data.Set            as Set
 
 import           Juvix.Utility.Sugar
-import           Juvix.Library            hiding (empty)
+import           Juvix.Library            hiding (empty, link)
 import           Juvix.Backends.Interface
 import           Juvix.Backends.Env
 import           Juvix.NodeInterface
@@ -20,6 +20,11 @@ data NodeInfo a = NInfo { _typ     :: a
                         } deriving (Show)
 
 makeLenses ''NodeInfo
+
+-- Run Function ----------------------------------------------------------------
+runFlipNet :: EnvNetInfo (Net b) a → Net b → InfoNet (Net b)
+runFlipNet f net = runNet f net (toInteger (length (ofNet net)))
+-- Network Instances  ----------------------------------------------------------
 
 instance Network Net where
   link np1@(node1, port1) np2@(node2, port2) = do
@@ -73,6 +78,14 @@ instance Network Net where
                       Nothing   → net)
     put @"net" (Net (delNodeAndEdges net xs))
 
+  deleteRewire oldNodesToDelete newNodes = do
+    Net net ← get @"net"
+    let newNodeSet           = Set.fromList newNodes
+        neighbor             = neighbors oldNodesToDelete net
+        conflictingNeighbors = findConflict newNodeSet neighbor
+    traverse_ (uncurry link) conflictingNeighbors
+    delNodes oldNodesToDelete
+
 deleteAllPoints :: (Foldable t, Enum k)
                 ⇒ Map.EnumMap k (NodeInfo a)
                 → t (k, PortType)
@@ -82,6 +95,44 @@ deleteAllPoints = foldr f
     f (n, pt) = Map.adjust (over edges (Map.delete pt)) n
 
 
-findConflict nodes neighbors = Set.toList (foldr f mempty neighbors)
+neighbors :: [Node] → Map.EnumMap Node (NodeInfo a) → [EdgeInfo]
+neighbors oldNodes net = do
+  node ← oldNodes
+  case Map.lookup node net of
+    Nothing → []
+    Just x  → do
+      (port, neigbhors) ← Map.toList (x^.edges)
+      pure (Edge neigbhors (node, port))
+
+
+instance DifferentRep Net where
+  aux0FromGraph con = auxFromGraph convPrim (con Free)
+  aux1FromGraph con = auxFromGraph convAux1 (con Free FreeNode)
+  aux2FromGraph con = auxFromGraph convAux2 (con Free FreeNode FreeNode)
+  aux3FromGraph con = auxFromGraph convAux3 (con Free FreeNode FreeNode FreeNode)
+  aux4FromGraph con = auxFromGraph convAux4 (con Free FreeNode FreeNode FreeNode FreeNode)
+  aux5FromGraph con = auxFromGraph convAux5 (con Free FreeNode FreeNode FreeNode FreeNode FreeNode)
+  langToPort n f = do
+    Net net ← get @"net"
+    case Map.lookup n net of
+      Just context → f (context^.typ)
+      Nothing      → pure Nothing
+
+-- Graph to more typed construction Helper --------------------------------------
+
+auxFromGraph :: HasState "net" (Net a) m
+             ⇒ ((Node, PortType) -> b -> b)
+             → b
+             → Node
+             → m (Maybe b)
+auxFromGraph conv constructor num = do
+  Net net ← get @"net"
+  let edges = neighbors [num] net
+  case edges of
+    []     → pure Nothing
+    (_:_)  → pure $ Just $ foldr f constructor edges
   where
-    f = undefined
+    f (Edge (n1, n1port) (n2, n2port)) con
+      | n1 == num = conv (n2, n1port) con
+      | n2 == num = conv (n1, n2port) con
+      | otherwise = con

@@ -4,8 +4,7 @@
 module Juvix.Backends.Graph where
 
 import qualified Data.Graph.Inductive       as Graph
-import           Data.Graph.Inductive       hiding (Node, Network, nodes)
-import qualified Data.Map.Strict            as Map
+import           Data.Graph.Inductive       hiding (Node, Network, nodes, delNodes)
 import qualified Data.Set                   as Set
 import           Prelude                    (error)
 
@@ -14,9 +13,6 @@ import           Juvix.NodeInterface
 import           Juvix.Backends.Interface
 import           Juvix.Backends.Env
 import           Juvix.Utility.Helper
-
-data EdgeInfo = Edge (Node, PortType) (Node, PortType)
-              deriving (Show, Eq)
 
 type Net a   = Gr a EdgeInfo
 type FlipNet = Flip Gr EdgeInfo
@@ -48,7 +44,7 @@ instance Network FlipNet where
         neighbors            = fst <$> (oldNodesToDelete >>= lneighbors net)
         conflictingNeighbors = findConflict newNodeSet neighbors
     traverse_ (uncurry link) conflictingNeighbors
-    modify @"net" (Flip . Graph.delNodes oldNodesToDelete . runFlip)
+    delNodes oldNodesToDelete
 
   deleteEdge t1@(n1,_) t2@(n2,_)
     = modify @"net" (Flip
@@ -80,7 +76,6 @@ instance Network FlipNet where
         | t2 == (node, port) = t1
         | otherwise          = error "doesn't happen"
 
-
 instance DifferentRep FlipNet where
   aux0FromGraph con = auxFromGraph convPrim (con Free)
   aux1FromGraph con = auxFromGraph convAux1 (con Free FreeNode)
@@ -93,21 +88,6 @@ instance DifferentRep FlipNet where
     case fst (match n net) of
       Just context → f $ snd $ labNode' context
       Nothing      → pure Nothing
-
--- Helper functions ------------------------------------------------------------
-findConflict ∷ Set.Set Node → [EdgeInfo] → [((Node, PortType), (Node, PortType))]
-findConflict nodes neighbors = Set.toList (foldr f mempty neighbors)
-  where
-    f (Edge t1 t2) xs =
-      case (makeMap Map.!? t2, makeMap Map.!? t1) of
-        (Just m2, Just m1) → Set.insert (m2, m1) xs
-        _                  → xs
-    makeMap = foldr f mempty neighbors
-      where
-        f (Edge t1@(n1,_) t2@(n2,_)) hash
-          | Set.member n1 nodes = Map.insert t2 t1 hash
-          | Set.member n2 nodes = Map.insert t1 t2 hash
-          | otherwise           = hash
 
 -- Graph to more typed construction Helper --------------------------------------
 

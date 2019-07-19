@@ -7,6 +7,8 @@ import Juvix.Library hiding (link)
 import Juvix.NodeInterface
 
 import           Control.Lens
+import qualified Data.Map.Strict as Map
+import qualified Data.Set        as Set
 
 type Node = Int
 
@@ -40,6 +42,14 @@ data Relink
   | RELAuxiliary1 { node :: Node, primary :: REL NumPort, auxiliary1 :: REL NumPort }
   | RELAuxiliary0 { node :: Node, primary :: REL NumPort }
   deriving (Show)
+
+-- | An Edge type, used to sometimes represent edges
+-- The graph uses this for the edge representation
+data EdgeInfo = Edge (Node, PortType) (Node, PortType)
+              deriving (Show, Eq)
+
+-- TODO :: Once neighbor is in, delete this type class
+-- and provide these as all derived functions!
 
 -- | a network that has one type for nodes but another for
 -- actually doing computation on the node
@@ -76,6 +86,8 @@ class Network net where
   link          :: NetState (net a) m ⇒ (Node, PortType) → (Node, PortType) → m ()
   newNode       :: NetState (net a) m ⇒ a → m Node
   delNodes      :: NetState (net a) m ⇒ [Node] → m ()
+  -- TODO :: remove deleteRewire, add neighbors, and move auxFromGraph to here!
+  -- TODO :: make a helper function that doe smost of deleteRewire, just send in neighbors
   deleteRewire  :: NetState (net a) m ⇒ [Node] → [Node] → m ()
   deleteEdge    :: NetState (net a) m ⇒ (Node, PortType) → (Node, PortType) → m ()
   nodes         :: NetState (net a) m ⇒ m [Node]
@@ -114,6 +126,23 @@ relink (oldNode, port) new = do
   findEdge (oldNode, port) >>= \case
     Just portToRelinkTo → link new portToRelinkTo
     Nothing             → pure () -- The port was really free to begin with!
+
+-- | given a set of new nodes, and the edge neighbors of old nodes, give back all
+-- pairs of nodes from nodes and neighbors that need to be wired together
+findConflict ∷ Set.Set Node → [EdgeInfo] → [((Node, PortType), (Node, PortType))]
+findConflict nodes neighbors = Set.toList (foldr f mempty neighbors)
+  where
+    f (Edge t1 t2) xs =
+      case (makeMap Map.!? t2, makeMap Map.!? t1) of
+        (Just m2, Just m1) → Set.insert (m2, m1) xs
+        _                  → xs
+    makeMap = foldr f mempty neighbors
+      where
+        f (Edge t1@(n1,_) t2@(n2,_)) hash
+          | Set.member n1 nodes = Map.insert t2 t1 hash
+          | Set.member n2 nodes = Map.insert t1 t2 hash
+          | otherwise           = hash
+
 -- Helper functions for DifferentRep -------------------------------------------
 
 -- these are made so we restrict what is needed the most by auxFromGraph
