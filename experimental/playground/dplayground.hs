@@ -376,6 +376,12 @@ plusOne = plus (Inf (Succ (Inf Zero)))
 
 plusTwo :: ITerm
 plusTwo = plus (Inf (Succ (Inf (Succ (Inf Zero)))))
+
+--The rec function to prove inductive case of plusZeroIsIdentity.
+--EqRec :: Eq Nat (plusZero k) k -> Eq Nat (plusZero (Succ k)) (Succ k)
+EqRec = (Lam EqElim (Inf Bound 0)
+               (Lam (Lam (Lam (Eq )))))
+
 --Proof of x + 0 = x
 plusZeroIsIdentity :: CTerm -> ITerm
 plusZeroIsIdentity = NatElim --point-free style, x is omitted
@@ -383,6 +389,7 @@ plusZeroIsIdentity = NatElim --point-free style, x is omitted
   (Lam (Inf (Eq (Inf Nat) (Inf (plusZero :@: (Inf (Bound 0)))) (Inf (Bound 0)))))
   (Inf (Refl (Inf Nat) (Inf Zero))) --m Zero, with type Eq Nat 0 0.
   --inductive case, the result have to have type Eq Nat (k + 1 + 0) (k + 1) 
+  --(\k \rec -> EqRec Nat (k+0) k)
   undefined 
   
 
