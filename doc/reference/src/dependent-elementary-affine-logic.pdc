@@ -2,22 +2,13 @@
 
 Define:
 
-1. Formulae $A,B ::=\ α\ |\ A ⊸ B\ |\ !A\ |\ ∀α.A$.
-1. Pseudoterms $t,u ::= x\ |\ λx.t\ |\ (t)u\ |\ !t\ |\ \bar{!}t$.
-1. Restricted pseudoterms
-    1. $a ::= x\ |\ λx.t\ |\ (t)t$
-    1. $t ::= !^m a$ where
-        1. $m \in \mathbb{Z}$
-        1. $!^ma =\ !...!\ (m\ times)\ a\ if m ≥ 0$
-        1. $!^ma = \bar{!}...\bar{!}\ (m\ times)\ a\ if\ m < 0$
-
 ## Semantics
 
 - Define evaluation semantics, undefined behaviour.
 
 ## Typing rules
 
-\begin{figure}[h]
+\begin{figure}[H]
 \caption{Typing rules for EAL}
 
 \begin{prooftree}
@@ -62,6 +53,8 @@ Define:
 
 ## Erasure to untyped lambda calculus
 
+Define erasure map $(-)$, just delete the $!$s.
+
 ## Type inference
 
 Adapted from previous work [@feasible-algorithm-typing-eal].
@@ -73,13 +66,156 @@ Why / notes
 - Most terms one would want to compute (especially in smart contracts) are in the elementary complexity class
 - Allows better box placement than programmer might choose, compiler can pick from set of typeable EAL terms & instantiate with fewest number / optimally positioned boxes
 
+Define:
+
+1. Formulae $A,B ::=\ α\ |\ A ⊸ B\ |\ !A\ |\ ∀α.A$.
+1. Pseudoterms $t,u ::= x\ |\ λx.t\ |\ (t)u\ |\ !t\ |\ \bar{!}t$.
+1. Restricted pseudoterms
+    1. $a ::= x\ |\ λx.t\ |\ (t)t$
+    1. $t ::= !^m a$ where
+        1. $m \in \mathbb{Z}$
+        1. $!^ma =\ !...!\ (m\ times)\ a\ if m ≥ 0$
+        1. $!^ma = \bar{!}...\bar{!}\ (m\ times)\ a\ if\ m < 0$
+
+\begin{theorem}
+All EAL-typable terms can be converted into restricted pseudo-terms (for proof see the paper).
+\end{theorem}
+
 ### Box paths
+
+Let $t$ be a pseudo-term and $x$ an occurrence of a free or bound variable in $t$.
+
+Define the **path** as an ordered list of the occurrences of $!$ and $\bar{!}$ enclosing $x$, more formally:
+
+\begin{align}
+path(x, x)        = nil \\
+path(t_1 t_2, x)  = path(t_i, x)\ \text{where}\ t_i\ \text{contain}s\ x\ \\
+path(λy.t, x)     = path(t, x) \\
+path(!t, x)       = \ ! :: path(t, x) \\
+path(\bar{!}t, x) = \ \bar{!}t :: path(t, x)
+\end{align}
+
+Define the **sum** of a path $s(p)$ as:
+
+\begin{align}
+s(nil) = 0 \\
+s(! :: l) = 1 + s(l) \\
+s(\bar{!} :: l) = -1 + s(l)
+\end{align}
+
+Define the **well-bracketed** condition, mapping pseudo-terms to booleans, where $\le$ is the prefix relation on lists, for a pseudo-term $t$ as:
+
+\begin{align}
+∀l \le path(t, x), s(l) \ge 0\ \text{for any occurrence of a variable}\ x\ \text{in}\ t \\
+∀x \in FV(t), s(path(t, x)) = 0\ \text{(zero sum paths for free variables)}
+\end{align}
+
+Define the **well-scoped** condition, mapping pseudo-terms to booleans, for a pseudo-term $t$ as:
+
+\begin{align}
+∀t_i \in subterms(t), well-bracketed(t_i)
+\end{align}
+
+\begin{theorem}
+If $t$ is a EAL-typed term, $t$ is well-bracketed and well-scoped.
+\end{theorem}
+
+Let an EAL **type assignment** for a pseudo-term $t$ be a map $Γ'$ from free & bound variables of $t$ to EAL formulae.
+
+Extend that map to a partial map $Γ$ from subterms of $t$ to EAL formulae as:
+
+\begin{align}
+Γ(!u) =\ !A\text{ if }Γ'(u) = A \\
+Γ(\bar{!} u) = A\text{ if }Γ'(u) =\ !A\text{, undefined otherwise} \\
+Γ(λx.u) = A ⊸ B\text{ if } Γ'(x) = A, Γ'(u) = B \\
+Γ(t_1 t_2) = B\text{ if }Γ'(t_2) = A\text{ and }Γ'(t_1) = A⊸B\text{, undefined otherwise}
+\end{align}
+
+Let $(t, Γ)$ be a pair of a pseudo-term $t$ and an assignment $Γ$. $t$ satisfies the **typing condition** if:
+
+\begin{align}
+Γ(t_i)\text{ is defined for all subterms }t_i\text{ of }t \\
+\text{ for any variable }x\text{ of at least 2 occurrences, }Γ(x) =\ !B\text{ for some }B
+\end{align}
+
+\begin{theorem}
+If $t$ is an EAL-typed term and $Γ$ is an associated assignment then $(t, Γ)$ satisfies the typing condition.
+\end{theorem}
+
+\begin{theorem}
+If $(t, Γ)$ satisfies the typing condition and $u$ is a subterm of $t$, then $(u, Γ)$ also satisfies the typing condition.
+\end{theorem}
+
+\begin{theorem}
+If $t$ is a pseudo-term and Γ an assignment such that $t$ is well-bracketed and well-scoped, and $(t, Γ)$ satisfies the typing condition, then $t$ is typable in EAL with a judgement $∆ ⊢ t : A$ such that $Γ(t) = A$ and $∆$ is the restriction of $Γ$ to the free variables of $t$.
+\end{theorem}
+
+(todo: proof)
+
+### Decoration
+
+Consider the **declaration problem**:
+
+Let $x_1 : A_1, ..., x_n : A_n ⊢ M : B$ be a simply-typed term. Do there exist EAL decorations $A'_i$ of the $A_i$ for $1 \le i \le n$ and $B'$ of $B$ such that $x_1 : A'_1, ..., x_n : A'_n ⊢ M : B'$ is a valid EAL judgement for M?
 
 ### Parameterization
 
+Define **parameterized restricted pseudo-terms** as restricted pseudo-terms but with unique integer indices for each free parameter: $a ::= x\ |\ λx.t\ |\ t\ t$, $t ::= !^n a$ where $n$ is a fresh index chosen monotonically over $Z$. Given a parameterized pseudo-term $t$ denote by $par(t)$ the set of its parameter indices. An instantiation $φ$ maps $t$ to a restricted pseudo-term by instantiating each indexed parameter $n$ with the integer demarcation $φ(n)$.
+
+Define **parameterized types** $A ::= !^n A\ |\ !^n (A ⊸ A)$ with $n$ a fresh index chosen monotonically over $Z$. Denote by $par(A)$ the set of parameters of $A$. If $φ$ instantiates each index $n$ with an integer demarcation $φ(n)$, $φ(A)$ is defined only when a nonnegative integer is substituted for each parameter (per the type formulae of EAL). Define the size $|A|$ as the structural size of the underlying simple type.
+
+Analogously to EAL type assignments for pseudo-terms consider parameterized type assignments for parameterized pseudo-terms with values parameterized types, and simple type assignments for lambda terms with values simple types. Let $Σ$ be a parameterized type assignment for a parameterized pseudo-term $t$. Denote by $par(Σ)$ the parameter set occurring in parameterized types $Σ(x)$, for all variables $x$ of $t$. Let $φ$ be an instantiation for $par(Σ)$ which associates a nonnegative integer with each indexed parameter. Then define the map $φΣ$ by $φΣ(x) = φ(Σ(x))$. When defined, this map is an EAL type assignment for $φ(t)$. Define the size $|Σ|$ as the maximum of $|Σ(x)|$ for all variables $x$.
+
+Define the erasure map $(.)^-$ for parameterized pseudo-terms and parameterized types analogously to those for pseudo-terms and EAL types. Given a lambda term $M$ there exists a unique parameterized pseudo-term $t$, up to renaming of the indices, such that $t^- = M$. Denote $t$ by $\bar{M}$ and call it the **parameter decoration** of $M$. Note that $|\bar{M}|$ is linear in $|M|$. Given a simple type $T$, its **parameter decoration** $\bar{T}$ is defined analogously. Finally, given a simple type assignment $Θ$ for a lambda term $t$, with values simple types, define its parameter decoration $\bar{Θ}$ pointwise by taking $\bar{Θ}(x) = \bar{Θ(x)}$, where all decorations are taken with disjoint parameters.
+
+Thus the decoration problem is reduced to the following instantiation problem:
+
+Given a parameterized pseudo-term $t$ and a parameterized type assignment $Σ$ for it, does there exist an instantiation $φ$ such that $φ(t)$ has an EAL type deriviation associated to $φΣ$?
+
+To answer this question we will translate the bracketing, scope, and typing conditions into a system of linear constraints.
+
 ### Constraint generation
 
+#### Bracketing & scope
+
+Let $t$ be a parameterized pseudo-term. Define the **boxing constraints** for $t$ as the set of linear equations $C^b(t)$ obtained in the following way:
+
+- Bracketing: for any occurrence of a variable $x$ in $t$, and any prefix $l$ of $path(t, x)$, add the inequation $s(l) \ge 0$. If $x \in FV(t)$, add the equation $s(l) = 0$.
+- Scope: for any subterm $λx.v$ of $t$, for any occurrence $x_i$ of $x$ in $v$, add similarly the inequations expressing that $path(v, x_i)$ is well-bracketed.
+
+#### Typing constraints
+
+Define parameterized type unification as:
+
+\begin{align}
+U(!^m α, !^n α) = { m = n } \\
+U(!^m (A_1 ⊸ A_2), !^n (B_1 ⊸ B_2)) = { m = n } ∪ U(A_1, B_1) ∪ U(A_2, B_2) \\
+U(\_, \_) = { false }
+\end{align}
+
+Let $Σ$ be a parameterized type assignment for a parameterized pseudo-term $t$. Extend $Σ$ to a partial map from subterms of $t$ to parameterized types as:
+
+\begin{align}
+Σ(!^n a) = !^m A \text{ if }Σ (a) = !^k A\\
+Σ(λx.u) = !^m (A ⊸ B) \text{ if } Σ(x) = A, Σ(u) = B\\
+Σ(u_1 u_2) = B \text{ if } Σ(u_1) = A ⊸ B \text{ and } Σ(u_2) = A
+\end{align}
+
+Define the **typing constraints** for $(t,Σ)$ as the set of linear inequations $C^{typ}(t,Σ)$:
+
+- for any subterm of $t$ with the form $λx.u$ with $Σ(λx.u) = !^m (A ⊸ B)$, add the constraint $m = 0$
+- for any subterm of $t$ with the form $u_1 u_2$ with $Σ(u_1) = !^m (A_1 ⊸ B_1)$ and $Σ(u_2) = A_2$ add the constraints $U(A_1, A_2) ∪ { m = 0 }$
+- for any subterm of $t$ with the form $!^n u$ with $Σ(!^n u)$ = $!^m A$ and $Σ(u) = !^k A$, add the constraints $m = k + n$ and $m \ge 0$
+- for any subterm of $t$ with the form $x$ where $x$ has at least two occurrences and $Σ(x) = !^m A$, add the constraint $m \ge 1$
+- for any parameter $m$ in $par(Σ)$, add the constraint $m \ge 0$
+
+\begin{theorem}
+Let $t$ be a parameterized pseudo-term and $Σ$ be a parameterized type-assignment for $t$ such that $Σ(t)$ is defined. Given an instantiation $φ$ for $(t, Σ)$, $φΣ$ is defined and $(φ(t), φΣ)$ satisfies the typing condition if and only if $φ$ is a solution of $C^{typ}(t, Σ)$.
+\end{theorem}
+
 ### Constraint solution
+
+They're integer linear constraints, this shouldn't be complicated.
 
 \begin{figure}[h]
 \caption{Typing rules for DTEAL (TODO)}
