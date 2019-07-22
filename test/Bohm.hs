@@ -24,6 +24,7 @@ test4 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "(lambda y. (lambda x
 
 test5 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "(2 + 2)"
 
+printTestn :: Show b ⇒ Either a2 (InfoNet (FlipNet b)) → IO ()
 printTestn n = showNet "test.dot" (runFlip net)
   where
     Right (InfoNet {net = net}) = n
