@@ -33,11 +33,13 @@ header-includes:
     - \usepackage{amsmath}
     - \usepackage{spaghettinet}
     - \usepackage{cmll}
+    - \usepackage{microtype}
     - \usepackage{float}
     - \floatstyle{boxed}
     - \restylefloat{figure}
     - \usepackage{tikz}
     - \usetikzlibrary{arrows,automata}
+    - \newtheorem{theorem}{Theorem}
 ---
 
 \pagebreak
@@ -60,6 +62,8 @@ header-includes:
 
 # Theoretical background
 
+!include src/theoretical-background.pdc
+
 ## Lambda calculus
 
 !include src/background/lambda-calculus.pdc
@@ -80,13 +84,13 @@ header-includes:
 
 !include src/background/linear-logic.pdc
 
-## Elementary affine logic
-
-!include src/background/elementary-affine-logic.pdc
-
 ## Interaction nets
 
 !include src/background/interaction-nets.pdc
+
+## Elementary affine logic
+
+!include src/background/elementary-affine-logic.pdc
 
 ## Optimal reduction
 
@@ -131,5 +135,7 @@ header-includes:
 ## Examples
 
 !include src/appendices/examples.pdc
+
+\pagebreak
 
 # References
