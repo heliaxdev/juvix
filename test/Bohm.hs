@@ -4,6 +4,8 @@ import           Juvix.Nets.Bohm
 import           Juvix.Visualize.Graph
 import           Juvix.Backends.Graph
 import           Juvix.Backends.Maps
+import           Juvix.Backends.Env
+import           Juvix.Utility.Helper
 
 import Protolude
 
@@ -22,11 +24,11 @@ test4 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "(lambda y. (lambda x
 
 test5 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "(2 + 2)"
 
---printTestn n = showNet "test.dot" net
---  where
---    Right (InfoNet {net = net}) = n
+printTestn n = showNet "test.dot" (runFlip net)
+  where
+    Right (InfoNet {net = net}) = n
 
---printTest3 :: IO ()
--- printTest3 = showNet "test3.dot" net
---  where
---    Right (InfoNet {net = net}) = test3
+printTest3 :: IO ()
+printTest3 = showNet "test3.dot" (runFlip net)
+  where
+    Right (InfoNet {net = net}) = test3
