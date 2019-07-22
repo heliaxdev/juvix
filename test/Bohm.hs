@@ -11,6 +11,8 @@ import Protolude
 test1 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "(lambda x. (x x) y)"
 
 
+parsed = astToNet <$> parseBohm "((lambda x. (x x)) (lambda x. (x x)))"
+
 test2' = runMapNet (reduceAll 10) . astToNet <$> parseBohm "((lambda x. (x x)) (lambda x. (x x)))"
 test2 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "((lambda x. (x x)) (lambda x. (x x)))"
 

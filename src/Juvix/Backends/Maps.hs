@@ -77,7 +77,6 @@ instance Network Net where
                   . Map.adjust (\x → deleteIfDiff p2 (x^.edges) node2 x) n2
                   . ofNet)
 
-
   -- This deletes nodes improperly lies here
   delNodes xs = do
     Net net ← get @"net"
