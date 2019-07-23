@@ -26,9 +26,7 @@ runMapNet :: EnvNetInfo (Net b) a → Net b → InfoNet (Net b)
 runMapNet f net = runNet f net (toInteger (length (ofNet net)))
 -- Network Instances  ----------------------------------------------------------
 
--- TODO :: Bug in this implementation makes this not work, fix it!
 instance Network Net where
-  -- TODO :: Fix, does not properly work
   link np1@(node1, port1) np2@(node2, port2) = do
     Net net ← get @"net"
     case (Map.lookup node1 net, Map.lookup node2 net) of

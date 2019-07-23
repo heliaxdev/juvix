@@ -114,7 +114,6 @@ bracketCheckerTerm (Bang changeBy eal) n
   | changeBy + n < 0 = throw @"typ" TooManyClosing
   | otherwise        = bracketChecker eal (n + changeBy)
 
-
 -- Constraint for terms --------------------------------------------------------
 
 data Constraint = Constraint {
@@ -151,10 +150,10 @@ addCon :: HasState "constraints" [Constraint] m ⇒ Constraint → m ()
 addCon con = modify' @"constraints" (con :)
 
 
-boxConstraint :: ( HasState "constraints" [Constraint] m
-                , HasState "count" Spot m
-                , HasState "path" Path m
-                , HasState "termsPath" PathTerm m)
+boxConstraint ∷ ( HasState "constraints" [Constraint]  m
+                , HasState "count"       Spot          m
+                , HasState "path"        Path          m
+                , HasState "termsPath"   PathTerm      m )
               ⇒ Term → m Term
 boxConstraint (Bang _ t) = do
   termPaths ← get @"termsPath"
@@ -189,6 +188,5 @@ newtype EnvConstraint a = EnvCon (State ConstraintTermEnv a)
   deriving (HasState "constraints" [Constraint]) via
      Field "constraints" () (MonadState (State ConstraintTermEnv))
 
-
---execBracketState :: EnvConstraint a → ConstraintTermEnv
+execBracketState :: EnvConstraint a → (a, ConstraintTermEnv)
 execBracketState (EnvCon e) = runState e (Con mempty mempty 1 mempty)

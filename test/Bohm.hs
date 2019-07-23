@@ -6,22 +6,31 @@ import           Juvix.Backends.Graph
 import           Juvix.Backends.Maps
 import           Juvix.Backends.Env
 import           Juvix.Utility.Helper
+import           Juvix.Library
+import           Juvix.Backends.Interface
 
-import Protolude
+import           Text.Parsec
 
---test0 = astToNet <$> parseBohm "(lambda x. (x x) y)"
+test1 :: Either ParseError (InfoNet (FlipNet Lang))
 test1 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "(lambda x. (x x) y)"
 
 
+parsed :: Network net => Either ParseError (net Lang)
 parsed = astToNet <$> parseBohm "((lambda x. (x x)) (lambda x. (x x)))"
 
+test2' :: Either ParseError (InfoNet (Juvix.Backends.Maps.Net Lang))
 test2' = runMapNet (reduceAll 10) . astToNet <$> parseBohm "((lambda x. (x x)) (lambda x. (x x)))"
+
+test2 :: Either ParseError (InfoNet (FlipNet Lang))
 test2 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "((lambda x. (x x)) (lambda x. (x x)))"
 
+test3 :: Either ParseError (InfoNet (FlipNet Lang))
 test3 = runFlipNet (reduceAll 1) . astToNet <$> parseBohm "((lambda x. (x x)) (lambda x. (x x)))"
 
+test4 :: Either ParseError (InfoNet (FlipNet Lang))
 test4 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "(lambda y. (lambda x. (y x)) (lambda x. 2 + x))"
 
+test5 :: Either ParseError (InfoNet (FlipNet Lang))
 test5 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "(2 + 2)"
 
 printTestn :: Show b ⇒ Either a2 (InfoNet (FlipNet b)) → IO ()

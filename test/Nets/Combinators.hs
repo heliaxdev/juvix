@@ -5,6 +5,7 @@ import           Juvix.Backends.Graph
 import           Juvix.Backends.Interface
 import           Juvix.Backends.Env
 import           Juvix.Library
+import           Juvix.Utility.Helper
 
 -- Example Graphs --------------------------------------------------------------
 commute1 ∷ Net Lang
