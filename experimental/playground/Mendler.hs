@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 import Juvix.Library hiding (foldM, Nat)
 
@@ -12,31 +13,46 @@ foldM :: AlgebraM f x → FixM f → x
 foldM alg d = d alg
 
 -- Attempt 4 : Proper mendler style!
-data N r = Z | S r
+data N r = Z | S r deriving (Functor)
 
 type Nat = FixM N
 
-
 in' :: ∀ (f :: * → *). f (FixM f) → FixM f
 in' r f = f (foldM f) r
+
+--out'' :: Functor f ⇒ FixM f → f (FixM f)
+out'' fr = fmap (\r → in' r) fr --undefined -- fmap (\r → in' (rec' r)) fr
+
+out :: Functor f ⇒ FixM f → f (FixM f)
+out fr = undefined -- fmap (\r → in' r) fr --undefined -- fmap (\r → in' (rec' r)) fr
 
 zero' :: AlgebraM N x -> x
 zero' = in' Z
 
 succ' n = in' (S n)
 
-two' :: AlgebraM N x -> x
+two' :: FixM N
 two' = succ' (succ' zero')
 
-three :: AlgebraM N x -> x
+three :: FixM N
 three = succ' two'
 
+out' :: Functor f1 ⇒ (t → f2 (FixM f2)) → f1 t → f1 (AlgebraM f2 x -> x)
+out' rec' fr = fmap (\r → in' (rec' r)) fr
 
--- --predAlg :: AlgebraM N N
--- predAlg _rec' n =
---   case n of
---     Z   → Z
---     S n → n
+predAlg' :: FixM N → FixM N
+predAlg' t =
+  case out t of
+    Z   → zero'
+    S n → n
+
+--predAlg :: (t -> N (FixM N)) -> N t -> AlgebraM N x -> x
+predAlg :: AlgebraM N (FixM N) -- (t -> N (FixM N)) -> N t -> AlgebraM N x -> x
+predAlg rec' n =
+  case out' undefined n of
+    Z   → zero'
+    S n → n
+
 
 isEvenAlgN :: AlgebraM N Bool
 isEvenAlgN rec' n =
