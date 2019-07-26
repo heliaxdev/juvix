@@ -453,7 +453,7 @@ curryInt :: InfoNetwork net Lang m
 curryInt (numCurr, _curried) (numInt, i) = do
   incGraphSizeStep (-1)
   intLit ← newNode (Primar (IntLit (_curried i)))
-  relink (numInt, Prim) (intLit, Prim)
+  relink (numCurr, Aux1) (intLit, Prim)
   deleteRewire [numCurr, numInt] [intLit]
 
 curryIntB :: InfoNetwork net Lang m
@@ -465,5 +465,5 @@ curryIntB (numCurr, _curriedB) (numInt, i) = do
           (case app of
             True  → Primar Tru
             False → Primar Fals)
-  relink (numInt, Prim) (node, Prim)
+  relink (numCurr, Aux1) (node, Prim)
   deleteRewire [numCurr, numInt] [node]
