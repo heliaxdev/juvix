@@ -1,6 +1,7 @@
 module Juvix.Eal.Eal where
 
 import           Juvix.Library hiding (link, reduce)
+import qualified Juvix.Bohm.Type as BT
 import           Data.Map.Strict as Map
 
 data Eal = Term SomeSymbol
@@ -190,3 +191,10 @@ newtype EnvConstraint a = EnvCon (State ConstraintTermEnv a)
 
 execBracketState :: EnvConstraint a → (a, ConstraintTermEnv)
 execBracketState (EnvCon e) = runState e (Con mempty mempty 1 mempty)
+
+-- Convert to Bohm--------------------------------------------------------------
+
+ealToBohm :: Term → BT.Bohm
+ealToBohm (Bang _ (Term s))       = BT.Symbol' s
+ealToBohm (Bang _ (Lambda s _ t)) = BT.Lambda s (ealToBohm t)
+ealToBohm (Bang _ (App t1 t2))    = BT.Application (ealToBohm t1) (ealToBohm t2)
