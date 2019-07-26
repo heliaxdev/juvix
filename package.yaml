@@ -7,7 +7,7 @@ synopsis:            Juvix smart contract compiler & toolkit
 category:            Web3
 description:         Please see the README on GitHub at <https://github.com/cwgoes/juvix#readme>
 author:              Cryptium Labs
-maintainer:          cwgoes@cryptium.ch
+maintainer:          cwgoes@cryptium.ch, jeremy@cryptium.ch
 copyright:           2018-2019 Cryptium Labs
 
 extra-source-files:
@@ -25,6 +25,7 @@ dependencies:
   - capability >= 0.2.0.0
   - fgl-visualize
   - enummapset
+  - turtle
 default-extensions:
   - NoImplicitPrelude
   - OverloadedStrings

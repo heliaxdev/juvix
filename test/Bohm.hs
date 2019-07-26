@@ -1,13 +1,15 @@
 import           Juvix.Bohm.Translation
 import           Juvix.Bohm.Parser
 import           Juvix.Nets.Bohm
-import           Juvix.Visualize.Graph
 import           Juvix.Backends.Graph
 import           Juvix.Backends.Maps
 import           Juvix.Backends.Env
 import           Juvix.Utility.Helper
 import           Juvix.Library
 import           Juvix.Backends.Interface
+
+import           Juvix.Visualize.Graph
+import           Juvix.Visualize.Dot
 
 import           Text.Parsec
 
@@ -33,10 +35,12 @@ test4 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "(lambda y. (lambda x
 test5 :: Either ParseError (InfoNet (FlipNet Lang))
 test5 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "(2 + 2)"
 
-printTestn :: Show b ⇒ Either a2 (InfoNet (FlipNet b)) → IO ()
-printTestn n = showNet "test.dot" (runFlip net)
-  where
-    Right (InfoNet {net = net}) = n
+
+test6 :: Either ParseError (InfoNet (FlipNet Lang))
+test6 = runFlipNet (reduceAll 0) . astToNet <$> parseBohm "( (lambda x. (x + 3 + 5)) 2)"
+
+test6Gen :: IO (Either ParseError (InfoNet (FlipNet Lang)))
+test6Gen = traverse (netToGif "tmp/" "boo" 1000 . astToNet) (parseBohm "( (lambda x. (x + 3 + 5)) 2)")
 
 printTest3 :: IO ()
 printTest3 = showNet "test3.dot" (runFlip net)
