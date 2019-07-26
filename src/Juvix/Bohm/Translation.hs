@@ -28,29 +28,29 @@ astToNet bohm = net'
   where
     Env {net'} = execEnvState (recursive bohm Map.empty) (Env 0 empty)
     -- we return the port which the node above it in the AST connects to!
-    recursive (BT.IntLit x) _context = (,) <$> newNode (B.IntLit' x) <*> pure Prim
-    recursive BT.False'     _context = (,) <$> newNode B.Fals'       <*> pure Prim
-    recursive BT.True'      _context = (,) <$> newNode B.Tru'        <*> pure Prim
-    recursive BT.Nil        _context = (,) <$> newNode B.Nil'        <*> pure Prim
-    recursive (BT.Car b)     context = genericAux1PrimArg b B.Car'     context
-    recursive (BT.Cdr b)     context = genericAux1PrimArg b B.Cdr'     context
-    recursive (BT.IsNil b)   context = genericAux1PrimArg b B.TestNil' context
-    recursive (BT.Not b)     context = genericAux1PrimArg b B.Not'     context
-    recursive (BT.Application b1 b2)    c = genericAux2PrimArg b1 b2 B.App'  c
-    recursive (BT.Infix' BT.Mult b1 b2) c = genericAux2PrimArg b1 b2 (B.Infix B.Prod') c
-    recursive (BT.Infix' BT.Plus b1 b2) c = genericAux2PrimArg b1 b2 (B.Infix B.Add')  c
-    recursive (BT.Infix' BT.Sub b1 b2)  c = genericAux2PrimArg b1 b2 (B.Infix B.Sub')  c
-    recursive (BT.Infix' BT.Mod b1 b2)  c = genericAux2PrimArg b1 b2 (B.Infix B.Mod')  c
-    recursive (BT.Infix' BT.Or b1 b2)   c = genericAux2PrimArg b1 b2 B.Or'   c
-    recursive (BT.Infix' BT.And b1 b2)  c = genericAux2PrimArg b1 b2 B.And'  c
-    recursive (BT.Infix' BT.Eq b1 b2)   c = genericAux2PrimArg b1 b2 (B.InfixB B.Eq')   c
-    recursive (BT.Infix' BT.Neq b1 b2)  c = genericAux2PrimArg b1 b2 (B.InfixB B.Neq')  c
-    recursive (BT.Infix' BT.Lt b1 b2)   c = genericAux2PrimArg b1 b2 (B.InfixB B.Less') c
-    recursive (BT.Infix' BT.Gt b1 b2)   c = genericAux2PrimArg b1 b2 (B.InfixB B.More') c
-    recursive (BT.Infix' BT.Ge b1 b2)   c = genericAux2PrimArg b1 b2 (B.InfixB B.Meq')  c
-    recursive (BT.Infix' BT.Le b1 b2)   c = genericAux2PrimArg b1 b2 (B.InfixB B.Leq')  c
-    recursive (BT.Infix' BT.Division b1 b2) c = genericAux2PrimArg b1 b2 (B.Infix B.Div') c
-    recursive (BT.Cons b1 b2) c = genericAux2 (b1, Aux2) (b2, Aux1) (B.Cons', Prim) c
+    recursive (BT.IntLit x) _context = (,) <$> newNode (B.Primar $ B.IntLit x) <*> pure Prim
+    recursive BT.False'     _context = (,) <$> newNode (B.Primar B.Fals)       <*> pure Prim
+    recursive BT.True'      _context = (,) <$> newNode (B.Primar B.Tru)        <*> pure Prim
+    recursive BT.Nil        _context = (,) <$> newNode (B.Primar B.Nil)        <*> pure Prim
+    recursive (BT.Car b)     context = genericAux1PrimArg b (B.Auxiliary1 B.Car)     context
+    recursive (BT.Cdr b)     context = genericAux1PrimArg b (B.Auxiliary1 B.Cdr)     context
+    recursive (BT.IsNil b)   context = genericAux1PrimArg b (B.Auxiliary1 B.TestNil) context
+    recursive (BT.Not b)     context = genericAux1PrimArg b (B.Auxiliary1 B.Not)     context
+    recursive (BT.Infix' BT.Mult b1 b2) c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.Infix B.Prod)  c
+    recursive (BT.Infix' BT.Plus b1 b2) c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.Infix B.Add)   c
+    recursive (BT.Infix' BT.Sub b1 b2)  c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.Infix B.Sub)   c
+    recursive (BT.Infix' BT.Mod b1 b2)  c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.Infix B.Mod)   c
+    recursive (BT.Infix' BT.Eq b1 b2)   c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.InfixB B.Eq)   c
+    recursive (BT.Infix' BT.Neq b1 b2)  c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.InfixB B.Neq)  c
+    recursive (BT.Infix' BT.Lt b1 b2)   c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.InfixB B.Less) c
+    recursive (BT.Infix' BT.Gt b1 b2)   c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.InfixB B.More) c
+    recursive (BT.Infix' BT.Ge b1 b2)   c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.InfixB B.Meq)  c
+    recursive (BT.Infix' BT.Le b1 b2)   c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.InfixB B.Leq)  c
+    recursive (BT.Infix' BT.Division b1 b2) c = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.Infix B.Div)   c
+    recursive (BT.Application b1 b2)    c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 B.App) c
+    recursive (BT.Infix' BT.Or b1 b2)   c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 B.Or)  c
+    recursive (BT.Infix' BT.And b1 b2)  c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 B.And) c
+    recursive (BT.Cons b1 b2)           c     = genericAux2 (b1, Aux2) (b2, Aux1) (B.Auxiliary2 B.Cons, Prim) c
     recursive (BT.Symbol' s) context =
       case context Map.!? s of
         -- The symbol is bound, and thus we have a port and its number
@@ -59,9 +59,9 @@ astToNet bohm = net'
         -- Note, that multiple instances of this symbol will create multiple
         -- Different symbols instead of sharing, as it is unbound, we can't do
         -- any processing anyways
-        Nothing → (,) <$> (newNode (B.Symbol' s)) <*> pure Prim
+        Nothing → (,) <$> (newNode (B.Primar $ B.Symbol s)) <*> pure Prim
     recursive (BT.Lambda s body) context = do
-      numLam          ← newNode B.Lambda'
+      numLam          ← newNode (B.Auxiliary2 B.Lambda)
       (bNode,  bPort) ← recursive body (Map.insert s (numLam, Aux2) context)
       link (numLam, Aux1) (bNode, bPort)
       pure (numLam, Prim)
@@ -69,12 +69,12 @@ astToNet bohm = net'
       (numBound, portBound) ← recursive bound context
       recursive body (Map.insert sym (numBound, portBound) context)
     recursive (BT.Letrec sym body) context = do
-      numMu          ← newNode (B.Infix B.Mu')
+      numMu          ← newNode (B.Auxiliary2 B.Mu)
       (bNode, bPort) ← recursive body (Map.insert sym (numMu, Aux2) context)
       link (numMu, Aux1) (bNode, bPort)
       pure (numMu, Prim)
     recursive (BT.If b1 b2 b3) c = do
-      (numIf, retPort) ← genericAux2 (b1, Prim) (b2, Aux3) (B.IfElse', Aux1) c
+      (numIf, retPort) ← genericAux2 (b1, Prim) (b2, Aux3) (B.Auxiliary3 B.IfElse, Aux1) c
       (b3Num, b3Port)  ← recursive b3 c
       link (numIf, Aux2) (b3Num, b3Port)
       pure (numIf, retPort)
@@ -107,7 +107,7 @@ chaseAndCreateFan (num,port) = do
     Nothing → pure (num, port)
     Just t1@(nConnected, connectedPort) → do
       put @"level" (succ lev)
-      numFan ← newNode (B.FanIn' lev)
+      numFan ← newNode (B.Auxiliary2 $ B.FanIn lev)
       let nodeFan = RELAuxiliary2 { node       = numFan
                                   , primary    = Link (Port port          num)
                                   , auxiliary1 = Link (Port connectedPort nConnected)

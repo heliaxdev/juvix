@@ -21,9 +21,9 @@ in' :: ∀ (f :: * → *). f (FixM f) → FixM f
 in' r f = f (foldM f) r
 
 --out'' :: Functor f ⇒ FixM f → f (FixM f)
-out'' fr = fmap (\r → in' r) fr --undefined -- fmap (\r → in' (rec' r)) fr
+out'' rec' fr = fmap (\r → in' (rec' r)) fr --undefined -- fmap (\r → in' (rec' r)) fr
 
-out :: Functor f ⇒ FixM f → f (FixM f)
+out :: forall x f . Functor f ⇒ (AlgebraM f x → x) → f (AlgebraM f x → x)
 out fr = undefined -- fmap (\r → in' r) fr --undefined -- fmap (\r → in' (rec' r)) fr
 
 zero' :: AlgebraM N x -> x
@@ -37,22 +37,20 @@ two' = succ' (succ' zero')
 three :: FixM N
 three = succ' two'
 
-out' :: Functor f1 ⇒ (t → f2 (FixM f2)) → f1 t → f1 (AlgebraM f2 x -> x)
-out' rec' fr = fmap (\r → in' (rec' r)) fr
+--out' : ∀ F: ★ ➔ ★. Functor ·F ➔ FixM ·F ➔ F ·(FixM ·F)
+--  = Λ F. λ fmap. λ d. d ·(F ·(FixM ·F)) (
+--    Λ R. λ rec. λ fr. fmap (λ r: R. in (rec r)) fr).
 
-predAlg' :: FixM N → FixM N
-predAlg' t =
-  case out t of
-    Z   → zero'
-    S n → n
+--out' :: forall x f . Functor f ⇒ (AlgebraM f x → x) → f (AlgebraM f x → x)
+--out' fr = fr (\ rec' fr → fmap (in' . rec') fr)
 
 --predAlg :: (t -> N (FixM N)) -> N t -> AlgebraM N x -> x
-predAlg :: AlgebraM N (FixM N) -- (t -> N (FixM N)) -> N t -> AlgebraM N x -> x
-predAlg rec' n =
-  case out' undefined n of
+--predAlg :: AlgebraM N (FixM N) -- (t -> N (FixM N)) -> N t -> AlgebraM N x -> x
+predAlg :: Nat → Nat
+predAlg n =
+  case out n of
     Z   → zero'
     S n → n
-
 
 isEvenAlgN :: AlgebraM N Bool
 isEvenAlgN rec' n =
@@ -64,10 +62,8 @@ isEvenAlgN rec' n =
 type NatBB a = forall b. (() → b) → (a → b) → b
 newtype NatBoehm a = Boehm {unBoehm :: NatBB a}
 
-
 isEvenAlgM :: AlgebraM NatBoehm Bool
 isEvenAlgM rec' n = unBoehm n (\_ → True) (\n' →  not (rec' n'))
-
 
 isEvenM :: FixM NatBoehm → Bool
 isEvenM = foldM isEvenAlgM
