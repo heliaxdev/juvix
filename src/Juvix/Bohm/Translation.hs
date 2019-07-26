@@ -64,6 +64,12 @@ astToNet bohm = net'
       numLam          ← newNode (B.Auxiliary2 B.Lambda)
       (bNode,  bPort) ← recursive body (Map.insert s (numLam, Aux2) context)
       link (numLam, Aux1) (bNode, bPort)
+      aux2Filled ← findEdge (numLam, Aux2)
+      case aux2Filled of
+        Nothing → do
+          numErase ← newNode (B.Primar B.Erase)
+          link (numLam, Aux2) (numErase, Prim)
+        Just _  → pure ()
       pure (numLam, Prim)
     recursive (BT.Let sym bound body) context = do
       (numBound, portBound) ← recursive bound context
