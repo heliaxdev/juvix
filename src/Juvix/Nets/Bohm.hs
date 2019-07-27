@@ -119,7 +119,7 @@ reduce = do
                   IfElse →
                     langToProperPort node >>= \case
                       Just IsPrim {_tag0 = Fals} → True <$ ifElseRule node n False
-                      Just IsPrim {_tag0 = Tru}  → True <$ ifElseRule node n False
+                      Just IsPrim {_tag0 = Tru}  → True <$ ifElseRule node n True
                       _                          → pure isChanged
               IsAux2 tag (Primary node) _ _ →
                 case tag of

@@ -24,7 +24,7 @@ netToGif dir name num net = do
   createDirectoryIfMissing True dir
 
   result ← runGraphNet (dir <> "/" <> name) num net
-  dirs    ← listDirectory dir
+  dirs   ← listDirectory dir
 
   let imagesGen = T.pack <$> filter (\x → isPrefixOf name x ∧ not (T.isInfixOf "." (T.pack x))) dirs
       appDir    = ((T.pack dir <> "") <>)
