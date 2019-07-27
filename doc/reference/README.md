@@ -1,6 +1,6 @@
 ## Juvix Language Reference
 
-See [the language reference](language-reference.pdf)
+See [the language reference](language-reference.pdf).
 
 ### Building
 
@@ -12,8 +12,14 @@ Additional requirements:
 - [pandoc-include filter](https://pypi.org/project/pandoc-include/)
 - [pandoc-citeproc filter](https://github.com/jgm/pandoc-citeproc)
 
-To update, edit [src/language-reference.pdc](src/language-reference.pdc), then rebuild the document:
+To update, edit source files, e.g. [src/language-reference.pdc](src/language-reference.pdc), then rebuild the document:
 
 ```bash
 make
+```
+
+To automatically rebuild on file changes (`inotifywait` required):
+
+```bash
+./automake.sh
 ```

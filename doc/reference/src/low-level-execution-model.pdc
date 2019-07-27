@@ -134,9 +134,87 @@ Lam-App Annihilation (beta reduction)
 
 Fan Commutation
 
+\begin{figure}[H]
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$f_i$}[5]
+\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$f_j$}}[5]
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\outwire[]{b/1}{c}
+\outwire[]{b/4}{b}
+\cutWire{a.out}{b.out}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$f_j$}}[5]
+\inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$f_j$}}[5]
+\inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+\inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+\inwire[]{a.out}{a}
+\inwire[]{b.out}{d}
+\outwire[]{c.out}{b}
+\outwire[]{d.out}{c}
+\swire[0]{a/4}{c/1}{}{}
+\swire[0]{b/1}{d/4}{}{}
+\swire[0]{a/1}{d/1}{}{}
+\swire[0]{b/4}{c/4}{}{}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
 Fan Annihilation
 
+\begin{figure}[H]
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$f_i$}[5]
+\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$f_i$}}[5]
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\outwire[]{b/1}{c}
+\outwire[]{b/4}{b}
+\cutWire{a.out}{b.out}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\wirestraight[]{a}{c}{b}{d}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
+Eraser Commutation
+
 Eraser Annihilation
+
+\begin{figure}[H]
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inode[]{a}{$⊗$}
+\inode[below = 40 pt]{b}{$⊗$}
+\vwire{a}{b}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\end{subfigure}
+\end{figure}
 
 \floatstyle{boxed}
 \restylefloat{figure}
