@@ -139,6 +139,28 @@
 	\wire[#1]{#2}{dummy}
 }
 
+\newcommand{\wiretwo}[5][]{
+  % 1 = style
+  % 2 = style 1
+  % 3 = label 1
+  % 4 = style 2
+  % 5 = label 2
+  \node[#2] (dummy1) {#3};
+  \node[#4] (dummy2) {#5};
+  \wire[#1]{dummy1}{dummy2}
+}
+
+\newcommand{\wirecross}[5][]{
+  % 1 = style
+  % 2-5 = labels
+  \node[above = 25mm] (dummy1) {#2};
+  \node[right = 6mm of dummy1] (dummy2) {#5};
+  \node[below = 25mm of dummy2] (dummy3) {#3};
+  \node[left = 6mm of dummy3]  (dummy4) {#4};
+  \wire[#1]{dummy1}{dummy3}
+  \wire[#1]{dummy2}{dummy4}
+}
+
 % straight vertical wire (from source to intersection with target)
 \newcommand{\vwire}[2]{
 	% 1 = from

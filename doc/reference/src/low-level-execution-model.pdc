@@ -101,6 +101,46 @@ Example from chat & paper (of derivation).
 
 ## Oracle-free optimal reduction
 
+The oracle-free abstract algorithm for optimal reduction operates on four node types: $λ$ (lambda), $@$ (application), $f_i$ (fan, with index $i$), and $⊗$ (eraser). Rewrite rules always operate only on primary port pairs and consist of two categories: **annihilation** rules, which remove nodes, and **commutation** rules, which create nodes.
+
+Lam-App Annihilation (beta reduction)
+
+\floatstyle{plain}
+\restylefloat{figure}
+
+\begin{figure}[H]
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$@$}[5]
+\inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$λ$}}[5]
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\outwire[]{l/1}{c}
+\outwire[]{l/4}{b}
+\cutWire{a.out}{l.out}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\wirecross[]{a}{c}{b}{d}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
+Fan Commutation
+
+Fan Annihilation
+
+Eraser Annihilation
+
+\floatstyle{boxed}
+\restylefloat{figure}
+
 ## Bespoke term encoding
 
 - Over set of underlying opcodes & von-Neumann-ish VM (e.g. x86, LLVM, EVM).

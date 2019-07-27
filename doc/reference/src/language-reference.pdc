@@ -37,6 +37,7 @@ header-includes:
     - \usepackage{float}
     - \floatstyle{boxed}
     - \restylefloat{figure}
+    - \usepackage{subcaption}
     - \usepackage{tikz}
     - \usetikzlibrary{arrows,automata}
     - \newtheorem{theorem}{Theorem}
