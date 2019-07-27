@@ -103,12 +103,11 @@ Example from chat & paper (of derivation).
 
 The oracle-free abstract algorithm for optimal reduction operates on four node types: $λ$ (lambda), $@$ (application), $f_i$ (fan, with index $i$), and $⊗$ (eraser). Rewrite rules always operate only on primary port pairs and consist of two categories: **annihilation** rules, which remove nodes, and **commutation** rules, which create nodes.
 
-Lam-App Annihilation (beta reduction)
-
 \floatstyle{plain}
 \restylefloat{figure}
 
 \begin{figure}[H]
+\caption{Lambda-application annihilation (beta reduction)}
 \begin{subfigure}[c]{0.1\textwidth}
 \begin{tikzpicture}
 \inetcell[]{a}{$@$}[5]
@@ -132,9 +131,8 @@ Lam-App Annihilation (beta reduction)
 \end{subfigure}
 \end{figure}
 
-Fan Commutation
-
 \begin{figure}[H]
+\caption{Fan-fan commutation}
 \begin{subfigure}[c]{0.1\textwidth}
 \begin{tikzpicture}
 \inetcell[]{a}{$f_i$}[5]
@@ -169,9 +167,80 @@ Fan Commutation
 \end{subfigure}
 \end{figure}
 
-Fan Annihilation
+\begin{figure}[H]
+\caption{Fan-application commutation}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$f_i$}[5]
+\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$@$}}[5]
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\outwire[]{b/1}{c}
+\outwire[]{b/4}{b}
+\cutWire{a.out}{b.out}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$@$}}[5]
+\inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$@$}}[5]
+\inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+\inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+\inwire[]{a.out}{a}
+\inwire[]{b.out}{d}
+\outwire[]{c.out}{b}
+\outwire[]{d.out}{c}
+\swire[0]{a/4}{c/1}{}{}
+\swire[0]{b/1}{d/4}{}{}
+\swire[0]{a/1}{d/1}{}{}
+\swire[0]{b/4}{c/4}{}{}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
 
 \begin{figure}[H]
+\caption{Fan-lambda commutation}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$f_i$}[5]
+\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$λ$}}[5]
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\outwire[]{b/1}{c}
+\outwire[]{b/4}{b}
+\cutWire{a.out}{b.out}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$λ$}}[5]
+\inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$λ$}}[5]
+\inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+\inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+\inwire[]{a.out}{a}
+\inwire[]{b.out}{d}
+\outwire[]{c.out}{b}
+\outwire[]{d.out}{c}
+\swire[0]{a/4}{c/1}{}{}
+\swire[0]{b/1}{d/4}{}{}
+\swire[0]{a/1}{d/1}{}{}
+\swire[0]{b/4}{c/4}{}{}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
+\begin{figure}[H]
+\caption{Fan-fan annihilation}
 \begin{subfigure}[c]{0.1\textwidth}
 \begin{tikzpicture}
 \inetcell[]{a}{$f_i$}[5]
@@ -195,11 +264,86 @@ Fan Annihilation
 \end{subfigure}
 \end{figure}
 
-Eraser Commutation
-
-Eraser Annihilation
+\begin{figure}[H]
+\caption{Eraser-lambda commutation}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$λ$}[5]
+\inode[below = 40 pt]{b}{$⊗$}
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\cutWire{a.out}{b.north}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inode[]{a}{$⊗$}
+\inode[right = 20 pt]{b}{$⊗$}
+\inwire[]{a}{a}
+\inwire[]{b}{d}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
 
 \begin{figure}[H]
+\caption{Eraser-application commutation}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$@$}[5]
+\inode[below = 40 pt]{b}{$⊗$}
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\cutWire{a.out}{b.north}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inode[]{a}{$⊗$}
+\inode[right = 20 pt]{b}{$⊗$}
+\inwire[]{a}{a}
+\inwire[]{b}{d}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
+\begin{figure}[H]
+\caption{Eraser-fan commutation}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$f_i$}[5]
+\inode[below = 40 pt]{b}{$⊗$}
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\cutWire{a.out}{b.north}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inode[]{a}{$⊗$}
+\inode[right = 20 pt]{b}{$⊗$}
+\inwire[]{a}{a}
+\inwire[]{b}{d}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
+\begin{figure}[H]
+\caption{Eraser-eraser annihilation}
 \begin{subfigure}[c]{0.1\textwidth}
 \begin{tikzpicture}
 \inode[]{a}{$⊗$}
