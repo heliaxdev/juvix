@@ -31,6 +31,24 @@ data CTerm
   |  Lam  CTerm --(LAM) Lam stands for Lambda abstractions
   deriving (Show, Eq)
 
+--Helper functions for turning ITerms to CTerm
+cStar :: CTerm
+cStar = Inf Star
+cPi :: CTerm -> CTerm -> CTerm
+cPi f t = Inf (Pi f t)
+cBound :: Int -> CTerm
+cBound x = Inf (Bound x)
+cNat :: CTerm
+cNat = Inf Nat
+cZero :: CTerm
+cZero = Inf Zero
+cSucc :: CTerm -> CTerm
+cSucc k = Inf (Succ k)
+cEq :: CTerm -> CTerm -> CTerm -> CTerm
+cEq a x y = Inf (Eq a x y)
+cRefl :: CTerm -> CTerm -> CTerm
+cRefl a x = Inf (Refl a x)
+
 data Name
   =  Global  String --Global variables are represented by name thus type string
   |  Local   Int --to convert a bound variable into a free one
@@ -194,20 +212,20 @@ quote0 = quote 0
 quote :: Int -> Value -> CTerm
 quote ii (VLam f)      =  Lam (quote (ii + 1) (f (vfree (Quote ii))))
 quote ii (VNeutral n)  =  Inf (neutralQuote ii n)
-quote _ii VStar        =  Inf Star
-quote ii (VPi v f)     =  Inf (Pi (quote ii v)(quote (ii + 1)(f (vfree(Quote ii)))))
+quote _ii VStar        =  cStar
+quote ii (VPi v f)     =  cPi (quote ii v)(quote (ii + 1)(f (vfree(Quote ii))))
 --for Nat
-quote _ii VNat         =  Inf Nat
-quote _ii VZero        =  Inf Zero
-quote ii (VSucc n)     =  Inf (Succ (quote ii n))
+quote _ii VNat         =  cNat
+quote _ii VZero        =  cZero
+quote ii (VSucc n)     =  cSucc (quote ii n)
 --for Vec
 quote ii (VVec a n)         =  Inf (Vec (quote ii a) (quote ii n))
 quote ii (VNil a)           =  Inf (Nil (quote ii a))
 quote ii (VCons a n x xs)   =  Inf (Cons  (quote ii a) (quote ii n)
                                     (quote ii x) (quote ii xs))
 --for Eq
-quote ii (VEq a x y)        =  Inf (Eq (quote ii a) (quote ii x) (quote ii y))
-quote ii (VRefl x y)        =  Inf (Refl (quote ii x) (quote ii y))
+quote ii (VEq a x y)        =  cEq (quote ii a) (quote ii x) (quote ii y)
+quote ii (VRefl x y)        =  cRefl (quote ii x) (quote ii y)
 
 neutralQuote :: Int -> Neutral -> ITerm
 neutralQuote ii (NFree x)   =  boundfree ii x
@@ -359,42 +377,68 @@ cType _ii _g _ _
 
   --motive for plusK
 motivePlus :: CTerm
-motivePlus = (Lam (Inf (Pi (Inf Nat) (Inf Nat))))
+motivePlus = Lam (cPi cNat cNat)
 --following paper, plus add two Nats. plus :: Nat -> Nat -> Nat.
 plus :: CTerm -> ITerm
 plus = NatElim
   motivePlus -- motive
-  (Lam (Inf (Bound 0))) --(\n -> n)
+  (Lam (cBound 0)) --(\n -> n)
   --(\k \rec \n -> Succ(rec n)), where rec is adding k
-  (Lam (Lam (Lam (Inf (Succ (Inf ((Bound 1) :@: Inf (Bound 0))))))))
+  (Lam (Lam (Lam (cSucc (Inf ((Bound 1) :@: (cBound 0)))))))
 --plusZero adds zero to a Nat. plusZero :: Nat -> Nat.  
 plusZero :: ITerm
-plusZero = plus (Inf Zero)
+plusZero = plus cZero
 
 plusOne :: ITerm
-plusOne = plus (Inf (Succ (Inf Zero)))
+plusOne = plus (cSucc cZero)
 
 plusTwo :: ITerm
-plusTwo = plus (Inf (Succ (Inf (Succ (Inf Zero)))))
+plusTwo = plus (cSucc (cSucc cZero))
 
---The rec function to prove inductive case of plusZeroIsIdentity.
---EqRec :: Eq Nat (plusZero k) k -> Eq Nat (plusZero (Succ k)) (Succ k)
-EqRec = (Lam EqElim (Inf Bound 0)
-               (Lam (Lam (Lam (Eq )))))
+{- eqElimType =
+  cPi cStar --1st argument
+  --2nd argument, the motive
+  (cPi (cBound 0) (cPi (cBound 0) cPi ((cEq (cBound 0)
+  --3rd argument
+  (cPi (cBound 0) (cPi )))) -}
+{- eqElim :: ITerm
+eqElim = 
+  Ann eqElimType
+  (Lam 
+    (Lam 
+      (Lam 
+        (Lam 
+          (Lam 
+            (Lam 
+              (Inf $ EqElim (bound 5) (bound 4) (bound 3) (bound 2) (bound 1) (bound 0))
+            )
+          )
+        )
+      )
+    )
+  )
 
+test = eqElim :@: cNat  
+ -}
+--The function to prove inductive case of plusZeroIsIdentity.
+--plusZeroIsIdentityInductive :: Eq Nat (plusZero k) k -> Eq Nat (plusZero (Succ k)) (Succ k)
+{- plusZeroIsIdentityInductive = 
+  EqElim
+    (Lam EqElim (cBound 0))
+    (Lam (Lam (Lam (Refl ))))
+    undefined -}
 --Proof of x + 0 = x
 plusZeroIsIdentity :: CTerm -> ITerm
 plusZeroIsIdentity = NatElim --point-free style, x is omitted
   --motive is takes in x and returns the type Eq Nat (x+0) x, \x. Eq Nat (x + 0) x
-  (Lam (Inf (Eq (Inf Nat) (Inf (plusZero :@: (Inf (Bound 0)))) (Inf (Bound 0)))))
-  (Inf (Refl (Inf Nat) (Inf Zero))) --m Zero, with type Eq Nat 0 0.
+  (Lam (cEq cNat (Inf (plusZero :@: (cBound 0))) (cBound 0)))
+  (cRefl cNat cZero) --m Zero, with type Eq Nat 0 0.
   --inductive case, the result have to have type Eq Nat (k + 1 + 0) (k + 1) 
-  --(\k \rec -> EqRec Nat (k+0) k)
+  --(\k \rec -> )
   undefined 
   
-
 plusZeroIsIdentityZero :: ITerm
-plusZeroIsIdentityZero = plusZeroIsIdentity (Inf Zero)
+plusZeroIsIdentityZero = plusZeroIsIdentity cZero
 
 zeroEqualsZero :: ITerm
-zeroEqualsZero = Refl (Inf Nat) (Inf Zero)
+zeroEqualsZero = Refl cNat cZero
