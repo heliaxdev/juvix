@@ -134,3 +134,72 @@
 
 ;; (funcall (pred-alg% #'one%) #'is-even-tag)
 ;; (funcall (pred-alg% #'hundred%) #'is-even-tag)
+
+;; Encoding a binary tree with and without tags --------------------------------
+
+;; data Bin a = Leaf a
+;;            | Empt
+;;            | Branch (Bin a) a (Bin a)
+
+
+(defun leaf-c (v k l)
+  (inl v k l))
+
+(defun empt-c (k l)
+  (inr (fn:curry inl '()) k l))
+
+(defun branch-c (left ele right k l)
+  (inr (fn:curry inr (list left ele right)) k l))
+
+(defun leaf (n x)
+  (in (fn:curry leaf-c n) x))
+
+(defun empt (x)
+  (in #'empt-c x))
+
+(defun branch (left ele right x)
+  (in (fn:curry branch-c left ele right) x))
+
+
+(defmacro case%% (x &rest args)
+  (reduce (lambda (term ys)
+            (if (equalp (car ys) 'case%)
+                `(case% ,x
+                        ,term
+                        (lambda (,x)
+                          ,ys))
+                `(case% ,x
+                        ,term
+                        ,ys)))
+          args
+          :from-end t))
+
+
+(defun is-branch (rec x)
+  (declare (ignore rec))
+  (case%% x
+         ;; leaf case
+         (constantly nil)
+         ;; Empt ∨ Branch
+         (constantly nil)
+         ;; branch case
+         (lambda (x)
+           ;; x has left ele right
+           (print x)
+           t)))
+
+(defun is-branch% (rec x)
+  (declare (ignore rec))
+  (case% x
+         ;; leaf case
+         (constantly nil)
+         ;; Empt ∨ Branch
+         (lambda (x)
+           (case% x
+                  ;; empt case
+                  (constantly nil)
+                  ;; branch case
+                  (lambda (x)
+                    ;; x has left ele right
+                    (print x)
+                    t)))))
