@@ -174,13 +174,12 @@
           args
           :from-end t))
 
-
 (defun is-branch (rec x)
   (declare (ignore rec))
   (case%% x
          ;; leaf case
          (constantly nil)
-         ;; Empt ∨ Branch
+         ;; Empt
          (constantly nil)
          ;; branch case
          (lambda (x)
@@ -203,3 +202,5 @@
                     ;; x has left ele right
                     (print x)
                     t)))))
+
+;; (branch #'empt 2 #'empt #'is-branch%)
