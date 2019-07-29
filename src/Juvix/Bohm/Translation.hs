@@ -60,11 +60,9 @@ astToNet bohm = net'
       case (context Map.!? s, frees Map.!? s) of
         -- The symbol is bound, and thus we have a port and its number
         (Just portInfo, _) → chaseAndCreateFan portInfo
-        -- The symbol is Free, just stash it in a symbol with no rewrite rules
-        -- Note, that multiple instances of this symbol will create multiple
-        -- Different symbols instead of sharing, as it is unbound, we can't do
-        -- any processing anyways
+        -- The symbol is Free, but used already, create a sharing node for it
         (Nothing, Just portInfo) → chaseAndCreateFan portInfo
+        -- The symbol is Free, just stash it in a symbol with no rewrite rules
         (Nothing, Nothing) → do
           nodeInfo ← (,) <$> (newNode (B.Primar $ B.Symbol s)) <*> pure Prim
           put @"free" (Map.insert s nodeInfo frees)
