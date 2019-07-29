@@ -2,8 +2,7 @@
 ;;; This stdlib: can be loaded by the asdf file in the following link
 ;;; https://github.com/mariari/Misc-Lisp-Scripts
 
-;; attempt 1 -------------------------------------------------------------------
-
+;; No tag case------------------------------------------------------------------
 (defun inl (x k l)
   (declare (ignore l))
   (funcall k x))
@@ -15,14 +14,42 @@
 (defun case% (i k l)
   (funcall i k l))
 
-(defun zero (k l)
+(defun zero-c (k l)
   (inl '() k l))
 
-(defun one (k l)
-  (inr #'zero k l))
+(defun one-c (k l)
+  (inr #'zero-c k l))
+
+(defun succ-c (c k l)
+  (inr c k l))
 
 (defun fix (f)
   (funcall f (fix f)))
+
+(defun is-even (rec x)
+  (case% x
+         (lambda (x)
+           (declare (ignore x))
+           t)
+         (lambda (s)
+           (not (funcall rec s)))))
+
+(defun pred (rec x)
+  (declare (ignore rec))
+  (case% x
+         (lambda (x)
+           (declare (ignore x))
+           #'zero)
+         (lambda (s)
+           s)))
+
+(defun zero (x)
+  (in #'zero-c x))
+
+(defun succ (n x)
+  (in (fn:curry succ-c n) x))
+
+;; (succ (fn:curry succ #'zero) #'is-even)
 
 ;; Attempt 2--------------------------------------------------------------------
 
@@ -39,9 +66,11 @@
 (defun in (r f)
   (funcall f (fn:curry fold-m f) r))
 
+;; with the tag
 (defun zero% (x)
   (in +Z+ x))
 
+;; with the tag
 (defun succ% (n x)
   (in (S n) x))
 
@@ -64,12 +93,12 @@
 (defun six% (x)
   (succ% (fn:curry succ% (fn:curry succ% (fn:curry succ% (fn:curry succ% #'one%)))) x))
 
-(defun is-even (rec x)
+(defun is-even-tag (rec x)
   (if (equalp +Z+ x)
       t
       (not (funcall rec (s-param x)))))
 
-;; (time (two% #'is-even))
+;; (time (two% #'is-even-tag))
 
 (defgeneric fmap (f xs))
 
@@ -103,6 +132,5 @@
 
 ;; (time (pred-alg% #'hundred%))
 
-;; (funcall (pred-alg% #'one%) #'is-even)
-;; (funcall (pred-alg% #'hundred%) #'is-even)
-;; (time (hundred% #'pred-alg))
+;; (funcall (pred-alg% #'one%) #'is-even-tag)
+;; (funcall (pred-alg% #'hundred%) #'is-even-tag)

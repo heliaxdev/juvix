@@ -26,7 +26,7 @@ type Nat' x = (Plus One x)
 type Nat = Mu Nat'
 
 -- Manually creating Mu
-type Huffman b c = forall a. (Plus c (b → a) → a)
+type Huffman b c = forall a. ((Plus c (b → a) → a) → a)
 
 --leaf :: c → Huffman b c
 --leaf = inl
@@ -42,7 +42,7 @@ one' = inr zero'
 --succ = fix inr
 
 
-newtype Huffman' b c = Huffman' (forall a. forall z. (c -> z) -> (b -> a -> z) -> z)
+newtype Huffman' b c = Huffman' (forall a. forall z. ((c -> z) -> (b -> a -> z) -> z) → a)
 
---leaf :: c → Huffman' b c
---leaf = Huffman' inl
+leaf :: c → Huffman b c
+leaf = inl
