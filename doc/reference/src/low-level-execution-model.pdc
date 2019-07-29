@@ -56,27 +56,13 @@ Wiring of the argument $x$ varies depending on variable usage linearity:
 \outwire[]{l.out}{$A ⊸ B$}
 \end{tikzpicture}
 
-**Linear**: If *x* appears exactly once in the body $t$, the $λ$ argument port is connected directly to the occurrence. 
+**Linear / contraction**: If *x* appears once or more in the body $t$, the $λ$ argument port is connected to the occurrence(s). If there is more than one occurrence, usages will be shared by a set of fan nodes constructed by the application encoding.
 
 \begin{tikzpicture}
 \inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
 \inetbigcell[below = 30pt]{l}{$λ$}[3]
 
 \axWire{g/1}{l/1}{}{}
-\cutWire{g.out}{l/2}{}{}
-\outwire[]{l.out}{$A ⊸ B$}
-\end{tikzpicture}
-
-**Contraction**: If *x* appears more than once in the body $t$, the $λ$ argument port is connected through a tree of fan-in nodes, each with a (globally) unique label, to all occurrences of $x$ in $t$ (only one fan-in node is shown in the diagram).
-
-\begin{tikzpicture}
-\inetbigcell[]{f}{$i$}[3]
-\inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
-\inetbigcell[below = 30pt]{l}{$λ$}[3]
-
-\axWire{g/1}{f/1}{}{}
-\axWire{g/2}{f/2}{}{}
-\axWire{f.out}{l/1}{}{}
 \cutWire{g.out}{l/2}{}{}
 \outwire[]{l.out}{$A ⊸ B$}
 \end{tikzpicture}
@@ -93,6 +79,24 @@ Wiring of the argument $x$ varies depending on variable usage linearity:
 \cutWire{h.out}{a/2}{}{}
 \outwire[]{a.out}{$C$}
 
+\end{tikzpicture}
+
+For each free variable $x$ in $(t_1 t_2)$ occurring more than once, all occurrences of $x$ must be connected by a tree of fan-in nodes, each with a globally unique label (only one fan-in node is shown in the diagram).
+
+\begin{tikzpicture}
+
+\inetbigcell[rotate = 180, above = 40 pt]{f}{\rotatebox[origin=c]{180}{$f_i$}}[3]
+\inetbigcell[right = -25 pt]{g}{$\phi(t_1)$}[3]
+\inetbigcell[right = 25 pt]{h}{$\phi(t_2)$}[3]
+\inetbigcell[below = 40 pt]{a}{$@$}[3]
+
+\cutWire{g.out}{a/1}{}{}
+\cutWire{h.out}{a/2}{}{}
+\outwire[]{a.out}{$C$}
+\inwire[]{f.out}{$x$}
+
+\axWire{g/1}{f/1}{}{}
+\axWire{h/1}{f/2}{}{}
 \end{tikzpicture}
 
 That ends the encoding rules.
