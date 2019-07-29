@@ -365,6 +365,10 @@ The oracle-free abstract algorithm for optimal reduction operates on four node t
 
 ## Bespoke term encoding
 
+- Primitive types (integer, string, bytes) ~> node types w/data
+- n-arity primitive functions (+, -, *, concat, index) ~> rewrite rules
+- alt-term encoding: $lam x. x + x + x$ ~> $3 * x$ rewrite rule instead of multi-node graph
+
 - Over set of underlying opcodes & von-Neumann-ish VM (e.g. x86, LLVM, EVM).
 - Use linear types (e.g. rewrite memory locations in place)
 - Must be semantically equivalent to interaction system encoding after read-back
