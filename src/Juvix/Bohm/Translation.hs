@@ -10,13 +10,17 @@ import           Juvix.Backends.Interface
 import qualified Juvix.Nets.Bohm      as B
 import qualified Juvix.Bohm.Type      as BT
 
-data Env net = Env {level :: Int, net' :: net B.Lang}
-             deriving (Generic)
+data Env net = Env {level :: Int
+                   , net' :: net B.Lang
+                   , free :: Map SomeSymbol (Node, PortType)
+                   } deriving (Generic)
 
 newtype EnvState net a = EnvS (State (Env net) a)
   deriving (Functor, Applicative, Monad)
   deriving (HasState "level" Int) via
     Rename "level" (Field "level" () (MonadState (State (Env net))))
+  deriving (HasState "free" (Map SomeSymbol (Node, PortType))) via
+    (Field "free" () (MonadState (State (Env net))))
   deriving (HasState "net" (net B.Lang)) via
     Rename "net'" (Field "net'" () (MonadState (State (Env net))))
 
@@ -26,7 +30,7 @@ execEnvState (EnvS m) = execState m
 astToNet :: Network net ⇒ BT.Bohm → net B.Lang
 astToNet bohm = net'
   where
-    Env {net'} = execEnvState (recursive bohm Map.empty) (Env 0 empty)
+    Env {net'} = execEnvState (recursive bohm Map.empty) (Env 0 empty mempty)
     -- we return the port which the node above it in the AST connects to!
     recursive (BT.IntLit x) _context = (,) <$> newNode (B.Primar $ B.IntLit x) <*> pure Prim
     recursive BT.False'     _context = (,) <$> newNode (B.Primar B.Fals)       <*> pure Prim
@@ -51,15 +55,20 @@ astToNet bohm = net'
     recursive (BT.Infix' BT.Or b1 b2)   c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 B.Or)  c
     recursive (BT.Infix' BT.And b1 b2)  c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 B.And) c
     recursive (BT.Cons b1 b2)           c     = genericAux2 (b1, Aux2) (b2, Aux1) (B.Auxiliary2 B.Cons, Prim) c
-    recursive (BT.Symbol' s) context =
-      case context Map.!? s of
+    recursive (BT.Symbol' s) context = do
+      frees ← get @"free"
+      case (context Map.!? s, frees Map.!? s) of
         -- The symbol is bound, and thus we have a port and its number
-        Just portInfo → chaseAndCreateFan portInfo
+        (Just portInfo, _) → chaseAndCreateFan portInfo
         -- The symbol is Free, just stash it in a symbol with no rewrite rules
         -- Note, that multiple instances of this symbol will create multiple
         -- Different symbols instead of sharing, as it is unbound, we can't do
         -- any processing anyways
-        Nothing → (,) <$> (newNode (B.Primar $ B.Symbol s)) <*> pure Prim
+        (Nothing, Just portInfo) → chaseAndCreateFan portInfo
+        (Nothing, Nothing) → do
+          nodeInfo ← (,) <$> (newNode (B.Primar $ B.Symbol s)) <*> pure Prim
+          put @"free" (Map.insert s nodeInfo frees)
+          pure nodeInfo
     recursive (BT.Lambda s body) context = do
       numLam          ← newNode (B.Auxiliary2 B.Lambda)
       (bNode,  bPort) ← recursive body (Map.insert s (numLam, Aux2) context)

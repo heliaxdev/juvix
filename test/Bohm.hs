@@ -42,6 +42,9 @@ test6 = runFlipNet (reduceAll 0) . astToNet <$> parseBohm "( (lambda x. (x + 3 +
 test6Gen :: IO (Either ParseError (InfoNet (FlipNet Lang)))
 test6Gen = traverse (netToGif "tmp/" "boo" 1000 . astToNet) (parseBohm "( (lambda x. (x + 3 + 5)) 2)")
 
+test67Gen :: IO (Either ParseError (InfoNet (FlipNet Lang)))
+test67Gen = traverse (netToGif "tmp/" "boo" 1000 . astToNet) (parseBohm "( (lambda x. (x + y + y)) 2)")
+
 printTest3 :: IO ()
 printTest3 = showNet "test3.dot" (runFlip net)
   where

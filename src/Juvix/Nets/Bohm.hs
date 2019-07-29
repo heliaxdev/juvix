@@ -145,6 +145,7 @@ reduce = do
                   FanIn level →
                     langToProperPort node >>= \case
                       Just IsAux2 {_tag2 = FanIn lv2} → True <$ fanIns (n, level) (node, lv2)
+                      Just IsPrim {_tag0 = Symbol _ } → pure isChanged
                       Just IsPrim {_tag0}             → True <$ fanInAux0 n (node, _tag0)
                       Just IsAux1 {_tag1}             → True <$ fanInAux1 n (node, _tag1) level
                       Just IsAux2 {_tag2}             → True <$ fanInAux2 n (node, _tag2) level
