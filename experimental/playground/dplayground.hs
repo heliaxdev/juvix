@@ -397,33 +397,6 @@ plusOne = plus (cSucc cZero)
 plusTwo :: ITerm
 plusTwo = plus (cSucc (cSucc cZero))
 
-{-eqElimType =
-  cPi cStar --1st argument
-  --2nd argument, the motive
-    (cPi (cBound 6) 
-      (cPi (cBound 6) 
-        (cPi (cEq (cBound 6) (cBound 5) (cBound 4) 
-          (cPi cStar
-  --3rd argument
-            (cPi (cBound 6) (cPi )))) -}
-{- eqElim :: ITerm
-eqElim = 
-  Ann eqElimType
-    (Lam 
-      (Lam 
-        (Lam 
-          (Lam 
-            (Lam 
-              (Inf $ EqElim (bound 5) (bound 4) (bound 3) (bound 2) (bound 1) (bound 0))
-            )
-          )
-        )
-      )
-    )
-
-test = eqElim :@: cNat  
- -}
-
  --the motive of the EqElim for plusZeroIsIdentityInductive
 plusZeroIsIdentityIM :: CTerm
 plusZeroIsIdentityIM = 
@@ -450,7 +423,7 @@ plusZeroIsIdentityInductive =
     --in this case it's Eq Nat (plusZero (Succ k)) (Succ k) 
     plusZeroIsIdentityIM
     --3rd argument, resulting type should be Eq Nat (plusZero (Succ k)) (Succ k).
-    (Lam (Inf (((iplusZeroIsIdentityIM :@: (cBound 0)) :@: (cBound 0)) :@: (cRefl cNat cZero))))
+    (Lam (Inf (((iplusZeroIsIdentityIM :@: (cBound 0)) :@: (cBound 0)) :@: (cRefl cNat (cBound 0)))))
     --4th argument, x, of type Nat
     (Lam (Inf (plusZero :@: (cBound 0))))
     --5th argument, y, of type Nat
@@ -458,7 +431,7 @@ plusZeroIsIdentityInductive =
     --6th argument, of type Eq a x y
     (Lam (Lam (Lam 
       (Inf (
-        ((iplusZeroIsIdentityIM :@: (cBound 0)) :@: (cBound 0)) :@: (cRefl cNat cZero))))))))
+        ((iplusZeroIsIdentityIM :@: (cBound 2)) :@: (cBound 1)) :@: (cBound 0))))))))
 --Proof of x + 0 = x
 plusZeroIsIdentity :: CTerm -> ITerm
 plusZeroIsIdentity = NatElim --point-free style, x is omitted
