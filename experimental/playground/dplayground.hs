@@ -397,33 +397,6 @@ plusOne = plus (cSucc cZero)
 plusTwo :: ITerm
 plusTwo = plus (cSucc (cSucc cZero))
 
-{-eqElimType =
-  cPi cStar --1st argument
-  --2nd argument, the motive
-    (cPi (cBound 6) 
-      (cPi (cBound 6) 
-        (cPi (cEq (cBound 6) (cBound 5) (cBound 4) 
-          (cPi cStar
-  --3rd argument
-            (cPi (cBound 6) (cPi )))) -}
-{- eqElim :: ITerm
-eqElim = 
-  Ann eqElimType
-    (Lam 
-      (Lam 
-        (Lam 
-          (Lam 
-            (Lam 
-              (Inf $ EqElim (bound 5) (bound 4) (bound 3) (bound 2) (bound 1) (bound 0))
-            )
-          )
-        )
-      )
-    )
-
-test = eqElim :@: cNat  
- -}
-
  --the motive of the EqElim for plusZeroIsIdentityInductive
 plusZeroIsIdentityIM :: CTerm
 plusZeroIsIdentityIM = 
