@@ -1,30 +1,48 @@
 import           Juvix.Bohm.Translation
 import           Juvix.Bohm.Parser
 import           Juvix.Nets.Bohm
-import           Juvix.Visualize.Graph
 import           Juvix.Backends.Graph
 import           Juvix.Backends.Maps
+import           Juvix.Backends.Env
+import           Juvix.Utility.Helper
+import           Juvix.Library
+import           Juvix.Backends.Interface
 
-import Protolude
+import           Juvix.Visualize.Graph
+import           Juvix.Visualize.Dot
 
---test0 = astToNet <$> parseBohm "(lambda x. (x x) y)"
+import           Text.Parsec
+
+test1 :: Either ParseError (InfoNet (FlipNet Lang))
 test1 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "(lambda x. (x x) y)"
 
--- This is the only test that breaks
--- runMapnet (reduceAll 10) . astToNet <$> parseBohm "((lambda x. (x x)) (lambda x. (x x)))"
+
+parsed :: Network net => Either ParseError (net Lang)
+parsed = astToNet <$> parseBohm "((lambda x. (x x)) (lambda x. (x x)))"
+
+test2' :: Either ParseError (InfoNet (Juvix.Backends.Maps.Net Lang))
+test2' = runMapNet (reduceAll 10) . astToNet <$> parseBohm "((lambda x. (x x)) (lambda x. (x x)))"
+
+test2 :: Either ParseError (InfoNet (FlipNet Lang))
 test2 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "((lambda x. (x x)) (lambda x. (x x)))"
 
+test3 :: Either ParseError (InfoNet (FlipNet Lang))
 test3 = runFlipNet (reduceAll 1) . astToNet <$> parseBohm "((lambda x. (x x)) (lambda x. (x x)))"
 
+test4 :: Either ParseError (InfoNet (FlipNet Lang))
 test4 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "(lambda y. (lambda x. (y x)) (lambda x. 2 + x))"
 
+test5 :: Either ParseError (InfoNet (FlipNet Lang))
 test5 = runFlipNet (reduceAll 10) . astToNet <$> parseBohm "(2 + 2)"
 
---printTestn n = showNet "test.dot" net
---  where
---    Right (InfoNet {net = net}) = n
 
---printTest3 :: IO ()
--- printTest3 = showNet "test3.dot" net
---  where
---    Right (InfoNet {net = net}) = test3
+test6 :: Either ParseError (InfoNet (FlipNet Lang))
+test6 = runFlipNet (reduceAll 0) . astToNet <$> parseBohm "( (lambda x. (x + 3 + 5)) 2)"
+
+test6Gen :: IO (Either ParseError (InfoNet (FlipNet Lang)))
+test6Gen = traverse (netToGif "tmp/" "boo" 1000 . astToNet) (parseBohm "( (lambda x. (x + 3 + 5)) 2)")
+
+printTest3 :: IO ()
+printTest3 = showNet "test3.dot" (runFlip net)
+  where
+    Right (InfoNet {net = net}) = test3

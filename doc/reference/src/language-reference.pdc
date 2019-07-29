@@ -37,6 +37,7 @@ header-includes:
     - \usepackage{float}
     - \floatstyle{boxed}
     - \restylefloat{figure}
+    - \usepackage{subcaption}
     - \usepackage{tikz}
     - \usetikzlibrary{arrows,automata}
     - \newtheorem{theorem}{Theorem}
@@ -109,6 +110,10 @@ header-includes:
 # Core language
 
 !include src/core-language.pdc
+
+# Whole-program optimization
+
+!include src/whole-program-optimization.pdc
 
 # Dependent elementary affine logic
 

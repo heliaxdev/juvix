@@ -83,7 +83,7 @@ All EAL-typable terms can be converted into restricted pseudo-terms (for proof s
 
 ### Box paths
 
-Let $t$ be a pseudo-term and $x$ an occurrence of a free or bound variable in $t$.
+Let $t$ be a pseudo-term and $x$ be a particular occurrence of a free or bound variable in $t$.
 
 Define the **path** as an ordered list of the occurrences of $!$ and $\bar{!}$ enclosing $x$, more formally:
 
@@ -188,9 +188,9 @@ Let $t$ be a parameterized pseudo-term. Define the **boxing constraints** for $t
 Define parameterized type unification as:
 
 \begin{align}
-U(!^m α, !^n α) = { m = n } \\
-U(!^m (A_1 ⊸ A_2), !^n (B_1 ⊸ B_2)) = { m = n } ∪ U(A_1, B_1) ∪ U(A_2, B_2) \\
-U(\_, \_) = { false }
+U(!^m α, !^n α) = \{ m = n \} \\
+U(!^m (A_1 ⊸ A_2), !^n (B_1 ⊸ B_2)) = \{ m = n \} ∪ U(A_1, B_1) ∪ U(A_2, B_2) \\
+U(\_, \_) = \{ false \}
 \end{align}
 
 Let $Σ$ be a parameterized type assignment for a parameterized pseudo-term $t$. Extend $Σ$ to a partial map from subterms of $t$ to parameterized types as:

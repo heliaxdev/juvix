@@ -6,7 +6,7 @@
 module Juvix.NodeInterface where
 
 import           Control.Lens
-import           Protolude
+import           Juvix.Library
 import           Data.Graph.Inductive
 
 -- there is a probably better way of doing this, instead of writing the concrete terms

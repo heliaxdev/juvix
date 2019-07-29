@@ -1,7 +1,7 @@
 {-# LANGUAGE ApplicativeDo #-}
 module Juvix.Bohm.Parser where
 
-import           Protolude hiding ((<|>), many)
+import           Juvix.Library hiding ((<|>), many)
 import           Prelude (String)
 
 import           Text.Parsec

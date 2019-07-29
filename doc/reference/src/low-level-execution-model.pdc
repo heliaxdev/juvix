@@ -17,31 +17,361 @@ also
 - refl (equality) proofs in core language can be used by compiler, e.g. with total supply of a token = constant, for queries on the total supply the constant can be returned; more generally if two expressions are equal the compiler can choose which one to evaluate
 - will be more effective if graph representation is persistent, instead of written / read-back each contract call. can be used for both code & data
 
-## Interaction system encoding
-
 - Define encoding $\phi (t)$ of term $t$ mapping to net $n$
 - Define read-back function $\phi ^{-1}(n)$ mapping net $n$ to a term $t$, where $\phi^{-1}(\phi(t)) = t$ holds
 - Define interaction system reduction function $\psi(n)$ mapping nets to nets, where $\phi^{-1}(\psi(\phi(t))) = reduce\ t$ where $reduce$ is as defined in the semantics of Juvix Core
 
-## Oracle-free optimal reduction
+## Interaction system encoding
 
-(todo)
+EAL term language $t ::= x\ |\ λx.t\ |\ (t u)\ |\ !t$.
+
+EAL type $A ::= α\ |\ A\ ⊸\ A\ |\ !A$.
+
+EAL-typed terms can be translated into interaction nets, in accordance with the sequent calculus typing rules, as the function $\phi$ as follows.
+
+The EAL term is first erased to a simply-typed term, with EAL types and levels of subterms retained in a lookup table for reference during the translation.
+
+**Abstraction** is applied to terms of the form $λx.t$ and type $A ⊸ B$.
 
 \begin{tikzpicture}
-\inetbigcell[angle=130]{a}{$\lambda$}[5]
-\inetbigcell[angle=130, right=100pt]{b}{$@$}[5]
+\inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
+\inetbigcell[below = 30pt]{l}{$λ$}[3]
 
-\inwire{a/1}{}
-\inwire{a/4}{}
-\inwire{b/1}{}
-\inwire{b/4}{}
-
-\cutWire{a.out}{b.out}{}{}
+\axWire{g/1}{l/1}{$(arg)$}{}
+\cutWire{g.out}{l/2}{}{}
+\outwire[]{l.out}{$A ⊸ B$}
 \end{tikzpicture}
 
-How to encode other linear logic types?
+Wiring of the argument $x$ varies depending on variable usage linearity:
+
+**Weakening**: If $x$ does not appear in the body $t$, the $λ$ argument port is connected to an eraser.
+
+\begin{tikzpicture}
+\inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
+\inode[]{e}{$⊗$}
+\inetbigcell[below = 30pt]{l}{$λ$}[3]
+
+\cutWire{e}{l/1}{$$}{}
+\cutWire{g.out}{l/2}{$$}{}
+\outwire[]{l.out}{$A ⊸ B$}
+\end{tikzpicture}
+
+**Linear / contraction**: If *x* appears once or more in the body $t$, the $λ$ argument port is connected to the occurrence(s). If there is more than one occurrence, usages will be shared by a set of fan nodes constructed by the application encoding.
+
+\begin{tikzpicture}
+\inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
+\inetbigcell[below = 30pt]{l}{$λ$}[3]
+
+\axWire{g/1}{l/1}{}{}
+\cutWire{g.out}{l/2}{}{}
+\outwire[]{l.out}{$A ⊸ B$}
+\end{tikzpicture}
+
+**Application** is applied to terms of the form $(t_1 t_2)$ and type $C$.
+
+\begin{tikzpicture}
+
+\inetbigcell[right = -25 pt]{g}{$\phi(t_1)$}[3]
+\inetbigcell[right = 25 pt]{h}{$\phi(t_2)$}[3]
+\inetbigcell[below = 40 pt]{a}{$@$}[3]
+
+\cutWire{g.out}{a/1}{}{}
+\cutWire{h.out}{a/2}{}{}
+\outwire[]{a.out}{$C$}
+
+\end{tikzpicture}
+
+For each free variable $x$ in $(t_1 t_2)$ occurring more than once, all occurrences of $x$ must be connected by a tree of fan-in nodes, each with a globally unique label (only one fan-in node is shown in the diagram).
+
+\begin{tikzpicture}
+
+\inetbigcell[rotate = 180, above = 40 pt]{f}{\rotatebox[origin=c]{180}{$f_i$}}[3]
+\inetbigcell[right = -25 pt]{g}{$\phi(t_1)$}[3]
+\inetbigcell[right = 25 pt]{h}{$\phi(t_2)$}[3]
+\inetbigcell[below = 40 pt]{a}{$@$}[3]
+
+\cutWire{g.out}{a/1}{}{}
+\cutWire{h.out}{a/2}{}{}
+\outwire[]{a.out}{$C$}
+\inwire[]{f.out}{$x$}
+
+\axWire{g/1}{f/1}{}{}
+\axWire{h/1}{f/2}{}{}
+\end{tikzpicture}
+
+That ends the encoding rules.
+
+Example from chat & paper (of derivation).
+
+## Oracle-free optimal reduction
+
+The oracle-free abstract algorithm for optimal reduction operates on four node types: $λ$ (lambda), $@$ (application), $f_i$ (fan, with index $i$), and $⊗$ (eraser). Rewrite rules always operate only on primary port pairs and consist of two categories: **annihilation** rules, which remove nodes, and **commutation** rules, which create nodes.
+
+\floatstyle{plain}
+\restylefloat{figure}
+
+\begin{figure}[H]
+\caption{Lambda-application annihilation (beta reduction)}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$@$}[5]
+\inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$λ$}}[5]
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\outwire[]{l/1}{c}
+\outwire[]{l/4}{b}
+\cutWire{a.out}{l.out}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\wirecross[]{a}{c}{b}{d}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
+\begin{figure}[H]
+\caption{Fan-fan commutation}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$f_i$}[5]
+\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$f_j$}}[5]
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\outwire[]{b/1}{c}
+\outwire[]{b/4}{b}
+\cutWire{a.out}{b.out}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$f_j$}}[5]
+\inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$f_j$}}[5]
+\inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+\inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+\inwire[]{a.out}{a}
+\inwire[]{b.out}{d}
+\outwire[]{c.out}{b}
+\outwire[]{d.out}{c}
+\swire[0]{a/4}{c/1}{}{}
+\swire[0]{b/1}{d/4}{}{}
+\swire[0]{a/1}{d/1}{}{}
+\swire[0]{b/4}{c/4}{}{}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
+\begin{figure}[H]
+\caption{Fan-application commutation}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$f_i$}[5]
+\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$@$}}[5]
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\outwire[]{b/1}{c}
+\outwire[]{b/4}{b}
+\cutWire{a.out}{b.out}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$@$}}[5]
+\inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$@$}}[5]
+\inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+\inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+\inwire[]{a.out}{a}
+\inwire[]{b.out}{d}
+\outwire[]{c.out}{b}
+\outwire[]{d.out}{c}
+\swire[0]{a/4}{c/1}{}{}
+\swire[0]{b/1}{d/4}{}{}
+\swire[0]{a/1}{d/1}{}{}
+\swire[0]{b/4}{c/4}{}{}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
+\begin{figure}[H]
+\caption{Fan-lambda commutation}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$f_i$}[5]
+\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$λ$}}[5]
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\outwire[]{b/1}{c}
+\outwire[]{b/4}{b}
+\cutWire{a.out}{b.out}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$λ$}}[5]
+\inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$λ$}}[5]
+\inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+\inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+\inwire[]{a.out}{a}
+\inwire[]{b.out}{d}
+\outwire[]{c.out}{b}
+\outwire[]{d.out}{c}
+\swire[0]{a/4}{c/1}{}{}
+\swire[0]{b/1}{d/4}{}{}
+\swire[0]{a/1}{d/1}{}{}
+\swire[0]{b/4}{c/4}{}{}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
+\begin{figure}[H]
+\caption{Fan-fan annihilation}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$f_i$}[5]
+\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$f_i$}}[5]
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\outwire[]{b/1}{c}
+\outwire[]{b/4}{b}
+\cutWire{a.out}{b.out}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\wirestraight[]{a}{c}{b}{d}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
+\begin{figure}[H]
+\caption{Eraser-lambda commutation}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$λ$}[5]
+\inode[below = 40 pt]{b}{$⊗$}
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\cutWire{a.out}{b.north}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inode[]{a}{$⊗$}
+\inode[right = 20 pt]{b}{$⊗$}
+\inwire[]{a}{a}
+\inwire[]{b}{d}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
+\begin{figure}[H]
+\caption{Eraser-application commutation}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$@$}[5]
+\inode[below = 40 pt]{b}{$⊗$}
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\cutWire{a.out}{b.north}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inode[]{a}{$⊗$}
+\inode[right = 20 pt]{b}{$⊗$}
+\inwire[]{a}{a}
+\inwire[]{b}{d}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
+\begin{figure}[H]
+\caption{Eraser-fan commutation}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inetcell[]{a}{$f_i$}[5]
+\inode[below = 40 pt]{b}{$⊗$}
+\inwire[]{a/1}{a}
+\inwire[]{a/4}{d}
+\cutWire{a.out}{b.north}{}{}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inode[]{a}{$⊗$}
+\inode[right = 20 pt]{b}{$⊗$}
+\inwire[]{a}{a}
+\inwire[]{b}{d}
+\end{tikzpicture}
+\end{subfigure}
+\end{figure}
+
+\begin{figure}[H]
+\caption{Eraser-eraser annihilation}
+\begin{subfigure}[c]{0.1\textwidth}
+\begin{tikzpicture}
+\inode[]{a}{$⊗$}
+\inode[below = 40 pt]{b}{$⊗$}
+\vwire{a}{b}
+\end{tikzpicture}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.05\textwidth}
+\huge{→}
+\end{subfigure}
+~
+\begin{subfigure}[c]{0.1\textwidth}
+\end{subfigure}
+\end{figure}
+
+\floatstyle{boxed}
+\restylefloat{figure}
 
 ## Bespoke term encoding
+
+- Primitive types (integer, string, bytes) ~> node types w/data
+- n-arity primitive functions (+, -, *, concat, index) ~> rewrite rules
+- alt-term encoding: $lam x. x + x + x$ ~> $3 * x$ rewrite rule instead of multi-node graph
 
 - Over set of underlying opcodes & von-Neumann-ish VM (e.g. x86, LLVM, EVM).
 - Use linear types (e.g. rewrite memory locations in place)

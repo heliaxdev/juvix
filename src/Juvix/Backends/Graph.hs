@@ -21,6 +21,10 @@ type FlipNet = Flip Gr EdgeInfo
 runFlipNet :: EnvNetInfo (FlipNet b) a → FlipNet b → InfoNet (FlipNet b)
 runFlipNet f net = runNet f net
                           (toInteger (length (Graph.nodes (runFlip net))))
+
+runFlipNetIO :: EnvNetInfoIO (FlipNet b) a → FlipNet b → IO (InfoNet (FlipNet b))
+runFlipNetIO f net = runNetIO f net
+                             (toInteger (length (Graph.nodes (runFlip net))))
 -- Network Instances  ----------------------------------------------------------
 
 instance Network FlipNet where
