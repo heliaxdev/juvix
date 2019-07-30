@@ -400,18 +400,8 @@ plusTwo = plus (cSucc (cSucc cZero))
  --the motive of the EqElim for plusZeroIsIdentityInductive
 plusZeroIsIdentityIM :: CTerm
 plusZeroIsIdentityIM = 
-  (Lam (Lam (Lam (cEq cNat (cBound 2) (cBound 1)))))
---the type of plusZeroIsIdentityIM for annotation
-plusZeroIsIdentityIMType :: CTerm
-plusZeroIsIdentityIMType =
-  cPi cNat 
-    (cPi cNat
-      (cPi (cEq cNat (cBound 0) (cBound 1))
-      cStar))
---Turn plusZeroIsIdentityIM from a CTerm to an ITerm.
-iplusZeroIsIdentityIM :: ITerm
-iplusZeroIsIdentityIM =
-  Ann plusZeroIsIdentityIMType plusZeroIsIdentityIM
+  (Lam (Lam (Lam (cEq cNat (cSucc (cBound 2)) (cSucc (cBound 1))))))
+
 --The function to prove inductive case of plusZeroIsIdentity.
 --plusZeroIsIdentityInductive :: For all k::Nat, Eq Nat (plusZero k) k -> Eq Nat (plusZero (Succ k)) (Succ k)
 plusZeroIsIdentityInductive :: CTerm
@@ -419,18 +409,18 @@ plusZeroIsIdentityInductive =
   (Lam  --k :: Nat
     (Lam (cEqElim
       --1st argument: of type type, in this case Nat.
-      (cBound 1)
+      (cBound 0)
       --2nd argument: motive, takes in x, y, Eq a x y and returns a type,
       --in this case it's Eq Nat (plusZero (Succ k)) (Succ k) 
       plusZeroIsIdentityIM
       --3rd argument, resulting type should be Eq Nat (plusZero (Succ k)) (Succ k).
-      (Lam (cRefl cNat (cBound 0)))
+      (Lam (cRefl cNat (cSucc (cBound 2))))
       --4th argument, x, of type Nat
-      (Inf (plusZero :@: (cBound 0)))
+      (Inf (plusZero :@: (cBound 1)))
       --5th argument, y, of type Nat
       (cBound 1)
       --6th argument, of type Eq a x y
-      (cRefl cNat (cSucc (cBound 1))))))
+      (cRefl cNat (cBound 1)))))
 --Proof of x + 0 = x
 plusZeroIsIdentity :: CTerm -> ITerm
 plusZeroIsIdentity = NatElim --point-free style, x is omitted
@@ -440,8 +430,4 @@ plusZeroIsIdentity = NatElim --point-free style, x is omitted
   --inductive case, the result have to have type Eq Nat (k + 1 + 0) (k + 1) 
   plusZeroIsIdentityInductive
 
-plusZeroIsIdentityZero :: ITerm
-plusZeroIsIdentityZero = plusZeroIsIdentity cZero
 
-zeroEqualsZero :: ITerm
-zeroEqualsZero = Refl cNat cZero
