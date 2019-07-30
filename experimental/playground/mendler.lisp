@@ -163,14 +163,11 @@
 
 (defmacro case%% (x &rest args)
   (reduce (lambda (term ys)
-            (if (equalp (car ys) 'case%)
-                `(case% ,x
-                        ,term
-                        (lambda (,x)
-                          ,ys))
-                `(case% ,x
-                        ,term
-                        ,ys)))
+            `(case% ,x
+                    ,term
+                    ,(if (equalp (car ys) 'case%)
+                         `(lambda (,x) ,ys)
+                         ys)))
           args
           :from-end t))
 

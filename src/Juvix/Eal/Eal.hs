@@ -12,6 +12,10 @@ data Eal = Term SomeSymbol
 data Term = Bang Integer Eal
           deriving Show
 
+data SimpleType = ArrowT SimpleType SimpleType
+                | SpecificT SomeSymbol
+                deriving (Show, Eq)
+
 data Types = Lolly Types Types
            | BangT Integer Types
            | Forall
@@ -33,7 +37,7 @@ data Info = I {ctxt :: Map SomeSymbol Types} deriving (Show, Generic)
 newtype EnvError a = EnvError (ExceptT TypeErrors (State Info) a)
   deriving (Functor, Applicative, Monad)
   deriving (HasState "ctxt" (Map SomeSymbol Types)) via
-       Field "ctxt" () (MonadState (ExceptT TypeErrors (State Info)))
+    Field "ctxt" () (MonadState (ExceptT TypeErrors (State Info)))
   deriving (HasThrow "typ" TypeErrors) via
     MonadError (ExceptT TypeErrors (State Info))
 
@@ -150,7 +154,6 @@ addPath = do
 addCon :: HasState "constraints" [Constraint] m ⇒ Constraint → m ()
 addCon con = modify' @"constraints" (con :)
 
-
 boxConstraint ∷ ( HasState "constraints" [Constraint]  m
                 , HasState "count"       Spot          m
                 , HasState "path"        Path          m
@@ -165,7 +168,7 @@ boxConstraint (Bang _ t) = do
     Term s → do
       case termPaths Map.!? s of
         Just spot → addCon Constraint {spots = dropWhile (< spot) path, op = Eq 0}
-        Nothing   → addCon Constraint {spots = [count], op = Eq 0}
+        Nothing   → addCon Constraint {spots = path, op = Eq 0}
       pure (Bang (toInteger count) (Term s))
     Lambda s typ body → do
       put @"termsPath" (Map.insert s (succ count) termPaths)
