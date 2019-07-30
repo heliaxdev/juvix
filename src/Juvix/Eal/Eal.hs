@@ -37,7 +37,7 @@ data Info = I {ctxt :: Map SomeSymbol Types} deriving (Show, Generic)
 newtype EnvError a = EnvError (ExceptT TypeErrors (State Info) a)
   deriving (Functor, Applicative, Monad)
   deriving (HasState "ctxt" (Map SomeSymbol Types)) via
-       Field "ctxt" () (MonadState (ExceptT TypeErrors (State Info)))
+    Field "ctxt" () (MonadState (ExceptT TypeErrors (State Info)))
   deriving (HasThrow "typ" TypeErrors) via
     MonadError (ExceptT TypeErrors (State Info))
 
