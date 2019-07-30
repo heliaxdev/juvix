@@ -416,20 +416,21 @@ iplusZeroIsIdentityIM =
 --plusZeroIsIdentityInductive :: For all k::Nat, Eq Nat (plusZero k) k -> Eq Nat (plusZero (Succ k)) (Succ k)
 plusZeroIsIdentityInductive :: CTerm
 plusZeroIsIdentityInductive = 
-  (Lam (cEqElim 
-    --1st argument: of type type, in this case Nat.
-    (cBound 0)
-    --2nd argument: motive, takes in x, y, Eq a x y and returns a type,
-    --in this case it's Eq Nat (plusZero (Succ k)) (Succ k) 
-    plusZeroIsIdentityIM
-    --3rd argument, resulting type should be Eq Nat (plusZero (Succ k)) (Succ k).
-    (Lam (cRefl cNat (cBound 0)))
-    --4th argument, x, of type Nat
-    (Inf (plusZero :@: (cBound 0)))
-    --5th argument, y, of type Nat
-    (cBound 0)
-    --6th argument, of type Eq a x y
-    (cRefl cNat (cBound 0))))
+  (Lam  --k :: Nat
+    (Lam (cEqElim
+      --1st argument: of type type, in this case Nat.
+      (cBound 1)
+      --2nd argument: motive, takes in x, y, Eq a x y and returns a type,
+      --in this case it's Eq Nat (plusZero (Succ k)) (Succ k) 
+      plusZeroIsIdentityIM
+      --3rd argument, resulting type should be Eq Nat (plusZero (Succ k)) (Succ k).
+      (Lam (cRefl cNat (cBound 0)))
+      --4th argument, x, of type Nat
+      (Inf (plusZero :@: (cBound 0)))
+      --5th argument, y, of type Nat
+      (cBound 1)
+      --6th argument, of type Eq a x y
+      (cRefl cNat (cSucc (cBound 1))))))
 --Proof of x + 0 = x
 plusZeroIsIdentity :: CTerm -> ITerm
 plusZeroIsIdentity = NatElim --point-free style, x is omitted
