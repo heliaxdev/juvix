@@ -49,7 +49,7 @@ cEq a x y = Inf (Eq a x y)
 cRefl :: CTerm -> CTerm -> CTerm
 cRefl a x = Inf (Refl a x)
 cEqElim :: CTerm -> CTerm -> CTerm -> CTerm -> CTerm -> CTerm -> CTerm
-cEqElim a m t x y e = Inf (EqElim a m t x y e)
+cEqElim a m mr x y e = Inf (EqElim a m mr x y e)
 
 data Name
   =  Global  String --Global variables are represented by name thus type string
@@ -148,14 +148,14 @@ iEval (Refl x y)                d  =  VRefl (cEval x d) (cEval y d)
 iEval (Eq a x y)                d  =  VEq (cEval a d) (cEval x d) (cEval y d)
 iEval (EqElim a m mr x y eq)    d  =
   let mrVal  =  cEval mr d
-      rec eqVal =
+      recu eqVal =
         case eqVal of
           VRefl _ z -> mrVal `vapp` z
           VNeutral n ->
             VNeutral (NEqElim  (cEval a d) (cEval m d) mrVal
                                 (cEval x d) (cEval y d) n)
           _ -> error "internal: eval eqElim"
-  in rec (cEval eq d)
+  in recu (cEval eq d)
 
 vapp :: Value -> Value -> Value
 vapp (VLam f)      v =  f v
@@ -413,7 +413,7 @@ iplusZeroIsIdentityIM :: ITerm
 iplusZeroIsIdentityIM =
   Ann plusZeroIsIdentityIMType plusZeroIsIdentityIM
 --The function to prove inductive case of plusZeroIsIdentity.
---plusZeroIsIdentityInductive :: Eq Nat (plusZero k) k -> Eq Nat (plusZero (Succ k)) (Succ k)
+--plusZeroIsIdentityInductive :: For all k::Nat, Eq Nat (plusZero k) k -> Eq Nat (plusZero (Succ k)) (Succ k)
 plusZeroIsIdentityInductive :: CTerm
 plusZeroIsIdentityInductive = 
   (Lam (cEqElim 
@@ -423,15 +423,13 @@ plusZeroIsIdentityInductive =
     --in this case it's Eq Nat (plusZero (Succ k)) (Succ k) 
     plusZeroIsIdentityIM
     --3rd argument, resulting type should be Eq Nat (plusZero (Succ k)) (Succ k).
-    (Lam (Inf (((iplusZeroIsIdentityIM :@: (cBound 0)) :@: (cBound 0)) :@: (cRefl cNat (cBound 0)))))
+    (Lam (cRefl cNat (cBound 0)))
     --4th argument, x, of type Nat
-    (Lam (Inf (plusZero :@: (cBound 0))))
+    (Inf (plusZero :@: (cBound 0)))
     --5th argument, y, of type Nat
-    (Lam (cBound 0))
+    (cBound 0)
     --6th argument, of type Eq a x y
-    (Lam (Lam (Lam 
-      (Inf (
-        ((iplusZeroIsIdentityIM :@: (cBound 2)) :@: (cBound 1)) :@: (cBound 0))))))))
+    (cRefl cNat (cBound 0))))
 --Proof of x + 0 = x
 plusZeroIsIdentity :: CTerm -> ITerm
 plusZeroIsIdentity = NatElim --point-free style, x is omitted
@@ -439,7 +437,7 @@ plusZeroIsIdentity = NatElim --point-free style, x is omitted
   (Lam (cEq cNat (Inf (plusZero :@: (cBound 0))) (cBound 0)))
   (cRefl cNat cZero) --m Zero, with type Eq Nat 0 0.
   --inductive case, the result have to have type Eq Nat (k + 1 + 0) (k + 1) 
-  (Lam (plusZeroIsIdentityInductive))
+  plusZeroIsIdentityInductive
 
 plusZeroIsIdentityZero :: ITerm
 plusZeroIsIdentityZero = plusZeroIsIdentity cZero
