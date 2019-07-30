@@ -165,7 +165,7 @@ boxConstraint (Bang _ t) = do
     Term s → do
       case termPaths Map.!? s of
         Just spot → addCon Constraint {spots = dropWhile (< spot) path, op = Eq 0}
-        Nothing   → addCon Constraint {spots = [count], op = Eq 0}
+        Nothing   → addCon Constraint {spots = path, op = Eq 0}
       pure (Bang (toInteger count) (Term s))
     Lambda s typ body → do
       put @"termsPath" (Map.insert s (succ count) termPaths)
