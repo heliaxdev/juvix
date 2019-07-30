@@ -44,6 +44,8 @@ cZero :: CTerm
 cZero = Inf Zero
 cSucc :: CTerm -> CTerm
 cSucc k = Inf (Succ k)
+cNatElim :: CTerm -> CTerm -> CTerm -> CTerm -> CTerm
+cNatElim m mz ms k = Inf (NatElim m mz ms k)
 cEq :: CTerm -> CTerm -> CTerm -> CTerm
 cEq a x y = Inf (Eq a x y)
 cRefl :: CTerm -> CTerm -> CTerm
@@ -397,7 +399,7 @@ plusOne = plus (cSucc cZero)
 plusTwo :: ITerm
 plusTwo = plus (cSucc (cSucc cZero))
 
- --the motive of the EqElim for plusZeroIsIdentityInductive
+--the motive of the EqElim for plusZeroIsIdentityInductive
 plusZeroIsIdentityIM :: CTerm
 plusZeroIsIdentityIM = 
   (Lam (Lam (Lam (cEq cNat (cSucc (cBound 2)) (cSucc (cBound 1))))))
@@ -427,7 +429,42 @@ plusZeroIsIdentity = NatElim --point-free style, x is omitted
   --motive takes in x and returns the type Eq Nat (x+0) x, \x. Eq Nat (x + 0) x
   (Lam (cEq cNat (Inf (plusZero :@: (cBound 0))) (cBound 0)))
   (cRefl cNat cZero) --m Zero, with type Eq Nat 0 0.
-  --inductive case, the result have to have type Eq Nat (k + 1 + 0) (k + 1) 
+  --inductive case, the result have to be of type Eq Nat (k + 1 + 0) (k + 1) 
   plusZeroIsIdentityInductive
 
+--Proof of x + y = y + x
 
+--the motive of the EqElim for plusCommInductive
+plusCommIM :: CTerm
+plusCommIM = 
+  (Lam (Lam (Lam (cEq cNat (Inf (plus (cSucc (cBound 2)) :@: (cBound 1))) (Inf ((plus (cBound 1)) :@: (cSucc (cBound 2))))))))
+--The function to prove inductive case of plusComm.
+--plusComm :: For all k,x::Nat, Eq Nat (plus k x) (plus x k) -> Eq Nat (plus (Succ k) x) (plus x (Succ k))
+plusCommInductive :: CTerm
+plusCommInductive =
+  (Lam --k::Nat
+    (Lam --x::Nat
+      (Lam (cEqElim
+      --first argument of EqElim, of type type, in this case Nat
+      (cBound 0)
+      --2nd argument: motive, takes in x, y, Eq a x y and returns a type,
+      --in this case it's Eq Nat (plus (Succ k) x) (plus x (Succ k)) 
+      plusCommIM
+      --3rd argument, resulting type should be Eq Nat (plus (Succ k) x) (plus x (Succ k)).
+      (Lam (cRefl cNat (cSucc (cBound 2))))
+      --4th argument, x, of type Nat
+      (Inf ((plus (cBound 2)) :@: (cBound 1)))
+      --5th argument, y, of type Nat
+      (Inf (plus (cBound 1) :@: (cBound 2)))
+      --6th argument, of type Eq a x y
+      (cRefl cNat (Inf ((plus (cBound 1)) :@: (cBound 2))))
+      ))))
+
+plusComm :: CTerm -> CTerm -> ITerm
+plusComm x y = NatElim
+  --motive takes in x and y and returns the type Eq Nat (plus x y) (plus y x)
+  (Lam (Lam (cEq cNat (Inf (plus (cBound 1) :@: (cBound 0))) (Inf ((plus (cBound 0)) :@: (cBound 1))))))
+  (cRefl cNat (Inf (plusZero :@: (cBound 1)))) --m Zero, x + 0 = 0 + x
+  --inductive case, the result have to be of type Eq Nat (x + (k+1)) ((k+1) + x)
+  plusCommInductive
+  y
