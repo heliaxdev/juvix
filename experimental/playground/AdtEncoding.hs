@@ -1,6 +1,10 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
-import           Data.Map.Strict as Map
+
+import qualified Data.Map.Strict as Map
+import           Prelude         (error)
 import           Juvix.Library   hiding (Sum, Product)
+
 -- Adt Types -------------------------------------------------------------------
 
 data Product = Product Product
@@ -28,7 +32,7 @@ data Lambda = Lambda SomeSymbol Lambda
 -- Case x of
 -- /| Z   → body
 -- /| S n → body
-data Switch = Case Lambda
+data Switch = Case Lambda [Case]
 
 type Argument = SomeSymbol
 
@@ -37,6 +41,13 @@ type Body = Lambda
 data Case = C SomeSymbol [Argument] Body
 
 -- Environment type-------------------------------------------------------------
+-- TODO :: Add smaller environments for testing
+-- Doesn't matter much here, as all these values are pure
+-- All this means is that we waste 1 allocation of a list and a map
+
+-- One function does not require constructor, the other does not have
+-- the missingCase writer
+
 type Branches = [SomeSymbol]
 
 data Bound = Bound { lam     :: Lambda
@@ -47,9 +58,17 @@ data Bound = Bound { lam     :: Lambda
 data Env = Env { constructors :: Map SomeSymbol Bound
                -- | adtMap is a mapping between the adt name and the ordered cases thereof
                , adtMap :: Map SomeSymbol Branches
+               -- | missingCases represent the missing cases of a match
+               , missingCases :: [SomeSymbol]
                } deriving (Show, Generic)
 
-data Errors = AlreadyDefined deriving Show
+data Errors = AlreadyDefined
+            | NotInAdt   SomeSymbol
+            | NotInMatch SomeSymbol SomeSymbol
+            | AdtNotDefined SomeSymbol
+            | MatchWithoutCases
+            | InvalidAdt
+            deriving Show
 
 newtype EnvS a = EnvS (StateT Env (Except Errors) a)
   deriving (Functor, Applicative, Monad)
@@ -59,20 +78,24 @@ newtype EnvS a = EnvS (StateT Env (Except Errors) a)
     Field "adtMap" () (MonadState (StateT Env (Except Errors)))
   deriving (HasThrow "err" Errors) via
     MonadError (StateT Env (Except Errors))
+  deriving (HasStream "missingCases" [SomeSymbol], HasWriter "missingCases" [SomeSymbol]) via
+    WriterLog (Field "missingCases" () (MonadState (StateT Env (Except Errors))))
 
---runEnvsS :: EnvS a → (Either Errors a, Env)
 runEnvsS :: EnvS a → Either Errors (a, Env)
-runEnvsS (EnvS a) = runExcept (runStateT a (Env mempty mempty))
+runEnvsS (EnvS a) = runExcept (runStateT a (Env mempty mempty mempty))
+
 
 -- Application code ------------------------------------------------------------
 adtToMendler ∷ ( HasState "constructors" (Map SomeSymbol Bound)    m
                , HasState "adtMap"       (Map SomeSymbol Branches) m
                , HasThrow "err"          Errors                    m )
              ⇒ Name → m ()
-adtToMendler (Adt name s) = (sumRec s 0)
+adtToMendler (Adt name s) = sumRec s 0
   where
     sumGen s p posAdt = do
-      modify' @"adtMap" (Map.update (Just . (<> [s])) name)
+      modify' @"adtMap" (Map.alter (\case
+                                       Nothing → Just [s]
+                                       Just x  → Just $ x <> [s]) name)
       let prod = sumProd p posAdt
       cons     ← get @"constructors"
       case cons Map.!? s of
@@ -91,21 +114,20 @@ adtToMendler (Adt name s) = (sumRec s 0)
                                                  (Value $ someSymbolVal "x"))
     sumProd Term posAdt = Lambda (someSymbolVal "%gen1")
                                  (numToIn posAdt (Value (someSymbolVal "%gen1")))
-    sumProd p@(Product _) posAdt =
-      let (lambdas, term) = rec' p 0 (identity, (Value (someSymbolVal "%fun"))) in
-        lambdas (numToInOp posAdt term)
+    sumProd p@(Product _) posAdt = lambdas (numToInOp posAdt term)
       where
+        (lambdas, term) = rec' p 0 (identity, (Value (someSymbolVal "%fun")))
+
         rec' x index (lambdasBeforeIn, termToBuild) =
-          let app = (Application termToBuild
-                                 (Value (someSymbolVal ("%gen" <> show index))))
+          let genI = someSymbolVal ("%gen" <> show index)
+              app  = Application termToBuild (Value genI)
           in case x of
             Term →
-              ( lambdasBeforeIn . Lambda (someSymbolVal ("%gen" <> show index))
+              ( lambdasBeforeIn . Lambda genI
               , Lambda (someSymbolVal "%fun") app)
             Product t  → rec' t
                               (succ index)
-                              (lambdasBeforeIn . Lambda (someSymbolVal ("%gen" <> show index))
-                              , app)
+                              (lambdasBeforeIn . Lambda genI, app)
             None →
               ( lambdasBeforeIn
               , Lambda (someSymbolVal "%fun")
@@ -147,10 +169,60 @@ userNat = Adt (someSymbolVal "Nat")
 
 dUserNat ∷ Name
 dUserNat = Adt (someSymbolVal "Nat")
-              (Branch (someSymbolVal "Z") None
-                      (Branch (someSymbolVal "S") Term
-                            (Single (someSymbolVal "D") (Product Term))))
+               (Branch (someSymbolVal "Z") None
+                       (Branch (someSymbolVal "S") Term
+                               (Single (someSymbolVal "D") (Product Term))))
 
+-- Case expansion --------------------------------------------------------------
+
+caseExpansion ∷ ( HasState "constructors" (Map SomeSymbol Bound)    m
+                , HasState "adtMap"       (Map SomeSymbol Branches) m
+                , HasThrow "err"          Errors                    m
+                , HasWriter "missingCases" [SomeSymbol]             m )
+             ⇒ Switch → m Lambda
+caseExpansion (Case _ []) = throw @"err" MatchWithoutCases
+caseExpansion (Case on cases@(C c _ _:_)) = do
+  cons ← get @"constructors"
+  case cons Map.!? c of
+    Nothing              → throw @"err" (NotInAdt c)
+    Just Bound {adtName} → do
+      adtConstructors ← getOrderedConstructors adtName
+      -- Could be done faster by doing monadic recursion!
+      case adtConstructors of
+        [] → throw @"err" InvalidAdt
+        _ → do
+          let recCase t accLam =
+                case caseMap Map.!? t of
+                  Nothing           → throw @"err" (NotInMatch t adtName)
+                  Just (args, body) →
+                    pure (Lambda (someSymbolVal "c%gen")
+                           (Application (Application (Value (someSymbolVal "c%gen"))
+                                                     (foldr Lambda body args))
+                                        accLam))
+              initial t =
+                case caseMap Map.!? t of
+                  Nothing           → throw @"err" (NotInMatch t adtName)
+                  Just (args, body) → pure (foldr Lambda body args)
+
+              butLastadtCon = reverse (tailSafe (reverse adtConstructors))
+          last         ← initial (lastDef (error "doesn't happen") adtConstructors)
+          expandedCase ← foldrM recCase last butLastadtCon
+          return $ Application on
+                 $ Lambda (someSymbolVal "rec")
+                 $ Lambda (someSymbolVal "c%gen")
+                 $ expandedCase
+  where
+    caseMap = foldr (\ (C s args body) → Map.insert s (args, body)) mempty cases
+
+    getOrderedConstructors adtName = do
+      adtMap ← get @"adtMap"
+      case adtMap Map.!? adtName of
+        Just x  → return x
+        Nothing → throw @"err" (AdtNotDefined adtName)
+
+-- TODO ∷ replace recursive calls in the body with rec
+
+-- call looks like :t runEnvsS (adtToMendler dUserNat >> caseExpansion undefined)
 -- Lambda Abstraction for mendler encoding -------------------------------------
 inl ∷ Lambda
 inl = Lambda x
