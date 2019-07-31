@@ -51,14 +51,18 @@ data Env = Env { constructors :: Map SomeSymbol Bound
 
 data Errors = AlreadyDefined deriving Show
 
-newtype EnvS a = EnvS (ExceptT Errors (State Env) a)
+newtype EnvS a = EnvS (StateT Env (Except Errors) a)
   deriving (Functor, Applicative, Monad)
   deriving (HasState "constructors" (Map SomeSymbol Bound)) via
-    Field "constructors" () (MonadState (ExceptT Errors (State Env)))
+    Field "constructors" () (MonadState (StateT Env (Except Errors)))
   deriving (HasState "adtMap" (Map SomeSymbol Branches)) via
-    Field "adtMap" () (MonadState (ExceptT Errors (State Env)))
+    Field "adtMap" () (MonadState (StateT Env (Except Errors)))
   deriving (HasThrow "err" Errors) via
-    MonadError (ExceptT Errors (State Env))
+    MonadError (StateT Env (Except Errors))
+
+--runEnvsS :: EnvS a → (Either Errors a, Env)
+runEnvsS :: EnvS a → Either Errors (a, Env)
+runEnvsS (EnvS a) = runExcept (runStateT a (Env mempty mempty))
 
 -- Application code ------------------------------------------------------------
 adtToMendler ∷ ( HasState "constructors" (Map SomeSymbol Bound)    m
@@ -75,9 +79,13 @@ adtToMendler (Adt name s) = (sumRec s 0)
         Just _  → throw   @"err" AlreadyDefined
         Nothing → modify' @"constructors" (Map.insert s (Bound prod name))
 
-    sumRec (Single s p) posAdt         = sumGen s p posAdt
-    sumRec (Branch s p nextSum) posAdt = sumGen s p posAdt
-                                       *> sumRec nextSum (succ posAdt)
+    sumRec (Single s p) posAdt    = sumGen s p posAdt
+    sumRec (Branch s p nextSum) 0 = sumGen s p 0 *> sumRec nextSum 1
+    -- So due to how the algorithm works for inr inl placement
+    -- we need to incrase posAdt by 1 to reflect that it is a branch
+    -- Note 0 is a special case as it is only inl never an inr
+    sumRec (Branch s p nextSum) posAdt = sumGen s p (succ posAdt)
+                                       *> sumRec nextSum (posAdt + 2)
 
     sumProd None posAdt = numToIn posAdt (Lambda (someSymbolVal "x")
                                                  (Value $ someSymbolVal "x"))
@@ -110,22 +118,38 @@ numToInGen :: Int → Lambda → Lambda
 numToInGen 0 arg = app in' arg
 numToInGen n arg = app in' (rec' n arg)
   where
+    rec' 0 acc = acc
     rec' 1 acc = acc
-    rec' 2 acc = app inl acc
     rec' n acc = rec' (n - 2) (app inr acc)
 
+-- Here is a nice chart that lays the relation between branch/single position and the number
+
+-- t      ∧ Pos == 0 ⇒ inl ...             | 0
+-- Signle ∧ Pos == 1 ⇒ inr ...             | 1
+-- Branch ∧ Pos == 1 ⇒ inr (inl ...)       | 2
+-- Single ∧ Pos == 2 ⇒ inr (inr ...)       | 3
+-- Branch ∧ Pos == 2 ⇒ inr (inr (inl ...)) | 4
+
 numToIn :: Int → Lambda → Lambda
-numToIn 0 arg = numToInGen 0 (app inl arg)
-numToIn n arg = numToInGen n (app inr arg)
+numToIn n arg
+  | even n     = numToInGen n (app inl arg)
+  | otherwise  = numToInGen n (app inr arg)
 
 numToInOp :: Int → Lambda → Lambda
-numToInOp 0 arg = numToInGen 0 (app inlOp arg)
-numToInOp n arg = numToInGen n (app inrOp arg)
+numToInOp n arg
+  | even n     = numToInGen n (app inlOp arg)
+  | otherwise  = numToInGen n (app inrOp arg)
 
 userNat ∷ Name
 userNat = Adt (someSymbolVal "Nat")
               (Branch (someSymbolVal "Z") None
                       (Single (someSymbolVal "S") Term))
+
+dUserNat ∷ Name
+dUserNat = Adt (someSymbolVal "Nat")
+              (Branch (someSymbolVal "Z") None
+                      (Branch (someSymbolVal "S") Term
+                            (Single (someSymbolVal "D") (Product Term))))
 
 -- Lambda Abstraction for mendler encoding -------------------------------------
 inl ∷ Lambda
