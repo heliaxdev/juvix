@@ -191,17 +191,24 @@ caseExpansion (Case on cases@(C c _ _:_)) = do
       case adtConstructors of
         [] → throw @"err" InvalidAdt
         _ → do
-          let recCase t accLam =
+          let idL = Lambda (someSymbolVal "x") (Value (someSymbolVal "x"))
+              gen c accLam =
+                      Lambda (someSymbolVal "c%gen")
+                             (Application (Application (Value (someSymbolVal "c%gen"))
+                                                       c)
+                                          accLam)
+              recCase t accLam =
                 case caseMap Map.!? t of
-                  Nothing           → throw @"err" (NotInMatch t adtName)
+                  Nothing → do
+                    tell @"missingCases" [t]
+                    pure (gen idL accLam)
                   Just (args, body) →
-                    pure (Lambda (someSymbolVal "c%gen")
-                           (Application (Application (Value (someSymbolVal "c%gen"))
-                                                     (foldr Lambda body args))
-                                        accLam))
+                    pure (gen (foldr Lambda body args) accLam)
               initial t =
                 case caseMap Map.!? t of
-                  Nothing           → throw @"err" (NotInMatch t adtName)
+                  Nothing           → do
+                    tell @"missingCases" [t]
+                    pure idL
                   Just (args, body) → pure (foldr Lambda body args)
 
               butLastadtCon = reverse (tailSafe (reverse adtConstructors))
