@@ -2,17 +2,21 @@ module Juvix.Library ( module Protolude
                      , module Capability.State
                      , module Capability.Reader
                      , module Capability.Error
+                     , module Capability.Writer
+                     , module Capability.Stream
                      , (∨), (∧), (|<<), (>>|)
                      ) where
 
 import           Capability.Error
 import           Capability.Reader
 import           Capability.State
+import           Capability.Writer
+import           Capability.Stream
 import           Protolude         hiding ((:.:), Constraint, Fixity (..),
                                     MonadError (..), MonadReader (..),
                                     MonadState (..), ask, asks, catch,
                                     catchJust, get, gets, local, modify, put,
-                                    reader, state)
+                                    reader, state, pass)
 
 (∨) ∷ Bool → Bool → Bool
 (∨) = (||)
