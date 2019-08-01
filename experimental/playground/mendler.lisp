@@ -201,3 +201,38 @@
                     t)))))
 
 ;; (branch #'empt 2 #'empt #'is-branch%)
+
+;; Some tests --------------------------------------------------------
+(Lambda (f)
+  (funcall (Lambda (d) (funcall d f))
+           (Lambda (k)
+             (Lambda (l)
+               (funcall k (lambda (x) x))))))
+
+;; zero
+(lambda (x)
+  (funcall x
+           (lambda (d) (funcall d x))
+           (lambda (k l)
+             (declare (ignore l))
+             (funcall k '()))))
+;; zero curried
+(lambda (x)
+  (funcall
+   (funcall x
+            (lambda (d) (funcall d x)))
+   (lambda (k)
+     (lambda (l)
+       (declare (ignore l))
+       (funcall k '())))))
+
+;; is-even
+(lambda (rec)
+  (lambda (x)
+    (funcall
+     (funcall x
+              (lambda (x)
+                (declare (ignore x))
+                t))
+     (lambda (n)
+       (not (funcall rec n))))))

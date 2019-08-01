@@ -152,7 +152,7 @@ numToInGen n arg = app in' (rec' n arg)
 -- Single ∧ Pos == 2 ⇒ inr (inr ...)       | 3
 -- Branch ∧ Pos == 2 ⇒ inr (inr (inl ...)) | 4
 
-numToIn :: Int → Lambda → Lambda
+numToIn ∷ Int → Lambda → Lambda
 numToIn n arg
   | even n     = numToInGen n (app inl arg)
   | otherwise  = numToInGen n (app inr arg)
@@ -162,7 +162,7 @@ numToInOp n arg
   | even n     = numToInGen n (app inlOp arg)
   | otherwise  = numToInGen n (app inrOp arg)
 
-userNat ∷ Name
+userNat :: Name
 userNat = Adt (someSymbolVal "Nat")
               (Branch (someSymbolVal "Z") None
                       (Single (someSymbolVal "S") Term))
@@ -191,8 +191,7 @@ caseExpansion (Case on cases@(C c _ _:_)) = do
       case adtConstructors of
         [] → throw @"err" InvalidAdt
         _ → do
-          let idL = Lambda (someSymbolVal "x") (Value (someSymbolVal "x"))
-              gen c accLam =
+          let gen c accLam =
                       Lambda (someSymbolVal "c%gen")
                              (Application (Application (Value (someSymbolVal "c%gen"))
                                                        c)
@@ -202,6 +201,8 @@ caseExpansion (Case on cases@(C c _ _:_)) = do
                   Nothing → do
                     tell @"missingCases" [t]
                     pure (gen idL accLam)
+                  Just ([], body) →
+                    pure (gen (Lambda (someSymbolVal "()") body) accLam)
                   Just (args, body) →
                     pure (gen (foldr Lambda body args) accLam)
               initial t =
@@ -216,7 +217,6 @@ caseExpansion (Case on cases@(C c _ _:_)) = do
           expandedCase ← foldrM recCase last butLastadtCon
           return $ Application on
                  $ Lambda (someSymbolVal "rec")
-                 $ Lambda (someSymbolVal "c%gen")
                  $ expandedCase
   where
     caseMap = foldr (\ (C s args body) → Map.insert s (args, body)) mempty cases
@@ -231,7 +231,11 @@ caseExpansion (Case on cases@(C c _ _:_)) = do
 
 -- call looks like :t runEnvsS (adtToMendler dUserNat >> caseExpansion undefined)
 -- Lambda Abstraction for mendler encoding -------------------------------------
-inl ∷ Lambda
+
+idL ∷ Lambda
+idL = Lambda (someSymbolVal "x") (Value (someSymbolVal "x"))
+
+inl :: Lambda
 inl = Lambda x
            $ Lambda k
                   $ Lambda l
@@ -295,7 +299,27 @@ app (Lambda s t) replace = rec' t
 app t _replace = t
 
 in' ∷ Lambda
-in' = Lambda r $ Lambda f $ Application (app foldM' (Value f)) (Value r)
+in' = Lambda r
+    $ Lambda f
+    $ Application
+      (Application (Value f)
+                   (app foldM' (Value f)))
+      (Value r)
   where
     r = someSymbolVal "r"
     f = someSymbolVal "f"
+
+
+zero' :: Lambda
+zero' = app in' (app inl (Lambda (someSymbolVal "x") (Value (someSymbolVal "x"))))
+
+
+test1 :: Either Errors (Lambda, Env)
+test1 = runEnvsS $ adtToMendler userNat >>
+  caseExpansion (Case (Value $ someSymbolVal "val")
+                  [ C (someSymbolVal "Z") []
+                    (Value $ someSymbolVal "True")
+                  , C (someSymbolVal "S") [someSymbolVal "n"]
+                    (Application (Value $ someSymbolVal "not")
+                                 (Application (Value $ someSymbolVal "rec")
+                                              (Value $ someSymbolVal "n")))])
