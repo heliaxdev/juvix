@@ -85,7 +85,6 @@ newtype EnvS a = EnvS (StateT Env (Except Errors) a)
 runEnvsS :: EnvS a → Either Errors (a, Env)
 runEnvsS (EnvS a) = runExcept (runStateT a (Env mempty mempty mempty))
 
-
 -- Application code ------------------------------------------------------------
 adtToMendler ∷ ( HasState "constructors" (Map SomeSymbol Bound)    m
                , HasState "adtMap"       (Map SomeSymbol Branches) m
@@ -193,27 +192,19 @@ caseExpansion (Case on cases@(C c _ _:_)) = do
         [] → throw @"err" InvalidAdt
         _ → do
           let gen c accLam =
-                      Lambda (someSymbolVal "c%gen")
-                             (Application (Application (Value (someSymbolVal "c%gen"))
-                                                       c)
-                                          accLam)
-              recCase t accLam =
+                Lambda (someSymbolVal "c%gen")
+                  (Application (Application (Value (someSymbolVal "c%gen")) c)
+                                accLam)
+              lambdaFromEnv f t =
                 case caseMap Map.!? t of
                   Nothing → do
                     tell @"missingCases" [t]
-                    pure (gen idL accLam)
-                  Just ([], body) →
-                    pure (gen (Lambda (someSymbolVal "()") body) accLam)
-                  Just (args, body) →
-                    pure (gen (foldr Lambda body args) accLam)
-              initial t =
-                case caseMap Map.!? t of
-                  Nothing → do
-                    tell @"missingCases" [t]
-                    pure idL
-                  Just (args, body) → pure (foldr Lambda body args)
-
-              butLastadtCon = reverse (tailSafe (reverse adtConstructors))
+                    pure (f idL)
+                  Just ([], body)   → pure (f (Lambda (someSymbolVal "()") body))
+                  Just (args, body) → pure (f (foldr Lambda body args))
+              recCase t accLam = lambdaFromEnv (flip gen accLam) t
+              initial t        = lambdaFromEnv identity          t
+              butLastadtCon    = reverse (tailSafe (reverse adtConstructors))
           last         ← initial (lastDef (error "doesn't happen") adtConstructors)
           expandedCase ← foldrM recCase last butLastadtCon
           return $ Application on
@@ -308,7 +299,6 @@ in' = Lambda r
   where
     r = someSymbolVal "r"
     f = someSymbolVal "f"
-
 
 -- Test cases for Nat ----------------------------------------------------------
 zero' :: Lambda
