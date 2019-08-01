@@ -313,6 +313,36 @@ in' = Lambda r
 zero' :: Lambda
 zero' = app in' (app inl (Lambda (someSymbolVal "x") (Value (someSymbolVal "x"))))
 
+succ' :: Lambda
+succ' = Lambda (someSymbolVal "c%gen1") (app in' (app inr (app inl (Value (someSymbolVal "c%gen1")))))
+
+
+dup' :: Lambda
+dup' = Lambda (someSymbolVal "c%gen1")
+              (Lambda (someSymbolVal "c%gen2")
+                      (app in' (app inr (app inrOp (Lambda (someSymbolVal "%fun")
+                                                           (Application
+                                                            (Application (Value $ someSymbolVal "%fun")
+                                                                         (Value $ someSymbolVal "c%gen1"))
+                                                            (Value $ someSymbolVal "c%gen2")))))))
+
+
+test2D :: Either Errors (Lambda, Env)
+test2D = runEnvsS $ do
+  adtToMendler dUserNat
+  caseExpansion (Case (Value $ someSymbolVal "val")
+                  [ C (someSymbolVal "Z") []
+                    (Value $ someSymbolVal "True")
+                  , C (someSymbolVal "S") [someSymbolVal "n"]
+                    (Application (Value $ someSymbolVal "not")
+                                 (Application (Value $ someSymbolVal "rec")
+                                              (Value $ someSymbolVal "n")))
+                  , C (someSymbolVal "D") [someSymbolVal "n1", someSymbolVal "n2"]
+                    (Application (Value $ someSymbolVal "not")
+                                 (Application (Value $ someSymbolVal "rec")
+                                              (Value $ someSymbolVal "n1")))
+                  ])
+
 
 test1 :: Either Errors (Lambda, Env)
 test1 = runEnvsS $ adtToMendler userNat >>
