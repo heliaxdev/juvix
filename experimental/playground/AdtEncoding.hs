@@ -78,7 +78,8 @@ newtype EnvS a = EnvS (StateT Env (Except Errors) a)
     Field "adtMap" () (MonadState (StateT Env (Except Errors)))
   deriving (HasThrow "err" Errors) via
     MonadError (StateT Env (Except Errors))
-  deriving (HasStream "missingCases" [SomeSymbol], HasWriter "missingCases" [SomeSymbol]) via
+  deriving ( HasStream "missingCases" [SomeSymbol]
+           , HasWriter "missingCases" [SomeSymbol]) via
     WriterLog (Field "missingCases" () (MonadState (StateT Env (Except Errors))))
 
 runEnvsS :: EnvS a → Either Errors (a, Env)
@@ -144,7 +145,7 @@ numToInGen n arg = app in' (rec' n arg)
     rec' 1 acc = acc
     rec' n acc = rec' (n - 2) (app inr acc)
 
--- Here is a nice chart that lays the relation between branch/single position and the number
+-- Here is a chart that lays the relation between branch/single position and the number
 
 -- t      ∧ Pos == 0 ⇒ inl ...             | 0
 -- Signle ∧ Pos == 1 ⇒ inr ...             | 1
@@ -207,7 +208,7 @@ caseExpansion (Case on cases@(C c _ _:_)) = do
                     pure (gen (foldr Lambda body args) accLam)
               initial t =
                 case caseMap Map.!? t of
-                  Nothing           → do
+                  Nothing → do
                     tell @"missingCases" [t]
                     pure idL
                   Just (args, body) → pure (foldr Lambda body args)
@@ -229,7 +230,6 @@ caseExpansion (Case on cases@(C c _ _:_)) = do
 
 -- TODO ∷ replace recursive calls in the body with rec
 
--- call looks like :t runEnvsS (adtToMendler dUserNat >> caseExpansion undefined)
 -- Lambda Abstraction for mendler encoding -------------------------------------
 
 idL ∷ Lambda
@@ -310,37 +310,40 @@ in' = Lambda r
     f = someSymbolVal "f"
 
 
+-- Test cases for Nat ----------------------------------------------------------
 zero' :: Lambda
-zero' = app in' (app inl (Lambda (someSymbolVal "x") (Value (someSymbolVal "x"))))
+zero' = app in' (app inl (Lambda (someSymbolVal "x")
+                           (Value (someSymbolVal "x"))))
 
 succ' :: Lambda
-succ' = Lambda (someSymbolVal "c%gen1") (app in' (app inr (app inl (Value (someSymbolVal "c%gen1")))))
-
+succ' = Lambda (someSymbolVal "c%gen1")
+               (app in' (app inr (app inl (Value (someSymbolVal "c%gen1")))))
 
 dup' :: Lambda
 dup' = Lambda (someSymbolVal "c%gen1")
-              (Lambda (someSymbolVal "c%gen2")
-                      (app in' (app inr (app inrOp (Lambda (someSymbolVal "%fun")
-                                                           (Application
-                                                            (Application (Value $ someSymbolVal "%fun")
-                                                                         (Value $ someSymbolVal "c%gen1"))
-                                                            (Value $ someSymbolVal "c%gen2")))))))
-
+       (Lambda (someSymbolVal "c%gen2")
+         (app in' (app inr
+                    (app inrOp (Lambda (someSymbolVal "%fun")
+                                 (Application
+                                   (Application (Value $ someSymbolVal "%fun")
+                                                (Value $ someSymbolVal "c%gen1"))
+                                   (Value $ someSymbolVal "c%gen2")))))))
 
 test2D :: Either Errors (Lambda, Env)
 test2D = runEnvsS $ do
   adtToMendler dUserNat
   caseExpansion (Case (Value $ someSymbolVal "val")
                   [ C (someSymbolVal "Z") []
-                    (Value $ someSymbolVal "True")
+                      (Value $ someSymbolVal "True")
                   , C (someSymbolVal "S") [someSymbolVal "n"]
-                    (Application (Value $ someSymbolVal "not")
-                                 (Application (Value $ someSymbolVal "rec")
-                                              (Value $ someSymbolVal "n")))
-                  , C (someSymbolVal "D") [someSymbolVal "n1", someSymbolVal "n2"]
-                    (Application (Value $ someSymbolVal "not")
-                                 (Application (Value $ someSymbolVal "rec")
-                                              (Value $ someSymbolVal "n1")))
+                      (Application (Value $ someSymbolVal "not")
+                                   (Application (Value $ someSymbolVal "rec")
+                                                (Value $ someSymbolVal "n")))
+                  , C (someSymbolVal "D") [someSymbolVal "n1"
+                                          , someSymbolVal "n2"]
+                      (Application (Value $ someSymbolVal "not")
+                                   (Application (Value $ someSymbolVal "rec")
+                                                (Value $ someSymbolVal "n1")))
                   ])
 
 
@@ -348,8 +351,8 @@ test1 :: Either Errors (Lambda, Env)
 test1 = runEnvsS $ adtToMendler userNat >>
   caseExpansion (Case (Value $ someSymbolVal "val")
                   [ C (someSymbolVal "Z") []
-                    (Value $ someSymbolVal "True")
+                      (Value $ someSymbolVal "True")
                   , C (someSymbolVal "S") [someSymbolVal "n"]
-                    (Application (Value $ someSymbolVal "not")
-                                 (Application (Value $ someSymbolVal "rec")
-                                              (Value $ someSymbolVal "n")))])
+                      (Application (Value $ someSymbolVal "not")
+                                   (Application (Value $ someSymbolVal "rec")
+                                                (Value $ someSymbolVal "n")))])
