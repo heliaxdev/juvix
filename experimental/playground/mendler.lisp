@@ -201,3 +201,146 @@
                     t)))))
 
 ;; (branch #'empt 2 #'empt #'is-branch%)
+
+;; Some tests --------------------------------------------------------
+(Lambda (f)
+  (funcall (Lambda (d) (funcall d f))
+           (Lambda (k)
+             (Lambda (l)
+               (funcall k (lambda (x) x))))))
+
+;; zero
+(lambda (x)
+  (funcall x
+           (lambda (d) (funcall d x))
+           (lambda (k l)
+             (declare (ignore l))
+             (funcall k '()))))
+;; zero curried
+(lambda (x)
+  (funcall
+   (funcall x
+            (lambda (d) (funcall d x)))
+   (lambda (k)
+     (lambda (l)
+       (declare (ignore l))
+       (funcall k '())))))
+
+;; is-even - outputed from haskell
+(lambda (rec)
+  (lambda (x)
+    (funcall
+     (funcall x
+              (lambda (x)
+                (declare (ignore x))
+                t))
+     (lambda (n)
+       (not (funcall rec n))))))
+
+
+;; dup 1 1 - outputed from haskell
+(lambda (f)
+  (funcall
+   (funcall
+    f
+    (lambda (d)
+      (funcall
+       d
+       f)))
+   (lambda (k)
+     (lambda (l)
+       (funcall
+        l
+        (lambda (k)
+          (lambda (l)
+            (funcall
+             (lambda (fun)
+               (funcall
+                (funcall
+                 fun
+                 (lambda (f)
+                   (funcall
+                    (funcall
+                     f
+                     (lambda (d)
+                       (funcall
+                        d
+                        f)))
+                    (lambda (k)
+                      (lambda (l)
+                        (funcall
+                         l
+                         (lambda (k)
+                           (lambda (l)
+                             (funcall
+                              k
+                              (lambda (f)
+                                (funcall
+                                 (funcall
+                                  f
+                                  (lambda (d)
+                                    (funcall
+                                     d
+                                     f)))
+                                 (lambda (k)
+                                   (lambda (l)
+                                     (funcall
+                                      k
+                                      (lambda (x) x)))))))))))))))
+                (lambda (f)
+                  (funcall
+                   (funcall
+                    f
+                    (lambda (d)
+                      (funcall
+                       d
+                       f)))
+                   (lambda (k)
+                     (lambda (l)
+                       (funcall
+                        l
+                        (lambda (k)
+                          (lambda (l)
+                            (funcall
+                             k
+                             (lambda (f)
+                               (funcall
+                                (funcall
+                                 f
+                                 (lambda (d)
+                                   (funcall
+                                    d
+                                    f)))
+                                (lambda (k)
+                                  (lambda (l)
+                                    (funcall
+                                     k
+                                     (lambda (x) x))))))))))))))))
+             l))))))))
+
+;; case wtih d
+(lambda (rec)
+  (lambda (cgen)
+    (funcall
+     (funcall
+      cgen
+      (lambda (x)
+        (declare (ignore x))
+        t))
+     (lambda (cgen)
+       (funcall
+        (funcall
+         cgen
+         (lambda (n)
+           (funcall
+            #'not
+            (funcall
+             rec
+             n))))
+        (lambda (n1)
+          (lambda (n2)
+            (funcall
+             #'not
+             (funcall
+              rec
+              n1)))))))))
