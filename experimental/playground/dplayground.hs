@@ -74,19 +74,19 @@ data Value
   | VRefl Value Value --extensions for Eq
   | VEq Value Value Value
 
-dumbShow :: Value -> String
-dumbShow (VLam _)         = "lambda"
-dumbShow (VStar)          = "*"
-dumbShow (VPi v _f)       = "pi " ++ dumbShow v ++ " -> lambda"
-dumbShow (VNeutral _n)    = "neutral"
-dumbShow (VNat)           = "Nat"
-dumbShow (VZero)          = "Z"
-dumbShow (VSucc v)        = "S " ++ dumbShow v
-dumbShow (VNil t)         = "Vec" ++ dumbShow t ++ " 0"
-dumbShow (VCons a k x xs) = "Cons" ++ foldl (++) [] (map dumbShow [a, k, x, xs])
-dumbShow (VVec t l)       = "Vec" ++ dumbShow t ++ " Length " ++ dumbShow l
-dumbShow (VRefl x y)      = "Refl" ++ dumbShow x ++ dumbShow y
-dumbShow (VEq _ _ _)       = "Eq"
+showVal :: Value -> String
+showVal (VLam _)         = "lambda"
+showVal (VStar)          = "*"
+showVal (VPi v _f)       = "pi " ++ showVal v ++ " -> lambda"
+showVal (VNeutral _n)    = "neutral "
+showVal (VNat)           = "Nat "
+showVal (VZero)          = "Z "
+showVal (VSucc v)        = "(S " ++ " " ++ showVal v ++ ")"
+showVal (VNil t)         = "Vec " ++ showVal t ++ " 0"
+showVal (VCons a k x xs) = "Cons " ++ foldl (++) [] (map showVal [a, k, x, xs])
+showVal (VVec t l)       = "Vec " ++ showVal t ++ " Length " ++ showVal l
+showVal (VRefl x y)      = "Refl " ++ showVal x ++ showVal y
+showVal (VEq a x y)      = "Eq " ++ foldl (++) [] (map showVal [a, x, y])
 
 --A neutral term is either a variable or an application of a neutral term to a value
 data Neutral
@@ -365,8 +365,8 @@ iType _ii _g _                     =  throwError "Not an inferable term"
 --error message for inferring/checking types
 errorMsg :: ITerm -> Value -> Value -> String
 errorMsg iterm expectedT gotT = 
-  "Type mismatched. " ++ show iterm ++ " is of type " ++ show (dumbShow gotT) ++ 
-  " but the expected type is " ++ show (dumbShow expectedT) ++ "." 
+  "Type mismatched. " ++ show iterm ++ " is of type " ++ show (showVal gotT) ++ 
+  " but the expected type is " ++ show (showVal expectedT) ++ "." 
 
 --checkable terms takes a type as input and returns ().
 cType :: Int -> Context -> CTerm -> Type -> Result ()
@@ -379,7 +379,7 @@ cType ii g (Lam e) (VPi ty ty')
 cType _ii _g _ _
   =  throwError "Type mismatch, not a checkable term"
 
-  --motive for plusK
+--motive for plusK
 motivePlus :: CTerm
 motivePlus = Lam (cPi cNat cNat)
 --following paper, plus add two Nats. plus :: Nat -> Nat -> Nat.
@@ -402,27 +402,42 @@ plusTwo = plus (cSucc (cSucc cZero))
 --the motive of the EqElim for plusZeroIsIdentityInductive
 plusZeroIsIdentityIM :: CTerm
 plusZeroIsIdentityIM = 
-  (Lam (Lam (Lam (cEq cNat (cSucc (cBound 2)) (cSucc (cBound 1))))))
+  (Lam --x::Nat, in this case plus x 0
+    (Lam --y::Nat, in this case x
+      (Lam --of type Eq a x y
+        --output has to be of type type, 
+        --in this case Eq Nat (plus (Succ x) 0) (Succ x)       
+        (cEq cNat 
+             (Inf (plusZero :@: (cSucc (cBound 1)))) 
+             (cSucc (cBound 1))
+        )
+      )
+    )
+  )
 
 --The function to prove inductive case of plusZeroIsIdentity.
---plusZeroIsIdentityInductive :: For all k::Nat, Eq Nat (plusZero k) k -> Eq Nat (plusZero (Succ k)) (Succ k)
+--plusZeroIsIdentityInductive :: 
+--For all k::Nat.Eq Nat (plusZero k) k -> Eq Nat (plusZero (Succ k)) (Succ k)
 plusZeroIsIdentityInductive :: CTerm
 plusZeroIsIdentityInductive = 
   (Lam  --k :: Nat
-    (Lam (cEqElim
+    (cEqElim
       --1st argument: of type type, in this case Nat.
-      (cBound 0)
+      cNat
       --2nd argument: motive, takes in x, y, Eq a x y and returns a type,
       --in this case it's Eq Nat (plusZero (Succ k)) (Succ k) 
       plusZeroIsIdentityIM
-      --3rd argument, resulting type should be Eq Nat (plusZero (Succ k)) (Succ k).
-      (Lam (cRefl cNat (cSucc (cBound 2))))
+      --3rd argument, resulting type should be 
+      --for all z::Nat.Eq Nat (plusZero (Succ z)) (Succ z).
+      (Lam (cRefl cNat (cSucc (cBound 0))))
       --4th argument, x, of type Nat
-      (Inf (plusZero :@: (cBound 1)))
+      (Inf (plusZero :@: (cBound 0)))
       --5th argument, y, of type Nat
-      (cBound 1)
+      (cBound 0)
       --6th argument, of type Eq a x y
-      (cRefl cNat (cBound 1)))))
+      (cRefl cNat (cBound 0))
+      )
+    )
 --Proof of x + 0 = x
 plusZeroIsIdentity :: CTerm -> ITerm
 plusZeroIsIdentity = NatElim --point-free style, x is omitted
@@ -437,28 +452,41 @@ plusZeroIsIdentity = NatElim --point-free style, x is omitted
 --the motive of the EqElim for plusCommInductive
 plusCommIM :: CTerm
 plusCommIM = 
-  (Lam (Lam (Lam (cEq cNat (Inf (plus (cSucc (cBound 2)) :@: (cBound 1))) (Inf ((plus (cBound 1)) :@: (cSucc (cBound 2))))))))
+  (Lam 
+    (Lam 
+      (Lam 
+        (cEq cNat 
+             (Inf (plus (cSucc (cBound 2)) :@: (cBound 1))) 
+             (Inf ((plus (cBound 1)) :@: (cSucc (cBound 2))))
+        )
+      )
+    )
+  )
 --The function to prove inductive case of plusComm.
 --plusComm :: For all k,x::Nat, Eq Nat (plus k x) (plus x k) -> Eq Nat (plus (Succ k) x) (plus x (Succ k))
 plusCommInductive :: CTerm
 plusCommInductive =
   (Lam --k::Nat
     (Lam --x::Nat
-      (Lam (cEqElim
+      (Lam 
+        (cEqElim
       --first argument of EqElim, of type type, in this case Nat
-      (cBound 0)
-      --2nd argument: motive, takes in x, y, Eq a x y and returns a type,
-      --in this case it's Eq Nat (plus (Succ k) x) (plus x (Succ k)) 
-      plusCommIM
-      --3rd argument, resulting type should be Eq Nat (plus (Succ k) x) (plus x (Succ k)).
-      (Lam (cRefl cNat (cSucc (cBound 2))))
-      --4th argument, x, of type Nat
-      (Inf ((plus (cBound 2)) :@: (cBound 1)))
-      --5th argument, y, of type Nat
-      (Inf (plus (cBound 1) :@: (cBound 2)))
-      --6th argument, of type Eq a x y
-      (cRefl cNat (Inf ((plus (cBound 1)) :@: (cBound 2))))
-      ))))
+          (cBound 0)
+          --2nd argument: motive, takes in x, y, Eq a x y and returns a type,
+          --in this case it's Eq Nat (plus (Succ k) x) (plus x (Succ k)) 
+          plusCommIM
+          --3rd argument, resulting type should be Eq Nat (plus (Succ k) x) (plus x (Succ k)).
+          (Lam (cRefl cNat (cSucc (cBound 2))))
+          --4th argument, x, of type Nat
+          (Inf ((plus (cBound 2)) :@: (cBound 1)))
+          --5th argument, y, of type Nat
+          (Inf (plus (cBound 1) :@: (cBound 2)))
+          --6th argument, of type Eq a x y
+          (cRefl cNat (Inf ((plus (cBound 1)) :@: (cBound 2))))
+        )
+      )
+    )
+  )
 
 plusComm :: CTerm -> CTerm -> ITerm
 plusComm x y = NatElim
