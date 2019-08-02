@@ -162,7 +162,7 @@ iEval (EqElim a m mr x y eq)    d  =
 vapp :: Value -> Value -> Value
 vapp (VLam f)      v =  f v
 vapp (VNeutral n)  v =  VNeutral (NApp n v)
-vapp _             _ =  error "this term is ill-typed for application"
+vapp x             y =  error ("Cannot apply " ++ showVal y ++ " to " ++ showVal x ++ ".")
 
 cEval :: CTerm -> Env -> Value
 cEval (Inf  ii)   d =  iEval ii d
@@ -376,8 +376,8 @@ cType ii g (Inf e) v
 cType ii g (Lam e) (VPi ty ty')
   =  cType (ii + 1) ((Local ii, ty) : g)
            (cSubst 0 (Free (Local ii)) e) (ty' (vfree (Local ii)))
-cType _ii _g _ _
-  =  throwError "Type mismatch, not a checkable term"
+cType _ii _g cterm _
+  =  throwError ("Type mismatch, " ++ show cterm ++ " is not a checkable term")
 
 --motive for plusK
 motivePlus :: CTerm
@@ -398,7 +398,16 @@ plusOne = plus (cSucc cZero)
 
 plusTwo :: ITerm
 plusTwo = plus (cSucc (cSucc cZero))
-
+plusZeroIsIdentityIMType :: CTerm
+plusZeroIsIdentityIMType =
+  cPi cNat 
+    (cPi cNat
+      (cPi (cEq cNat (cBound 1) (cBound 2))
+      cStar))
+--Turn plusZeroIsIdentityIM from a CTerm to an ITerm.
+iplusZeroIsIdentityIM :: ITerm
+iplusZeroIsIdentityIM =
+  Ann plusZeroIsIdentityIMType plusZeroIsIdentityIM
 --the motive of the EqElim for plusZeroIsIdentityInductive
 plusZeroIsIdentityIM :: CTerm
 plusZeroIsIdentityIM = 
