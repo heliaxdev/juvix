@@ -202,6 +202,7 @@ caseExpansion (Case on cases@(C c _ _:_)) = do
                     pure (f idL)
                   Just ([], body)   → pure (f (Lambda (someSymbolVal "()") body))
                   Just (args, body) → pure (f (foldr Lambda body args))
+
               recCase t accLam = lambdaFromEnv (flip gen accLam) t
               initial t        = lambdaFromEnv identity          t
               butLastadtCon    = reverse (tailSafe (reverse adtConstructors))
@@ -336,6 +337,35 @@ test2D = runEnvsS $ do
                                                 (Value $ someSymbolVal "n1")))
                   ])
 
+
+
+-- let rec f x i =
+--   | Z       -> i
+--   | S n     -> 1 + (f n i)
+--   | D n1 n2 -> f n2 0 + f n1 i
+
+test3D :: Either Errors (Lambda, Env)
+test3D = runEnvsS $ do
+  adtToMendler dUserNat
+  caseExpansion (Case (Value $ someSymbolVal "val")
+                  [ C (someSymbolVal "Z") []
+                      (Value $ someSymbolVal "i")
+                  , C (someSymbolVal "S") [someSymbolVal "n"]
+                      (Application (Application (Value $ someSymbolVal "+")
+                                                (Value $ someSymbolVal "1"))
+                                   (Application (Application (Value $ someSymbolVal "rec")
+                                                             (Value $ someSymbolVal "n"))
+                                                (Value $ someSymbolVal "i")))
+                  , C (someSymbolVal "D") [someSymbolVal "n1"
+                                          , someSymbolVal "n2"]
+                      (Application (Application (Value $ someSymbolVal "+")
+                                                (Application (Application (Value $ someSymbolVal "rec")
+                                                                          (Value $ someSymbolVal "n2"))
+                                                             (Value $ someSymbolVal "0")))
+                                   (Application (Application (Value $ someSymbolVal "rec")
+                                                             (Value $ someSymbolVal "n1"))
+                                                (Value $ someSymbolVal "i")))
+                  ])
 
 test1 :: Either Errors (Lambda, Env)
 test1 = runEnvsS $ adtToMendler userNat >>
