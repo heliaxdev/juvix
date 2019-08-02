@@ -126,7 +126,7 @@ iEval (NatElim m mz ms k)  d
             VSucc l    -> msVal `vapp` l `vapp` rec l
             VNeutral n -> VNeutral
                           (NNatElim (cEval m d) mzVal msVal n)
-            _          -> error "internal: eval natElim"
+            term          -> error ("internal: eval natElim. " ++ showVal term ++ " cannot be evaluated.")
     in rec (cEval k d)
 --evaluation of Vec
 iEval (Nil a)                   d  =  VNil (cEval a d)
@@ -143,7 +143,7 @@ iEval (VecElim a m mn mc k xs)  d  =
             VNeutral n       ->  VNeutral
                                  (NVecElim  (cEval a d) (cEval m d)
                                             mnVal mcVal kVal n)
-            _                ->  error "internal: eval vecElim"
+            term                ->  error ("internal: eval vecElim. " ++ showVal term ++ " cannot be evaluated.")
     in rec (cEval k d) (cEval xs d)
 --evaluation of Eq
 iEval (Refl x y)                d  =  VRefl (cEval x d) (cEval y d)
@@ -156,7 +156,7 @@ iEval (EqElim a m mr x y eq)    d  =
           VNeutral n ->
             VNeutral (NEqElim  (cEval a d) (cEval m d) mrVal
                                 (cEval x d) (cEval y d) n)
-          _ -> error "internal: eval eqElim"
+          term -> error ("internal: eval eqElim. " ++ showVal term ++ " cannot be evaluated.")
   in recu (cEval eq d)
 
 vapp :: Value -> Value -> Value
@@ -274,13 +274,13 @@ iType ii g (Pi rho rho')
 iType _ii g (Free x)
   =  case lookup x g of
         Just ty ->  return ty
-        Nothing ->  throwError "unknown identifier"
+        Nothing ->  throwError ("Cannot find the type of " ++ show x ++ " in the environment.")
 iType ii g (e1 :@: e2)
   = do si <- iType ii g e1
        case si of
          VPi ty ty'  ->  do  cType ii g e2 ty
                              return (ty' (cEval e2 []))
-         _           ->  throwError "illegal application"
+         _           ->  throwError (show e1 ++ " is not a function type and thus " ++ show e1 ++ " cannot be applied to it.")
 --type checker for Nat
 iType _ii _g Nat                =  return VStar
 iType _ii _g Zero               =  return VNat
@@ -360,7 +360,7 @@ iType ii g (EqElim a m mr x y eq) =
       let yVal = cEval y []
       cType ii g eq (VEq aVal xVal yVal)
       return (foldl vapp mVal [xVal, yVal])
-iType _ii _g _                     =  throwError "Not an inferable term"
+iType _ii _g iterm                     =  throwError (show iterm ++ " is not an inferable term.")
 
 --error message for inferring/checking types
 errorMsg :: ITerm -> Value -> Value -> String
