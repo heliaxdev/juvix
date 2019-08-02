@@ -89,6 +89,15 @@
            :initial-value #'zero%
            :from-end t)
    x))
+(let ((reduced
+        (reduce (lambda (x acc)
+                  (declare (ignore x))
+                  (fn:curry succ% acc))
+                (list:range 0 98)
+                :initial-value #'zero%
+                :from-end t)))
+  (defun hundred% (x)
+    (succ% reduced x)))
 
 (defun six% (x)
   (succ% (fn:curry succ% (fn:curry succ% (fn:curry succ% (fn:curry succ% #'one%)))) x))
@@ -120,12 +129,14 @@
 ;; first attempt O(1)
 (defun pred-alg% (n)
   (let ((var (out n)))
+    (print "time")
     (if (equalp +Z+ var)
         #'zero%
         (s-param var))))
 
 (defun pred-alg (rec n)
   (declare (ignore rec))
+  (print "time")
   (if (equalp +Z+ n)
       #'zero%
       (s-param n)))
@@ -239,84 +250,85 @@
 
 
 ;; dup 1 1 - outputed from haskell
-(lambda (f)
-  (funcall
-   (funcall
-    f
-    (lambda (d)
-      (funcall
-       d
-       f)))
-   (lambda (k)
-     (lambda (l)
-       (funcall
-        l
-        (lambda (k)
-          (lambda (l)
-            (funcall
-             (lambda (fun)
-               (funcall
-                (funcall
-                 fun
-                 (lambda (f)
-                   (funcall
-                    (funcall
-                     f
-                     (lambda (d)
-                       (funcall
-                        d
-                        f)))
-                    (lambda (k)
-                      (lambda (l)
-                        (funcall
-                         l
-                         (lambda (k)
-                           (lambda (l)
-                             (funcall
-                              k
-                              (lambda (f)
-                                (funcall
-                                 (funcall
-                                  f
-                                  (lambda (d)
-                                    (funcall
-                                     d
-                                     f)))
-                                 (lambda (k)
-                                   (lambda (l)
-                                     (funcall
-                                      k
-                                      (lambda (x) x)))))))))))))))
-                (lambda (f)
+(defparameter *dup-11*
+  (lambda (f)
+    (funcall
+     (funcall
+      f
+      (lambda (d)
+        (funcall
+         d
+         f)))
+     (lambda (k)
+       (lambda (l)
+         (funcall
+          l
+          (lambda (k)
+            (lambda (l)
+              (funcall
+               (lambda (fun)
+                 (funcall
                   (funcall
-                   (funcall
-                    f
-                    (lambda (d)
+                   fun
+                   (lambda (f)
+                     (funcall
                       (funcall
-                       d
-                       f)))
-                   (lambda (k)
-                     (lambda (l)
-                       (funcall
-                        l
-                        (lambda (k)
-                          (lambda (l)
-                            (funcall
-                             k
-                             (lambda (f)
+                       f
+                       (lambda (d)
+                         (funcall
+                          d
+                          f)))
+                      (lambda (k)
+                        (lambda (l)
+                          (funcall
+                           l
+                           (lambda (k)
+                             (lambda (l)
                                (funcall
-                                (funcall
-                                 f
-                                 (lambda (d)
+                                k
+                                (lambda (f)
+                                  (funcall
                                    (funcall
-                                    d
-                                    f)))
-                                (lambda (k)
-                                  (lambda (l)
-                                    (funcall
-                                     k
-                                     (lambda (x) x))))))))))))))))
-             l))))))))
+                                    f
+                                    (lambda (d)
+                                      (funcall
+                                       d
+                                       f)))
+                                   (lambda (k)
+                                     (lambda (l)
+                                       (funcall
+                                        k
+                                        (lambda (x) x)))))))))))))))
+                  (lambda (f)
+                    (funcall
+                     (funcall
+                      f
+                      (lambda (d)
+                        (funcall
+                         d
+                         f)))
+                     (lambda (k)
+                       (lambda (l)
+                         (funcall
+                          l
+                          (lambda (k)
+                            (lambda (l)
+                              (funcall
+                               k
+                               (lambda (f)
+                                 (funcall
+                                  (funcall
+                                   f
+                                   (lambda (d)
+                                     (funcall
+                                      d
+                                      f)))
+                                  (lambda (k)
+                                    (lambda (l)
+                                      (funcall
+                                       k
+                                       (lambda (x) x))))))))))))))))
+               l)))))))))
 
 ;; case wtih d
 (lambda (rec)
@@ -344,3 +356,45 @@
              (funcall
               rec
               n1)))))))))
+
+
+;; try with extra argument?
+(defparameter *extra*
+  (lambda (rec)
+    (lambda (cgen)
+      (lambda (i)
+        (funcall
+         (funcall cgen
+                  (lambda (x)
+                    (declare (ignore x))
+                    i))
+         (lambda (cgen)
+           (funcall
+            (funcall
+             cgen
+             (lambda (n)
+               (funcall (funcall (lambda (x) (lambda (y) (+ x y))) 1)
+                        (funcall (funcall rec n) i))))
+            (lambda (n1)
+              (lambda (n2)
+                (funcall (funcall (lambda (x) (lambda (y) (+ x y)))
+                                  (funcall (funcall rec n2) 0))
+                         (funcall (funcall rec n1) i)))))))))))
+
+(defparameter *extra-pred*
+  (lambda (rec)
+    (declare (ignore rec))
+    (lambda (cgen)
+      (funcall
+       (funcall cgen
+                (lambda (x) (print x) 2))
+       (lambda (cgen)
+         (funcall
+          (funcall
+           cgen
+           (lambda (n) (print n) n))
+          (lambda (n1)
+            (lambda (n2)
+              (print n1)
+              (print n2)
+              n1))))))))
