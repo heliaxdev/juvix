@@ -10,14 +10,12 @@ data Term
   = Var SomeSymbol
   | App Term Term
   | Lam SomeSymbol Term
-
   deriving (Show, Eq)
 
 -- Simple type.
 data Type
   = SymT SomeSymbol
   | ArrT Type Type
-
   deriving (Show, Eq)
 
 -- Restricted pseudoterm (inner).
@@ -25,13 +23,11 @@ data RPTI
   = RVar SomeSymbol
   | RLam SomeSymbol RPTO
   | RApp RPTO RPTO
-
   deriving (Show, Eq)
 
 -- Restricted pseudoterm (outer).
 data RPTO
   = RBang Int RPTI
-
   deriving (Show, Eq)
 
 -- Restricted pseudoterm (alias).
@@ -50,7 +46,6 @@ type Param = Int
 data PType
   = PSymT Param SomeSymbol
   | PArrT Param PType PType
-
   deriving (Show, Eq)
 
 -- Parameterized type assignment (alias).
@@ -110,11 +105,13 @@ newtype EnvConstraint a = EnvCon (State Env a)
     WriterLog (Field "constraints" () (MonadState (State Env)))
 
 instance PrettyPrint ConstraintVar where
-  prettyPrintValue (ConstraintVar coeff var) = T.concat ["(", prettyPrintValue coeff, " * m_", prettyPrintValue var, ")"]
+  prettyPrintValue (ConstraintVar coeff var) =
+    T.concat ["(", prettyPrintValue coeff, " * m_", prettyPrintValue var, ")"]
 
 instance PrettyPrint Op where
   prettyPrintValue (Gte n) = T.concat [">= ", prettyPrintValue n]
   prettyPrintValue (Eq n)  = T.concat ["= ", prettyPrintValue n]
 
 instance PrettyPrint Constraint where
-  prettyPrintValue (Constraint vars op) = T.concat [T.intercalate " + " (map prettyPrintValue vars), " ", prettyPrintValue op]
+  prettyPrintValue (Constraint vars op) =
+    T.concat [T.intercalate " + " (map prettyPrintValue vars), " ", prettyPrintValue op]
