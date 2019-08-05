@@ -30,8 +30,8 @@
       ni)))
 
 
-;; (funcall (duplicate (succ (succ (succ #'zero))))
-;;          (succ (succ (succ #'zero))))
+(funcall (duplicate (succ (succ (succ #'zero))))
+         (succ (succ (succ #'zero))))
 
 ;; Nats that expand the lambdas for me!
 
@@ -55,8 +55,8 @@
          ni))))
 
 (funcall (duplicate-disp
-          (succ-disp (succ-disp (succ-disp #'zero-disp))))
-         (succ-disp (succ-disp (succ-disp #'zero-disp))))
+          (succ-disp (succ-disp (succ-disp zero-disp))))
+         (succ-disp (succ-disp (succ-disp zero-disp))))
 
 ;; Some functions to test this encoding on--------------------------------------
 (defun pred (nat)
@@ -77,3 +77,20 @@
    (lambda (d1)
      (lambda (d2)
        (eq (is-even d1) (is-even d2))))))
+
+(defun rec (nat)
+  (lambda (i)
+    (funcall
+     (funcall
+      (funcall nat i)
+      (lambda (n)
+        (funcall
+         (funcall (lambda (x) (lambda (y) (+ x y))) 1)
+         (funcall (rec n)
+                  i))))
+     (lambda (n1)
+       (lambda (n2)
+         (funcall (funcall (lambda (x) (lambda (y) (+ x y)))
+                           (funcall (rec n2)
+                                    0))
+                  (funcall (rec n1) i)))))))

@@ -93,7 +93,7 @@ adtToScott  ∷ ( HasState "constructors" (Map SomeSymbol Bound)    m
               , HasState "adtMap"       (Map SomeSymbol Branches) m
               , HasThrow "err"          Errors                    m )
             ⇒ Name → m ()
-adtToScott (Adt name s) = sumRec s 0 (adtLength s)
+adtToScott (Adt name s) = sumRec s 1 (adtLength s)
   where
     adtLength Single {}      = 1
     adtLength (Branch _ _ s) = succ (adtLength s)
@@ -102,10 +102,30 @@ adtToScott (Adt name s) = sumRec s 0 (adtLength s)
                                            *> sumRec next (succ posAdt) lenAdt
     sumRec (Single s p)      posAdt lenAdt = adtConstructor s (sumProd p posAdt lenAdt) name
 
-    sumProd None posAdt lengthAdt = undefined
+    sumProd None posAdt lengthAdt = generateLam posAdt lengthAdt identity
+    sumProd Term posAdt lengthAdt =
+      Lambda (someSymbolVal "%arg1")
+             (generateLam posAdt
+                          lengthAdt
+                          (\b → Application b (Value $ someSymbolVal "%arg1")))
+    sumProd p@(Product _) posAdt lengthAdt = args (lengthProd p)
+      where
+        args prodLen = foldr (\spot → Lambda (someSymbolVal $ "%arg" <> show spot))
+                             (encoding prodLen)
+                             [1..prodLen]
+        encoding prodLen = generateLam posAdt lengthAdt $
+          \body →
+            foldl (\acc i → Application acc (Value $ someSymbolVal $ "%arg" <> show i))
+                  body
+                  [1..prodLen]
+        lengthProd (Product p) = succ (lengthProd p)
+        lengthProd Term        = 1
+        lengthProd None        = 0 -- I'm skeptical this case ever happens
 
-    -- TODO ∷ return a continuation on the posAdt after generating lengthAdt number of lambdas
-    generateLam posAdt lengthAdt = undefined
+    generateLam posAdt lengthAdt onPosAdt =
+      foldr (\spot → Lambda (someSymbolVal $ "%genArg" <> show spot))
+            (onPosAdt $ Value (someSymbolVal $ "%genArg" <> show posAdt))
+            [1..lengthAdt]
 
 adtToMendler ∷ ( HasState "constructors" (Map SomeSymbol Bound)    m
                , HasState "adtMap"       (Map SomeSymbol Branches) m
@@ -152,10 +172,10 @@ adtToMendler (Adt name s) = sumRec s 0
 -- Helper for Mendler and Scott encodings --------------------------------------
 
 adtConstructor ∷ ( HasState "adtMap" (Map SomeSymbol [k]) m
-         , HasState "constructors" (Map k Bound)  m
-         , HasThrow "err" Errors                  m
-         , Ord k
-         ) ⇒ k → Lambda → SomeSymbol → m ()
+                 , HasState "constructors" (Map k Bound)  m
+                 , HasThrow "err" Errors                  m
+                 , Ord k
+                 ) ⇒ k → Lambda → SomeSymbol → m ()
 adtConstructor s prod name = do
   modify' @"adtMap" (Map.alter (\case
                                    Nothing → Just [s]
@@ -206,42 +226,46 @@ dUserNat = Adt (someSymbolVal "Nat")
 
 -- Case expansion --------------------------------------------------------------
 
-caseExpansion ∷ ( HasState "constructors" (Map SomeSymbol Bound)    m
-                , HasState "adtMap"       (Map SomeSymbol Branches) m
-                , HasThrow "err"          Errors                    m
-                , HasWriter "missingCases" [SomeSymbol]             m )
-             ⇒ Switch → m Lambda
-caseExpansion (Case _ []) = throw @"err" MatchWithoutCases
-caseExpansion (Case on cases@(C c _ _:_)) = do
+scottCase, mendlerCase ∷ ( HasState "constructors" (Map SomeSymbol Bound)    m
+                         , HasState "adtMap"       (Map SomeSymbol Branches) m
+                         , HasThrow "err"          Errors                    m
+                         , HasWriter "missingCases" [SomeSymbol]             m )
+                       ⇒ Switch → m Lambda
+
+caseGen ∷ ( HasState "constructors" (Map SomeSymbol Bound)    m
+          , HasState "adtMap"       (Map SomeSymbol Branches) m
+          , HasThrow "err"          Errors                    m
+          , HasWriter "missingCases" [SomeSymbol]             m )
+        ⇒ Switch
+        → (Lambda → Lambda)           -- What to do when there are no arguments?
+        → (Lambda → Lambda → Lambda)  -- How does the recursive case work?
+        → m Lambda
+caseGen (Case _ []) _ _ =
+  throw @"err" MatchWithoutCases
+caseGen (Case on cases@(C c _ _ :_)) onNoArg onRec = do
   cons ← get @"constructors"
   case cons Map.!? c of
     Nothing              → throw @"err" (NotInAdt c)
     Just Bound {adtName} → do
       adtConstructors ← getOrderedConstructors adtName
-      -- Could be done faster by doing monadic recursion!
       case adtConstructors of
         [] → throw @"err" InvalidAdt
         _ → do
-          let gen c accLam =
-                Lambda (someSymbolVal "c%gen")
-                  (Application (Application (Value (someSymbolVal "c%gen")) c)
-                                accLam)
-              lambdaFromEnv f t =
+          -- Faster with manual recursion!
+          let lambdaFromEnv f t =
                 case caseMap Map.!? t of
                   Nothing → do
                     tell @"missingCases" [t]
                     pure (f idL)
-                  Just ([], body)   → pure (f (Lambda (someSymbolVal "()") body))
+                  Just ([], body)   → pure (f $ onNoArg body)
                   Just (args, body) → pure (f (foldr Lambda body args))
-
-              recCase t accLam = lambdaFromEnv (flip gen accLam) t
-              initial t        = lambdaFromEnv identity          t
+              recCase t accLam = lambdaFromEnv (flip onRec accLam) t
+              initial t        = lambdaFromEnv identity            t
               butLastadtCon    = reverse (tailSafe (reverse adtConstructors))
+
           last         ← initial (lastDef (error "doesn't happen") adtConstructors)
           expandedCase ← foldrM recCase last butLastadtCon
-          return $ Application on
-                 $ Lambda (someSymbolVal "rec")
-                 $ expandedCase
+          return $ Application on expandedCase
   where
     caseMap = foldr (\ (C s args body) → Map.insert s (args, body)) mempty cases
 
@@ -250,6 +274,36 @@ caseExpansion (Case on cases@(C c _ _:_)) = do
       case adtMap Map.!? adtName of
         Just x  → return x
         Nothing → throw @"err" (AdtNotDefined adtName)
+
+scottCase c = do
+  -- expandedCase ends up coming out backwards in terms of application
+  -- we fix this by inverting the application stack making on called on everything
+  expandedCase ← caseGen c onNoArg onrec
+  case expandedCase of
+    Application on b → pure $ reverseApp on b
+    Lambda {}        → error "doesn't happen"
+    Value  {}        → error "doesn't happen"
+  where
+    onNoArg        = identity
+    onrec c accLam = (Application c accLam)
+
+    reverseApp on (Application b1 b2) = reverseApp (Application on b1) b2
+    reverseApp on s                   = Application on s
+
+
+mendlerCase c = do
+  expandedCase ← caseGen c onNoArg onrec
+  case expandedCase of
+    Application on b →
+      pure $ Application on
+           $ Lambda (someSymbolVal "rec") b
+    Lambda {} → error "doesn't happen"
+    Value  {} → error "doesn't happen"
+  where
+    onNoArg body   = Lambda (someSymbolVal "()") body
+    onrec c accLam = Lambda (someSymbolVal "c%gen")
+                            (Application (Application (Value (someSymbolVal "c%gen")) c)
+                                         accLam)
 
 -- TODO ∷ replace recursive calls in the body with rec
 -- TODO ∷ check if any value being matched on isn't called and throw an error
@@ -355,7 +409,7 @@ dup' = Lambda (someSymbolVal "c%gen1")
 test2D :: Either Errors (Lambda, Env)
 test2D = runEnvsS $ do
   adtToMendler dUserNat
-  caseExpansion (Case (Value $ someSymbolVal "val")
+  mendlerCase (Case (Value $ someSymbolVal "val")
                   [ C (someSymbolVal "Z") []
                       (Value $ someSymbolVal "True")
                   , C (someSymbolVal "S") [someSymbolVal "n"]
@@ -380,7 +434,30 @@ test2D = runEnvsS $ do
 test3D :: Either Errors (Lambda, Env)
 test3D = runEnvsS $ do
   adtToMendler dUserNat
-  caseExpansion (Case (Value $ someSymbolVal "val")
+  mendlerCase (Case (Value $ someSymbolVal "val")
+                  [ C (someSymbolVal "Z") []
+                      (Value $ someSymbolVal "i")
+                  , C (someSymbolVal "S") [someSymbolVal "n"]
+                      (Application (Application (Value $ someSymbolVal "+")
+                                                (Value $ someSymbolVal "1"))
+                                   (Application (Application (Value $ someSymbolVal "rec")
+                                                             (Value $ someSymbolVal "n"))
+                                                (Value $ someSymbolVal "i")))
+                  , C (someSymbolVal "D") [someSymbolVal "n1"
+                                          , someSymbolVal "n2"]
+                      (Application (Application (Value $ someSymbolVal "+")
+                                                (Application (Application (Value $ someSymbolVal "rec")
+                                                                          (Value $ someSymbolVal "n2"))
+                                                             (Value $ someSymbolVal "0")))
+                                   (Application (Application (Value $ someSymbolVal "rec")
+                                                             (Value $ someSymbolVal "n1"))
+                                                (Value $ someSymbolVal "i")))
+                  ])
+
+test3D' :: Either Errors (Lambda, Env)
+test3D' = runEnvsS $ do
+  adtToScott dUserNat
+  scottCase (Case (Value $ someSymbolVal "val")
                   [ C (someSymbolVal "Z") []
                       (Value $ someSymbolVal "i")
                   , C (someSymbolVal "S") [someSymbolVal "n"]
@@ -402,7 +479,18 @@ test3D = runEnvsS $ do
 
 test1 :: Either Errors (Lambda, Env)
 test1 = runEnvsS $ adtToMendler userNat >>
-  caseExpansion (Case (Value $ someSymbolVal "val")
+  mendlerCase (Case (Value $ someSymbolVal "val")
+                  [ C (someSymbolVal "Z") []
+                      (Value $ someSymbolVal "True")
+                  , C (someSymbolVal "S") [someSymbolVal "n"]
+                      (Application (Value $ someSymbolVal "not")
+                                   (Application (Value $ someSymbolVal "rec")
+                                                (Value $ someSymbolVal "n")))])
+
+
+test1' :: Either Errors (Lambda, Env)
+test1' = runEnvsS $ adtToScott userNat >>
+  scottCase (Case (Value $ someSymbolVal "val")
                   [ C (someSymbolVal "Z") []
                       (Value $ someSymbolVal "True")
                   , C (someSymbolVal "S") [someSymbolVal "n"]
