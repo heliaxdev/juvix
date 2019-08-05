@@ -103,10 +103,11 @@ newtype EnvConstraint a = EnvCon (State Env a)
     Field "typeAssignment" () (MonadState (State Env))
   deriving (HasState "nextParam" Param) via
     Field "nextParam" () (MonadState (State Env))
-  deriving (HasState "constraints" [Constraint]) via
-    Field "constraints" () (MonadState (State Env))
   deriving (HasState "occurrenceMap" OccurrenceMap) via
     Field "occurrenceMap" () (MonadState (State Env))
+  deriving ( HasStream "constraints" [Constraint]
+           , HasWriter "constraints" [Constraint]) via
+    WriterLog (Field "constraints" () (MonadState (State Env)))
 
 instance PrettyPrint ConstraintVar where
   prettyPrintValue (ConstraintVar coeff var) = T.concat ["(", prettyPrintValue coeff, " * m_", prettyPrintValue var, ")"]
