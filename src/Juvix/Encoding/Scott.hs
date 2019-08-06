@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
-{-# LANGUAGE NamedFieldPuns #-}
 
 module Juvix.Encoding.Scott where
 

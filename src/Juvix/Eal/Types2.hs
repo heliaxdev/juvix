@@ -67,6 +67,7 @@ data ConstraintVar = ConstraintVar {
 data Op
   = Gte Int
   | Eq  Int
+  | Neq Int
   deriving (Show, Eq)
 
 -- Path of parameters to present subterm.
@@ -110,7 +111,8 @@ instance PrettyPrint ConstraintVar where
 
 instance PrettyPrint Op where
   prettyPrintValue (Gte n) = T.concat [">= ", prettyPrintValue n]
-  prettyPrintValue (Eq n)  = T.concat ["= ", prettyPrintValue n]
+  prettyPrintValue (Eq n)  = T.concat ["= " , prettyPrintValue n]
+  prettyPrintValue (Neq n) = T.concat ["/= ", prettyPrintValue n]
 
 instance PrettyPrint Constraint where
   prettyPrintValue (Constraint vars op) =

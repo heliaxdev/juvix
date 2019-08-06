@@ -8,6 +8,36 @@ import qualified Z3.Monad         as Z3
 import           Juvix.Eal.Types2
 import           Juvix.Library    hiding (link, reduce)
 
+runMultipleConstraints :: Int → [Constraint] → RPT → IO ()
+runMultipleConstraints numRepeat constraints syntax = do
+  let numset          = grabTermNumbers syntax mempty
+      rec' _    _     0   = pure ()
+      rec' cons first num = do
+        (r, v, s) ← Z3.evalZ3 (constraintSystem cons)
+        when first
+          (putStrLn v)
+        putText "-->"
+        print (r, s)
+        case s of
+          Just x →
+            let bounds  = filter (\(i,_) → Set.member i numset) (zip [1..] x)
+                newCons =
+                  bounds
+                  >>| (\(i,x) → Constraint [ConstraintVar 1 i] (Neq (fromInteger x)))
+            in rec' (newCons <> cons) False (pred num)
+--            in if first then
+--              let sumd = sum (filter ((> 0) . snd) bounds)
+--              in rec' ((bounds : newCons) <> cons) False
+--            else
+          Nothing → pure ()
+  rec' constraints True numRepeat
+  where
+    -- Could use a list, since this should be ascending, but I do not assume that
+    grabTermNumbers (RBang i (RLam _ t)) s = grabTermNumbers t (Set.insert i s)
+    grabTermNumbers (RBang i (RVar _))   s = Set.insert i s
+    grabTermNumbers (RBang i (RApp t1 t2)) s =
+      grabTermNumbers t1 (grabTermNumbers t2 (Set.insert i s))
+
 runConstraints ∷ [Constraint] → IO ()
 runConstraints constraints = do
   (r, v, s) ← Z3.evalZ3 (constraintSystem constraints)
@@ -25,6 +55,9 @@ opToZ3 (Eq n) vs = do
 opToZ3 (Gte n) vs = do
   i ← Z3.mkInteger (fromIntegral n)
   Z3.mkGe vs i
+opToZ3 (Neq n) vs = do
+  i ← Z3.mkInteger (fromIntegral n)
+  Z3.mkNot =<< Z3.mkEq vs i
 
 varToZ3 ∷ Map.Map Int Z3.AST → ConstraintVar → Z3.Z3 Z3.AST
 varToZ3 varMap (ConstraintVar coeff var) = do

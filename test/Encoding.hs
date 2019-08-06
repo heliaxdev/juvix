@@ -54,8 +54,6 @@ test2D = runEnvsS $ do
                                                 (Value $ someSymbolVal "n1")))
                   ])
 
-
-
 -- let rec f x i =
 --   case x of
 --   | Z       -> i
@@ -109,7 +107,8 @@ test3D' = runEnvsS $ do
                   ])
 
 test1 :: Either Errors (Lambda, Env)
-test1 = runEnvsS $ adtToMendler userNat >>
+test1 = runEnvsS $ do
+  adtToMendler userNat
   mendlerCase (Case (Value $ someSymbolVal "val")
                   [ C (someSymbolVal "Z") []
                       (Value $ someSymbolVal "True")
@@ -120,7 +119,8 @@ test1 = runEnvsS $ adtToMendler userNat >>
 
 
 test1' :: Either Errors (Lambda, Env)
-test1' = runEnvsS $ adtToScott userNat >>
+test1' = runEnvsS $ do
+  adtToScott userNat
   scottCase (Case (Value $ someSymbolVal "val")
                   [ C (someSymbolVal "Z") []
                       (Value $ someSymbolVal "True")
