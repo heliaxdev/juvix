@@ -21,7 +21,7 @@ runMultipleConstraints numRepeat constraints syntax = do
         print (r, s)
         case s of
           Just x →
-            let bounds  = filter (\(i,_) → Set.member i numset) (zip [1..] x)
+            let bounds  = filter (\(i,_) → Set.member i numset) (zip [0..] x)
                 newCons =
                   bounds
                   >>| (\(i,x) → Constraint [ConstraintVar 1 i]
