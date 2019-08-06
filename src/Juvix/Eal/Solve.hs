@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 module Juvix.Eal.Solve where
 
 import qualified Data.Map         as Map
@@ -98,7 +97,8 @@ constraintsToZ3Extra extra varMap constraints = do
 makeVarMap :: Z3.MonadZ3 f ⇒ [Constraint] → f (Map Int Z3.AST)
 makeVarMap constraints =
   let vars = Set.toList (collectVars constraints) in
-  traverse (\v → (Z3.mkIntVar =<< Z3.mkStringSymbol ("m_" <> show v))
+  traverse (\v → (Z3.mkStringSymbol ("m_" <> show v)
+                 >>= Z3.mkIntVar)
                  >>| (,) v)
            vars
   >>| Map.fromList
