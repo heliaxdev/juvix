@@ -19,14 +19,16 @@ module Parser where
                 , Token.commentLine     = "//"
                 , Token.identStart      = letter
                 , Token.identLetter     = alphaNum
-                , Token.reservedNames   = [ "*"
+                , Token.reservedNames   = [ "*","Nat","Zero" --ITerms without inputs
                                           ]
+                , Token.reservedOpNames = [ "Inf", "Lam"]
                 }
 
   lexer = Token.makeTokenParser languageDef
 
   identifier = Token.identifier lexer -- parses an identifier
   reserved   = Token.reserved   lexer -- parses a reserved name
+  reservedOp = Token.reservedOp lexer -- parses an operator
   parens     = Token.parens     lexer -- parses surrounding parenthesis:
                                       --   parens p
                                       -- takes care of the parenthesis and
@@ -37,18 +39,30 @@ module Parser where
   whileParser :: Parser ITerm
   whileParser = whiteSpace >> term
 
-  term :: Parser ITerm
-  term = parens term
-      <|> star
+  reservedAs (str,term) = reserved str >> return term
 
-  star :: Parser ITerm
-  star =
-    do reserved "*"
-       return Star
+  reservedSimple = [("*", Star), ("Nat", Nat), ("Zero", Zero)]
+
+  term :: Parser ITerm
+  term =  parens term
+      <|> foldr1 (<|>) (map reservedAs reservedSimple) --ITerms without inputs
+      
+              
+  cterm :: Parser CTerm
+  cterm =  parens cterm
+       <|> do reservedOp "Inf"
+              iterm <- term
+              return $ Inf iterm
 
   parseString :: String -> ITerm
   parseString str =
     case parse term "" str of
+      Left e -> error $ show e
+      Right r -> r
+
+  parseStringC :: String -> CTerm
+  parseStringC str =
+    case parse cterm "" str of
       Left e -> error $ show e
       Right r -> r
 
