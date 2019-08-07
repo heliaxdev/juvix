@@ -36,16 +36,20 @@ module Parser where
   integer    = Token.integer    lexer -- parses an integer
   whiteSpace = Token.whiteSpace lexer -- parses whitespace
 
-  whileParser :: Parser ITerm
-  whileParser = whiteSpace >> term
-
-  reservedAs (str,term) = reserved str >> return term
-
+  --Enable parsing of white space.
+  parseWS :: Parser a -> Parser a
+  parseWS p = whiteSpace >> p
+  
+  parseSimpleI (str,term) = reserved str >> return term
+  --List of simple ITerms without inputs
   reservedSimple = [("*", Star), ("Nat", Nat), ("Zero", Zero)]
-
+  --List of ITerms that take CTerms as inputs
+  reservedIterms = [("Ann", Ann)]
+  parseIterms (str,term) =
+    reserved str >> return term 
   term :: Parser ITerm
   term =  parens term
-      <|> foldr1 (<|>) (map reservedAs reservedSimple) --ITerms without inputs
+      <|> foldr1 (<|>) (map parseSimpleI reservedSimple) --ITerms without inputs
       
               
   cterm :: Parser CTerm
@@ -53,16 +57,13 @@ module Parser where
        <|> do reservedOp "Inf"
               iterm <- term
               return $ Inf iterm
+       <|> do reservedOp "Lam"
+              cTerm <- cterm
+              return $ Lam cTerm
 
-  parseString :: String -> ITerm
-  parseString str =
-    case parse term "" str of
-      Left e -> error $ show e
-      Right r -> r
-
-  parseStringC :: String -> CTerm
-  parseStringC str =
-    case parse cterm "" str of
+  parseString :: Parser a -> String -> a
+  parseString p str =
+    case parse (parseWS p) "" str of
       Left e -> error $ show e
       Right r -> r
 
