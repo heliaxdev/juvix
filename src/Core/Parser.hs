@@ -20,7 +20,7 @@ module Parser where
                 , Token.identStart      = letter
                 , Token.identLetter     = alphaNum
                 , Token.reservedNames   = [ "*","Nat","Zero", --ITerms without inputs
-                                            "Ann"
+                                            "Ann", "Pi"
                                           ]
                 , Token.reservedOpNames = [ "Inf", "Lam"]
                 }
@@ -52,11 +52,18 @@ module Parser where
        c2 <- cterm
        return $ Ann c1 c2
 
+  piTerm :: Parser ITerm
+  piTerm =
+    do reserved "Pi"
+       c1 <- cterm
+       c2 <- cterm
+       return $ Pi c1 c2
+
   term :: Parser ITerm
   term =  parens term
       <|> foldr1 (<|>) (map parseSimpleI reservedSimple) --ITerms without inputs
       <|> annTerm
-              
+      <|> piTerm
   cterm :: Parser CTerm
   cterm =  parens cterm
        <|> do reservedOp "Inf"
