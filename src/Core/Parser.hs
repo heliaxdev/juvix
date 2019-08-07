@@ -19,7 +19,8 @@ module Parser where
                 , Token.commentLine     = "//"
                 , Token.identStart      = letter
                 , Token.identLetter     = alphaNum
-                , Token.reservedNames   = [ "*","Nat","Zero" --ITerms without inputs
+                , Token.reservedNames   = [ "*","Nat","Zero", --ITerms without inputs
+                                            "Ann"
                                           ]
                 , Token.reservedOpNames = [ "Inf", "Lam"]
                 }
@@ -43,14 +44,18 @@ module Parser where
   parseSimpleI (str,term) = reserved str >> return term
   --List of simple ITerms without inputs
   reservedSimple = [("*", Star), ("Nat", Nat), ("Zero", Zero)]
-  --List of ITerms that take CTerms as inputs
-  reservedIterms = [("Ann", Ann)]
-  parseIterms (str,term) =
-    reserved str >> return term 
+   
+  annTerm :: Parser ITerm
+  annTerm = 
+    do reserved "Ann"
+       c1 <- cterm
+       c2 <- cterm
+       return $ Ann c1 c2
+
   term :: Parser ITerm
   term =  parens term
       <|> foldr1 (<|>) (map parseSimpleI reservedSimple) --ITerms without inputs
-      
+      <|> annTerm
               
   cterm :: Parser CTerm
   cterm =  parens cterm
