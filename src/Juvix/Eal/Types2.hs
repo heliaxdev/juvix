@@ -78,6 +78,24 @@ type VarPaths = Map SomeSymbol Param
 -- Occurrence map.
 type OccurrenceMap = Map SomeSymbol Int
 
+-- | Bracket Error Types
+data BracketErrors = TooManyOpen
+                   | TooManyOpenV
+                   | TooManyClosing
+                   | TooManyClosingV
+                   | InvalidAssignment
+                   deriving Show
+
+-- | Bracket runner Type
+newtype EitherBracket a =
+  EitherBracket { runEither :: (Either BracketErrors a) }
+  deriving (Functor, Applicative, Monad) via
+    Except BracketErrors
+  deriving (HasThrow "typ" BracketErrors) via
+    MonadError (Except BracketErrors)
+
+-- | Bracket Runner
+
 -- Environment for inference.
 data Env = Env {
   path           :: Path,

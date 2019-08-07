@@ -51,6 +51,21 @@ runMultipleConstraints numRepeat constraints syntax = do
     grabTermNumbers (RBang i (RApp t1 t2)) s =
       grabTermNumbers t1 (grabTermNumbers t2 (Set.insert i s))
 
+applyConstraints :: [Constraint] → RPT → IO (Maybe RPT)
+applyConstraints constraints syn = do
+  (_,_,s) ← Z3.evalZ3 (constraintSystem constraints)
+  case s of
+    Just x →
+      let conMap = Map.fromList (zip [0..] (fromInteger <$> x))
+          placeVals (RBang i t) =
+            RBang (conMap Map.! i)
+                  (case t of
+                     RLam s  t  → RLam s (placeVals t)
+                     RApp t1 t2 → RApp (placeVals t1) (placeVals t2)
+                     RVar s     → RVar s)
+      in pure (Just $ placeVals syn)
+    Nothing → pure Nothing
+
 runConstraints ∷ [Constraint] → IO ()
 runConstraints constraints = do
   (r, v, s)  ← Z3.evalZ3 (constraintSystem constraints)

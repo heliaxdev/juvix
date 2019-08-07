@@ -149,7 +149,7 @@ boxAndTypeConstraint parameterizedAssignment term = do
       pure (RBang param (RApp a b), appTy)
 
 -- Generate constraints.
-generateConstraints :: ( HasState  "path"           Path            m
+generateConstraints ∷ ( HasState  "path"           Path            m
                       , HasState  "varPaths"       VarPaths        m
                       , HasState  "nextParam"      Param           m
                       , HasState  "typeAssignment" TypeAssignment  m
@@ -159,7 +159,29 @@ generateConstraints :: ( HasState  "path"           Path            m
 generateConstraints term = do
   parameterizedAssignment ← parameterizeTypeAssignment
   setOccurrenceMap term
-  fst |<< boxAndTypeConstraint parameterizedAssignment term
+  boxAndTypeConstraint parameterizedAssignment term
+  >>| fst
+
+{- Bracket Checker. -}
+bracketChecker :: RPTO → Either BracketErrors ()
+bracketChecker t = runEither (rec' t 0 mempty)
+  where
+    rec' (RBang changeBy (RVar sym)) n map =
+      let f x
+            | changeBy + n + x == 0 = pure ()
+            | changeBy + n + x >  0 = throw @"typ" TooManyOpenV
+            | otherwise             = throw @"typ" TooManyClosingV
+      in case Map.lookup sym map of
+        Just x  → f x
+        Nothing → f 0
+    rec' (RBang changeBy t) n map
+      | changeBy + n < 0 = throw @"typ" TooManyClosing
+      | otherwise =
+        let n' = changeBy + n
+        in case t of
+          RLam s t   → rec' t n' (Map.insert s (negate n') map)
+          RApp t1 t2 → rec' t1 n' map >> rec' t2 n' map
+          RVar _     → error "already is matched"
 
 {- Utility. -}
 
@@ -190,18 +212,3 @@ addConstraint con = tell @"constraints" [con]
 execWithAssignment ∷ TypeAssignment → EnvConstraint a → (a, Env)
 execWithAssignment assignment (EnvCon env) =
   runState env (Env [] mempty assignment 0 [] mempty)
-
--- Test term: \s . \z . s s z.
-testTerm ∷ Term
-testTerm = Lam (someSymbolVal "s")
-             (Lam (someSymbolVal "z")
-               (App (Var (someSymbolVal "s"))
-                    (App (Var (someSymbolVal "s"))
-                         (Var (someSymbolVal "z")))))
-
--- Test assignment - s : a → a, z : a.
-testAssignment ∷ TypeAssignment
-testAssignment = Map.fromList [
-  (someSymbolVal "s", ArrT (SymT (someSymbolVal "a")) (SymT (someSymbolVal "a"))),
-  (someSymbolVal "z", SymT (someSymbolVal "a"))
-  ]
