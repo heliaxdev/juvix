@@ -22,7 +22,8 @@ module Juvix.Core.Parser where
                 , Token.reservedNames   = [ "*","Nat","Zero", --ITerms without inputs
                                             "Ann", ":", "Pi","Succ","NatElim", --ITerms with CTerms as inputs
                                             "Vec","Nil","Cons","VecElim",
-                                            "Eq"
+                                            "Eq", "Refl","EqElim",
+                                            "Bound", "Free" --Others
                                           ]
                 , Token.reservedOpNames = [ "Inf", "Lam"]
                 }
@@ -40,8 +41,8 @@ module Juvix.Core.Parser where
                                       --   parens p
                                       -- takes care of the parenthesis and
                                       -- uses p to parse what's inside them
-  integer :: ParsecT String u Data.Functor.Identity.Identity Integer
-  integer    = Token.integer    lexer -- parses an integer
+  natural :: ParsecT String u Data.Functor.Identity.Identity Integer
+  natural    = Token.natural    lexer -- parses an integer
   whiteSpace :: ParsecT String u Data.Functor.Identity.Identity ()
   whiteSpace = Token.whiteSpace lexer -- parses whitespace
 
@@ -126,6 +127,34 @@ module Juvix.Core.Parser where
        y <- cterm
        return $ Eq theType x y
 
+  reflTerm :: Parser ITerm
+  reflTerm =
+    do reserved "Refl"
+       theType <- cterm
+       x <- cterm
+       return $ Refl theType x 
+       
+  eqelimTerm :: Parser ITerm
+  eqelimTerm =
+    do reserved "EqElim"
+       theType <- cterm
+       motive <- cterm
+       refl <- cterm
+       x <- cterm
+       y <- cterm
+       eqxy <- cterm
+       return $ EqElim theType motive refl x y eqxy
+
+  boundTerm :: Parser ITerm
+  boundTerm = 
+    do reserved "Bound"
+       index <- bIndex
+       return $ Bound (fromInteger index)
+       
+  bIndex :: Parser Integer
+  bIndex =  parens bIndex
+        <|> natural
+
   term :: Parser ITerm
   term =  parens term
       <|> foldr1 (<|>) (map parseSimpleI reservedSimple) --ITerms without inputs
@@ -138,6 +167,9 @@ module Juvix.Core.Parser where
       <|> consTerm
       <|> vecelimTerm
       <|> eqTerm
+      <|> reflTerm
+      <|> eqelimTerm
+      <|> boundTerm --Bound var
 
   cterm :: Parser CTerm
   cterm =  parens cterm
