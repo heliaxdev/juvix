@@ -48,9 +48,6 @@ module Juvix.Core.Parser where
   whiteSpace :: ParsecT String u Data.Functor.Identity.Identity ()
   whiteSpace = Token.whiteSpace lexer -- parses whitespace
 
-  --Enable parsing of white space.
-  parseWS :: Parser a -> Parser a
-  parseWS p = whiteSpace >> p
   parseSimpleI :: (String, b) -> ParsecT String u Data.Functor.Identity.Identity b
   parseSimpleI (str,term) = reserved str >> return term
   --List of simple ITerms without inputs
@@ -180,14 +177,17 @@ module Juvix.Core.Parser where
 
   appTerm :: Parser ITerm
   appTerm =
-    do iterm <- term
+    do iterm <- iterm
        reserved ":@:"
        cTerm <- cterm
        return $ iterm :@: cTerm
 
+  iterm :: Parser ITerm
+  iterm =  appTerm --Application
+       <|> term --all ITerms except the application ITerm
+  
   term :: Parser ITerm
   term =  parens term
-      <|> appTerm --application
       <|> foldr1 (<|>) (map parseSimpleI reservedSimple) --ITerms without inputs
       <|> annTerm --ITerms with CTerms as input(s).
       <|> piTerm
@@ -213,8 +213,15 @@ module Juvix.Core.Parser where
               cTerm <- cterm
               return $ Lam cTerm
 
+  parseWhole p =
+    do whiteSpace
+       t <- p
+       whiteSpace
+       eof
+       return p
+
   parseString :: Parser a -> String -> a
   parseString p str =
-    case parse (parseWS p) "" str of
-      Left e -> error $ show e
-      Right r -> r
+    case parse (parseWhole p) "" str of
+         Left e -> error $ show e
+         Right r -> r
