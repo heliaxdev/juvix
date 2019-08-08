@@ -23,7 +23,9 @@ module Juvix.Core.Parser where
                                             "Ann", ":", "Pi","Succ","NatElim", --ITerms with CTerms as inputs
                                             "Vec","Nil","Cons","VecElim",
                                             "Eq", "Refl","EqElim",
-                                            "Bound", "Free" --Others
+                                            "Bound", --Bound var
+                                            "Free","Local","Quote","Global", --Free var
+                                            ":@:" --application
                                           ]
                 , Token.reservedOpNames = [ "Inf", "Lam"]
                 }
@@ -150,13 +152,42 @@ module Juvix.Core.Parser where
     do reserved "Bound"
        index <- bIndex
        return $ Bound (fromInteger index)
-       
+  --Parser for de Bruijn indices of bound variables
   bIndex :: Parser Integer
   bIndex =  parens bIndex
         <|> natural
+  --Parser for the global free variable name
+  gName :: Parser String
+  gName =  parens gName
+       <|> identifier
+  --Parser for Name data type
+  name :: Parser Name
+  name =  do reserved "Local"
+             index <- bIndex
+             return $ Local (fromInteger index)
+      <|> do reserved "Quote"
+             index <- bIndex
+             return $ Quote (fromInteger index)
+      <|> do reserved "Global"
+             gname <- gName
+             return $ Global gname 
+             
+  freeTerm :: Parser ITerm           
+  freeTerm = 
+    do reserved "Free"
+       fname <- name
+       return $ Free fname
+
+  appTerm :: Parser ITerm
+  appTerm =
+    do iterm <- term
+       reserved ":@:"
+       cTerm <- cterm
+       return $ iterm :@: cTerm
 
   term :: Parser ITerm
   term =  parens term
+      <|> appTerm --application
       <|> foldr1 (<|>) (map parseSimpleI reservedSimple) --ITerms without inputs
       <|> annTerm --ITerms with CTerms as input(s).
       <|> piTerm
@@ -170,6 +201,8 @@ module Juvix.Core.Parser where
       <|> reflTerm
       <|> eqelimTerm
       <|> boundTerm --Bound var
+      <|> freeTerm --Free var
+      
 
   cterm :: Parser CTerm
   cterm =  parens cterm
