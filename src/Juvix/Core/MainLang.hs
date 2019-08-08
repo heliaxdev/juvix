@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wall #-}
 -- Dependent type implementation following
 -- "A tutorial implementation of a dependently typed lambda calculus"
 module Juvix.Core.MainLang where

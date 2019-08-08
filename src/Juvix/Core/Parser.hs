@@ -6,11 +6,14 @@ module Juvix.Core.Parser where
   import           Text.Parsec
   import           Text.ParserCombinators.Parsec
   import           Text.ParserCombinators.Parsec.Language
+  import           Data.Functor.Identity
+  import           Data.String
   import qualified Text.ParserCombinators.Parsec.Token as Token
 
   --Takes a string and output an ITerm.
   --iTerms :: Parser ITerms
 
+  languageDef :: GenLanguageDef String u Data.Functor.Identity.Identity
   languageDef =
        emptyDef { Token.commentStart    = "/*"
                 , Token.commentEnd      = "*/"
@@ -18,37 +21,47 @@ module Juvix.Core.Parser where
                 , Token.identStart      = letter
                 , Token.identLetter     = alphaNum
                 , Token.reservedNames   = [ "*","Nat","Zero", --ITerms without inputs
-                                            "Ann", "Pi","Succ","NatElim"
+                                            "Ann", ":", "Pi","Succ","NatElim"
                                           ]
                 , Token.reservedOpNames = [ "Inf", "Lam"]
                 }
-
+  lexer :: Token.GenTokenParser String u Data.Functor.Identity.Identity
   lexer = Token.makeTokenParser languageDef
-
+  identifier :: ParsecT String u Data.Functor.Identity.Identity String
   identifier = Token.identifier lexer -- parses an identifier
+  reserved :: String -> ParsecT String u Data.Functor.Identity.Identity ()
   reserved   = Token.reserved   lexer -- parses a reserved name
+  reservedOp :: String -> ParsecT String u Data.Functor.Identity.Identity ()
   reservedOp = Token.reservedOp lexer -- parses an operator
+  parens :: ParsecT String u Data.Functor.Identity.Identity a
+              -> ParsecT String u Data.Functor.Identity.Identity a
   parens     = Token.parens     lexer -- parses surrounding parenthesis:
                                       --   parens p
                                       -- takes care of the parenthesis and
                                       -- uses p to parse what's inside them
+  integer :: ParsecT String u Data.Functor.Identity.Identity Integer
   integer    = Token.integer    lexer -- parses an integer
+  whiteSpace :: ParsecT String u Data.Functor.Identity.Identity ()
   whiteSpace = Token.whiteSpace lexer -- parses whitespace
 
   --Enable parsing of white space.
   parseWS :: Parser a -> Parser a
   parseWS p = whiteSpace >> p
-
+  parseSimpleI :: (String, b) -> ParsecT String u Data.Functor.Identity.Identity b
   parseSimpleI (str,term) = reserved str >> return term
   --List of simple ITerms without inputs
+  reservedSimple :: Data.String.IsString a => [(a, ITerm)]
   reservedSimple = [("*", Star), ("Nat", Nat), ("Zero", Zero)]
 
   annTerm :: Parser ITerm
-  annTerm =
-    do reserved "Ann"
-       theTerm <- cterm
-       theType <- cterm
-       return $ Ann theTerm theType
+  annTerm =  do reserved "Ann"
+                theTerm <- cterm
+                theType <- cterm
+                return $ Ann theTerm theType
+         <|> do theTerm <- cterm --Idris annotation syntax, atm doesn't work.
+                reserved ":"
+                theType <- cterm
+                return $ Ann theTerm theType
 
   piTerm :: Parser ITerm
   piTerm =
