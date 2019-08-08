@@ -1,13 +1,11 @@
-module Parser where
 
-  import MainLang
+module Juvix.Core.Parser where
 
-  import Text.Parsec
-  import System.IO
-  import Control.Monad
-  import Text.ParserCombinators.Parsec
-  import Text.ParserCombinators.Parsec.Expr
-  import Text.ParserCombinators.Parsec.Language
+  import           Prelude
+  import           Juvix.Core.MainLang
+  import           Text.Parsec
+  import           Text.ParserCombinators.Parsec
+  import           Text.ParserCombinators.Parsec.Language
   import qualified Text.ParserCombinators.Parsec.Token as Token
 
   --Takes a string and output an ITerm.
@@ -40,13 +38,13 @@ module Parser where
   --Enable parsing of white space.
   parseWS :: Parser a -> Parser a
   parseWS p = whiteSpace >> p
-  
+
   parseSimpleI (str,term) = reserved str >> return term
   --List of simple ITerms without inputs
   reservedSimple = [("*", Star), ("Nat", Nat), ("Zero", Zero)]
-   
+
   annTerm :: Parser ITerm
-  annTerm = 
+  annTerm =
     do reserved "Ann"
        theTerm <- cterm
        theType <- cterm
@@ -96,5 +94,3 @@ module Parser where
     case parse (parseWS p) "" str of
       Left e -> error $ show e
       Right r -> r
-
-
