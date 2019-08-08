@@ -76,8 +76,8 @@ mult ∷ Term
 mult =
   (Lam (someSymbolVal "m")
    (Lam (someSymbolVal "n'")
-    (Lam (someSymbolVal "z")
-     (Lam (someSymbolVal "s")
+    (Lam (someSymbolVal "s")
+     (Lam (someSymbolVal "z")
        (App (App (Var (someSymbolVal "m"))
                  (App (Var (someSymbolVal "n'"))
                       (Var (someSymbolVal "s"))))
@@ -105,14 +105,7 @@ a4 = (ArrT (ArrT (SymT (someSymbolVal "a"))
 
 churchMultTyp ∷ TypeAssignment
 churchMultTyp = Map.fromList
-  [ (someSymbolVal "mult",
-     ArrT a4
-     (ArrT a4
-           (ArrT (ArrT (SymT (someSymbolVal "a"))
-                       (SymT (someSymbolVal "a")))
-                 (ArrT (SymT (someSymbolVal "a"))
-                       (SymT (someSymbolVal "a"))))))
-
+  [ (someSymbolVal "mult", ArrT a4 (ArrT a4 a4))
   , (someSymbolVal "n", a4)
   , (someSymbolVal "n'", a4)
   , (someSymbolVal "m", a4)
