@@ -1,52 +1,52 @@
-import           Juvix.Eal.Types2
-import           Juvix.Library    hiding (Type, link, reduce)
+import           Juvix.Eal.Check
 import           Juvix.Eal.Eal2
 import           Juvix.Eal.Solve
-import           Juvix.Eal.Check
+import           Juvix.Eal.Types2
+import           Juvix.Library    hiding (Type, link, reduce)
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict  as Map
 
-testGen :: (RPT, Env)
+testGen ∷ (RPT, Env)
 testGen = execWithAssignment testAssignment
         $ generateConstraints testTerm
 
-omegaTestGen :: (RPT, Env)
+omegaTestGen ∷ (RPT, Env)
 omegaTestGen = execWithAssignment omegaAssignment
              $ generateConstraints omegaTerm
 
-testGen' :: ((RPT, ParamTypeAssignment), Env)
+testGen' ∷ ((RPT, ParamTypeAssignment), Env)
 testGen' = execWithAssignment testAssignment
          $ generateTypeAndConstraitns testTerm
 
-checkAnswer :: IO (Either Errors RPT)
+checkAnswer ∷ IO (Either Errors RPT)
 checkAnswer = validEal testTerm testAssignment
 
 -- TODO ∷ Currently errors as unificationconstraints errors
-checkAnswerOmega :: IO (Either Errors RPT)
+checkAnswerOmega ∷ IO (Either Errors RPT)
 checkAnswerOmega = validEal omegaTerm omegaAssignment
 
 -- TODO ∷ Currently errors as unificationconstraints errors
-checkAnswerChurch :: IO (Either Errors RPT)
+checkAnswerChurch ∷ IO (Either Errors RPT)
 checkAnswerChurch = validEal churchMult churchMultTyp
 
-resAnswer :: IO (Maybe RPT)
+resAnswer ∷ IO (Maybe RPT)
 resAnswer = do
   let (rtp,env) = testGen
   assignments    ← getConstraints (constraints env)
   return $ fmap (flip assignTerm rtp) assignments
 
-resMulti :: IO ()
+resMulti ∷ IO ()
 resMulti = uncurry (flip (runMultipleConstraints 10))
          $ second constraints
          $ testGen
 
-res :: IO ()
+res ∷ IO ()
 res = runConstraints
     $ constraints
     $ snd
     $ testGen
 
-cons :: RPT
+cons ∷ RPT
 cons = fst testGen
 
 -- Test term: \s . \z . s s z.
@@ -72,33 +72,32 @@ omegaAssignment = Map.fromList
   [ (someSymbolVal "x", ArrT (SymT (someSymbolVal "a")) (SymT (someSymbolVal "a")))
   ]
 
-mult :: Term
+mult ∷ Term
 mult =
-  (Lam (someSymbolVal "mult")
-    (Lam (someSymbolVal "m")
-     (Lam (someSymbolVal "n'")
-      (Lam (someSymbolVal "z")
-       (Lam (someSymbolVal "s")
-         (App (App (Var (someSymbolVal "m"))
-                   (App (Var (someSymbolVal "n'"))
-                        (Var (someSymbolVal "s"))))
-              (Var (someSymbolVal "z"))))))))
+  (Lam (someSymbolVal "m")
+   (Lam (someSymbolVal "n'")
+    (Lam (someSymbolVal "z")
+     (Lam (someSymbolVal "s")
+       (App (App (Var (someSymbolVal "m"))
+                 (App (Var (someSymbolVal "n'"))
+                      (Var (someSymbolVal "s"))))
+            (Var (someSymbolVal "z")))))))
 
-churchMult :: Term
+churchMult ∷ Term
 churchMult =
   (Lam (someSymbolVal "n")
    (App (App mult
              (Var (someSymbolVal "n")))
         (Var (someSymbolVal "n"))))
 
-churchMultBrief :: Term
+churchMultBrief ∷ Term
 churchMultBrief =
   (Lam (someSymbolVal "n")
    (App (App (Var (someSymbolVal "mult"))
              (Var (someSymbolVal "n")))
         (Var (someSymbolVal "n"))))
 
-a4 :: Type
+a4 ∷ Type
 a4 = (ArrT (ArrT (SymT (someSymbolVal "a"))
                  (SymT (someSymbolVal "a")))
            (ArrT (SymT (someSymbolVal "a"))
