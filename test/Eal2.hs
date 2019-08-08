@@ -18,15 +18,15 @@ testGen' ∷ ((RPT, ParamTypeAssignment), Env)
 testGen' = execWithAssignment testAssignment
          $ generateTypeAndConstraitns testTerm
 
-checkAnswer ∷ IO (Either Errors RPT)
+checkAnswer ∷ IO (Either Errors (RPT, ParamTypeAssignment))
 checkAnswer = validEal testTerm testAssignment
 
 -- TODO ∷ Currently errors as unificationconstraints errors
-checkAnswerOmega ∷ IO (Either Errors RPT)
+checkAnswerOmega ∷ IO (Either Errors (RPT, ParamTypeAssignment))
 checkAnswerOmega = validEal omegaTerm omegaAssignment
 
 -- TODO ∷ Currently errors as unificationconstraints errors
-checkAnswerChurch ∷ IO (Either Errors RPT)
+checkAnswerChurch ∷ IO (Either Errors (RPT, ParamTypeAssignment))
 checkAnswerChurch = validEal churchMult churchMultTyp
 
 resAnswer ∷ IO (Maybe RPT)
@@ -86,9 +86,12 @@ mult =
 churchMult ∷ Term
 churchMult =
   (Lam (someSymbolVal "n")
-   (App (App mult
-             (Var (someSymbolVal "n")))
-        (Var (someSymbolVal "n"))))
+    (Lam (someSymbolVal "s'")
+      (Lam (someSymbolVal "z'")
+        (App (App (App (App mult
+                  (Var (someSymbolVal "n")))
+                  (Var (someSymbolVal "n"))) (Var (someSymbolVal "s'")))
+                  (Var (someSymbolVal "z'"))))))
 
 churchMultBrief ∷ Term
 churchMultBrief =
@@ -111,7 +114,10 @@ churchMultTyp = Map.fromList
   , (someSymbolVal "m", a4)
   , (someSymbolVal "s", (ArrT (SymT (someSymbolVal "a"))
                               (SymT (someSymbolVal "a"))))
+  , (someSymbolVal "s'", (ArrT (SymT (someSymbolVal "a"))
+                              (SymT (someSymbolVal "a"))))
   , (someSymbolVal "z", (SymT (someSymbolVal "a")))
+  , (someSymbolVal "z'", (SymT (someSymbolVal "a")))
   ]
 
 -- Test assignment - s : a → a, z : a.

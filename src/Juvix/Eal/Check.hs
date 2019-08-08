@@ -9,7 +9,7 @@ import           Juvix.Library    hiding (link, reduce)
 
 
 
-validEal ∷ Term → TypeAssignment → IO (Either Errors RPT)
+validEal ∷ Term → TypeAssignment → IO (Either Errors (RPT, ParamTypeAssignment))
 validEal term typMap = do
   let ((rpt, typ),env) = execWithAssignment typMap
                        $ generateTypeAndConstraitns term
@@ -28,7 +28,7 @@ validEal term typMap = do
           Right _ →
             case typCheckerErr valAssignment typAssignment of
               Left e  → Left e
-              Right _ → Right valAssignment
+              Right _ → Right (valAssignment, typAssignment)
       Nothing →
         Left (Brack InvalidAssignment)
 
