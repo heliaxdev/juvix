@@ -7,7 +7,6 @@ module Juvix.Core.Parser where
   import           Text.ParserCombinators.Parsec
   import           Text.ParserCombinators.Parsec.Language
   import           Data.Functor.Identity
-  import           Data.String
   import qualified Text.ParserCombinators.Parsec.Token as Token
 
   --Takes a string and output an ITerm.
@@ -21,7 +20,9 @@ module Juvix.Core.Parser where
                 , Token.identStart      = letter
                 , Token.identLetter     = alphaNum
                 , Token.reservedNames   = [ "*","Nat","Zero", --ITerms without inputs
-                                            "Ann", ":", "Pi","Succ","NatElim"
+                                            "Ann", ":", "Pi","Succ","NatElim", --ITerms with CTerms as inputs
+                                            "Vec","Nil","Cons","VecElim",
+                                            "Eq"
                                           ]
                 , Token.reservedOpNames = [ "Inf", "Lam"]
                 }
@@ -50,7 +51,6 @@ module Juvix.Core.Parser where
   parseSimpleI :: (String, b) -> ParsecT String u Data.Functor.Identity.Identity b
   parseSimpleI (str,term) = reserved str >> return term
   --List of simple ITerms without inputs
-  reservedSimple :: Data.String.IsString a => [(a, ITerm)]
   reservedSimple = [("*", Star), ("Nat", Nat), ("Zero", Zero)]
 
   annTerm :: Parser ITerm
@@ -85,6 +85,47 @@ module Juvix.Core.Parser where
        k <- cterm
        return $ NatElim motive mZero inductive k
 
+  vecTerm :: Parser ITerm
+  vecTerm =
+    do reserved "Vec"
+       theType <- cterm
+       numOfElement <- cterm
+       return $ Vec theType numOfElement 
+  
+  nilTerm :: Parser ITerm
+  nilTerm =
+    do reserved "Nil"
+       theType <- cterm
+       return $ Nil theType
+
+  consTerm :: Parser ITerm
+  consTerm =
+    do reserved "Cons"
+       eleType <- cterm
+       numOfElement <- cterm
+       newEle <- cterm
+       theVec <- cterm
+       return $ Cons eleType numOfElement newEle theVec    
+
+  vecelimTerm :: Parser ITerm
+  vecelimTerm =
+    do reserved "VecElim"
+       eleType <- cterm
+       motive <- cterm
+       mZero <- cterm
+       inductive <- cterm
+       numOfElement <- cterm
+       xs <- cterm
+       return $ VecElim eleType motive mZero inductive numOfElement xs
+
+  eqTerm :: Parser ITerm
+  eqTerm =
+    do reserved "Eq"
+       theType <- cterm
+       x <- cterm
+       y <- cterm
+       return $ Eq theType x y
+
   term :: Parser ITerm
   term =  parens term
       <|> foldr1 (<|>) (map parseSimpleI reservedSimple) --ITerms without inputs
@@ -92,6 +133,11 @@ module Juvix.Core.Parser where
       <|> piTerm
       <|> succTerm
       <|> natelimTerm
+      <|> vecTerm
+      <|> nilTerm
+      <|> consTerm
+      <|> vecelimTerm
+      <|> eqTerm
 
   cterm :: Parser CTerm
   cterm =  parens cterm
