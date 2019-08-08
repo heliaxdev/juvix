@@ -10,13 +10,18 @@ testGen :: (RPT, Env)
 testGen = execWithAssignment testAssignment
         $ generateConstraints testTerm
 
-checkAnswer :: IO (Either BracketErrors RPT)
+testGen' :: ((RPT, ParamTypeAssignment), Env)
+testGen' = execWithAssignment testAssignment
+        $ generateTypeAndConstraitns testTerm
+
+checkAnswer :: IO (Either Errors RPT)
 checkAnswer = validEal testTerm testAssignment
 
 resAnswer :: IO (Maybe RPT)
-resAnswer = uncurry (flip applyConstraints)
-         $ second constraints
-         $ testGen
+resAnswer = do
+  let (rtp,env) = testGen
+  assignments    ← getConstraints (constraints env)
+  return $ fmap (flip assignTerm rtp) assignments
 
 resMulti :: IO ()
 resMulti = uncurry (flip (runMultipleConstraints 10))

@@ -86,15 +86,27 @@ data BracketErrors = TooManyOpen
                    | InvalidAssignment
                    deriving Show
 
--- | Bracket runner Type
-newtype EitherBracket a =
-  EitherBracket { runEither :: (Either BracketErrors a) }
+-- | Runner Type for Bracket and TypeError
+newtype EitherTyp b a =
+  EitherBracket { runEither :: (Either b a) }
   deriving (Functor, Applicative, Monad) via
-    Except BracketErrors
-  deriving (HasThrow "typ" BracketErrors) via
-    MonadError (Except BracketErrors)
+    Except b
+  deriving (HasThrow "typ" b) via
+    MonadError (Except b)
 
--- | Bracket Runner
+
+-- | Error type when running the type Chekcer
+data TypeErrors = MisMatchArguments PType PType
+                | TypeIsNotFunction PType
+                | MissingOverUse
+                | ExpectedFunction
+                deriving Show
+
+-- | Total errors among Type and Bracket Errors
+data Errors = Typ TypeErrors
+           | Brack BracketErrors
+           deriving Show
+
 
 -- Environment for inference.
 data Env = Env {

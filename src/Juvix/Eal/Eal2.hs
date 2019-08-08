@@ -4,7 +4,7 @@ import qualified Data.Map.Strict  as Map
 import           Juvix.Eal.Types2
 import           Juvix.Library    hiding (Type, link, reduce)
 import           Prelude                 (error)
-
+import           Control.Arrow           (left)
 {- Main functionality. -}
 
 -- Construct occurrence map.
@@ -118,6 +118,7 @@ boxAndTypeConstraint parameterizedAssignment term = do
 
       let argTy = parameterizedAssignment Map.! sym
           lamTy = PArrT lamTyParam argTy bodyTy
+
       -- Calculate final type.
       resTy ← reparameterize lamTy
       -- Typing contraint: m = 0
@@ -149,6 +150,19 @@ boxAndTypeConstraint parameterizedAssignment term = do
       pure (RBang param (RApp a b), appTy)
 
 -- Generate constraints.
+generateTypeAndConstraitns ∷ ( HasState  "path"           Path            m
+                             , HasState  "varPaths"       VarPaths        m
+                             , HasState  "nextParam"      Param           m
+                             , HasState  "typeAssignment" TypeAssignment  m
+                             , HasWriter "constraints"    [Constraint]    m
+                             , HasState  "occurrenceMap"  OccurrenceMap   m )
+                           ⇒ Term → m (RPT, ParamTypeAssignment)
+generateTypeAndConstraitns term = do
+  parameterizedAssignment ← parameterizeTypeAssignment
+  setOccurrenceMap term
+  boxAndTypeConstraint parameterizedAssignment term
+    >>| second (const parameterizedAssignment)
+
 generateConstraints ∷ ( HasState  "path"           Path            m
                       , HasState  "varPaths"       VarPaths        m
                       , HasState  "nextParam"      Param           m
@@ -156,11 +170,8 @@ generateConstraints ∷ ( HasState  "path"           Path            m
                       , HasWriter "constraints"    [Constraint]    m
                       , HasState  "occurrenceMap"  OccurrenceMap   m )
                     ⇒ Term → m RPT
-generateConstraints term = do
-  parameterizedAssignment ← parameterizeTypeAssignment
-  setOccurrenceMap term
-  boxAndTypeConstraint parameterizedAssignment term
-  >>| fst
+generateConstraints term = generateTypeAndConstraitns term
+                           >>| fst
 
 {- Bracket Checker. -}
 bracketChecker :: RPTO → Either BracketErrors ()
@@ -182,6 +193,36 @@ bracketChecker t = runEither (rec' t 0 mempty)
           RLam s t   → rec' t n' (Map.insert s (negate n') map)
           RApp t1 t2 → rec' t1 n' map >> rec' t2 n' map
           RVar _     → error "already is matched"
+
+bracketCheckerErr :: RPTO → Either Errors ()
+bracketCheckerErr t = left Brack (bracketChecker t)
+
+{- Type Checker. -}
+-- Precondition ∷ all terms inside of RPTO must be unique
+typChecker :: RPTO → ParamTypeAssignment → Either TypeErrors ()
+typChecker t typAssign = runEither (() <$ rec' t typAssign)
+  where
+    rec' (RBang _ (RVar s)) assign =
+      case assign Map.!? s of
+        Nothing → throw @"typ" MissingOverUse
+        Just t@(PSymT x _)
+          | x > 0     → pure (assign, t)
+          | otherwise → pure (Map.delete s assign, t)
+        Just t@(PArrT x _ _)
+          | x > 0     → pure (assign, t)
+          | otherwise → pure (Map.delete s assign, t)
+    rec' (RBang _ (RApp t1 t2)) assign = do
+      (newAssign , type1) ← rec' t1 assign
+      (newAssign', type2) ← rec' t2 newAssign
+      case type1 of
+        PArrT _ arg result
+          | arg == type2 → pure (newAssign', result)
+          | otherwise    → throw @"typ" (MisMatchArguments arg type2)
+        t@PSymT {}       → throw @"typ" (TypeIsNotFunction t)
+    rec' (RBang _ (RLam _ t)) assign = rec' t assign
+
+typCheckerErr :: RPTO → ParamTypeAssignment → Either Errors ()
+typCheckerErr t typeAssing = left Typ (typChecker t typeAssing)
 
 {- Utility. -}
 
