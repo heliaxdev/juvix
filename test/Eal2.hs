@@ -16,7 +16,7 @@ omegaTestGen = execWithAssignment omegaAssignment
 
 testGen' :: ((RPT, ParamTypeAssignment), Env)
 testGen' = execWithAssignment testAssignment
-        $ generateTypeAndConstraitns testTerm
+         $ generateTypeAndConstraitns testTerm
 
 checkAnswer :: IO (Either Errors RPT)
 checkAnswer = validEal testTerm testAssignment
@@ -25,6 +25,7 @@ checkAnswer = validEal testTerm testAssignment
 checkAnswerOmega :: IO (Either Errors RPT)
 checkAnswerOmega = validEal omegaTerm omegaAssignment
 
+-- TODO ∷ Currently errors as unificationconstraints errors
 checkAnswerChurch :: IO (Either Errors RPT)
 checkAnswerChurch = validEal churchMult churchMultTyp
 
@@ -71,32 +72,54 @@ omegaAssignment = Map.fromList
   [ (someSymbolVal "x", ArrT (SymT (someSymbolVal "a")) (SymT (someSymbolVal "a")))
   ]
 
+mult :: Term
+mult =
+  (Lam (someSymbolVal "mult")
+    (Lam (someSymbolVal "m")
+     (Lam (someSymbolVal "n'")
+      (Lam (someSymbolVal "z")
+       (Lam (someSymbolVal "s")
+         (App (App (Var (someSymbolVal "m"))
+                   (App (Var (someSymbolVal "n'"))
+                        (Var (someSymbolVal "s"))))
+              (Var (someSymbolVal "z"))))))))
+
 churchMult :: Term
 churchMult =
+  (Lam (someSymbolVal "n")
+   (App (App mult
+             (Var (someSymbolVal "n")))
+        (Var (someSymbolVal "n"))))
+
+churchMultBrief :: Term
+churchMultBrief =
   (Lam (someSymbolVal "n")
    (App (App (Var (someSymbolVal "mult"))
              (Var (someSymbolVal "n")))
         (Var (someSymbolVal "n"))))
 
+a4 :: Type
+a4 = (ArrT (ArrT (SymT (someSymbolVal "a"))
+                 (SymT (someSymbolVal "a")))
+           (ArrT (SymT (someSymbolVal "a"))
+                 (SymT (someSymbolVal "a"))))
+
 churchMultTyp ∷ TypeAssignment
 churchMultTyp = Map.fromList
-  [ (someSymbolVal "mult", ArrT (ArrT (ArrT (SymT (someSymbolVal "a"))
-                                            (SymT (someSymbolVal "a")))
-                                      (ArrT (SymT (someSymbolVal "a"))
-                                            (SymT (someSymbolVal "a"))))
-                                (ArrT (ArrT (ArrT (SymT (someSymbolVal "a"))
-                                                  (SymT (someSymbolVal "a")))
-                                            (ArrT (SymT (someSymbolVal "a"))
-                                                  (SymT (someSymbolVal "a"))))
-                                      (ArrT (ArrT (SymT (someSymbolVal "a"))
-                                                  (SymT (someSymbolVal "a")))
-                                            (ArrT (SymT (someSymbolVal "a"))
-                                                  (SymT (someSymbolVal "a"))))))
+  [ (someSymbolVal "mult",
+     ArrT a4
+     (ArrT a4
+           (ArrT (ArrT (SymT (someSymbolVal "a"))
+                       (SymT (someSymbolVal "a")))
+                 (ArrT (SymT (someSymbolVal "a"))
+                       (SymT (someSymbolVal "a"))))))
 
-  , (someSymbolVal "n", (ArrT (ArrT (SymT (someSymbolVal "a"))
-                                    (SymT (someSymbolVal "a")))
-                              (ArrT (SymT (someSymbolVal "a"))
-                                    (SymT (someSymbolVal "a")))))
+  , (someSymbolVal "n", a4)
+  , (someSymbolVal "n'", a4)
+  , (someSymbolVal "m", a4)
+  , (someSymbolVal "s", (ArrT (SymT (someSymbolVal "a"))
+                              (SymT (someSymbolVal "a"))))
+  , (someSymbolVal "z", (SymT (someSymbolVal "a")))
   ]
 
 -- Test assignment - s : a → a, z : a.
