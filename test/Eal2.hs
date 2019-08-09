@@ -28,6 +28,9 @@ checkAnswerOmega = validEal omegaTerm omegaAssignment
 checkAnswerChurch ∷ IO (Either Errors (RPT, ParamTypeAssignment))
 checkAnswerChurch = validEal churchMult churchMultTyp
 
+checkAnswerChurchTwo ∷ IO (Either Errors (RPT, ParamTypeAssignment))
+checkAnswerChurchTwo = validEal churchMultTwo churchMultTyp
+
 checkAnswerNotTypeable ∷ IO (Either Errors (RPT, ParamTypeAssignment))
 checkAnswerNotTypeable = validEal notTypeableInEalL notTypeableInEalTyp
 
@@ -36,6 +39,17 @@ resAnswer = do
   let (rtp,env) = testGen
   assignments    ← getConstraints (constraints env)
   return $ fmap (flip assignTerm rtp) assignments
+
+--resAnswerTwo ∷ IO (Maybe RPT)
+resAnswerTwo :: IO (Maybe (RPT, ParamTypeAssignment))
+resAnswerTwo = do
+  let ((rtp, typ),env) = execWithAssignment churchMultTyp
+                       $ generateTypeAndConstraitns churchMultTwo
+  assignments    ← getConstraints (constraints env)
+  case assignments of
+    Just x  → pure $ Just (assignTerm x rtp, assignType x typ)
+    Nothing → pure Nothing
+
 
 resMulti ∷ IO ()
 resMulti = uncurry (flip (runMultipleConstraints 10))
@@ -74,28 +88,6 @@ omegaAssignment = Map.fromList
   [ (someSymbolVal "x", ArrT (SymT (someSymbolVal "a")) (SymT (someSymbolVal "a")))
   ]
 
-mult ∷ Term
-mult =
-  (Lam (someSymbolVal "m")
-   (Lam (someSymbolVal "n'")
-    (Lam (someSymbolVal "s")
-     (Lam (someSymbolVal "z")
-       (App (App (Var (someSymbolVal "m"))
-                 (App (Var (someSymbolVal "n'"))
-                      (Var (someSymbolVal "s"))))
-            (Var (someSymbolVal "z")))))))
-
-churchMult ∷ Term
-churchMult =
-  (Lam (someSymbolVal "n")
-    (Lam (someSymbolVal "s'")
-      (Lam (someSymbolVal "z'")
-        (App (App (App (App mult
-                            (Var (someSymbolVal "n")))
-                       (Var (someSymbolVal "n")))
-                  (Var (someSymbolVal "s'")))
-             (Var (someSymbolVal "z'"))))))
-
 notTypeableInEal :: ((p -> p) -> ((p -> p) -> p) -> p) -> ((p -> p) -> p) -> p
 notTypeableInEal = (\n -> (n (\y -> (n (\_z -> y)) (\x -> (x (x y))))))
 
@@ -128,6 +120,48 @@ notTypeableInEalTyp = Map.fromList
   ]
 
 
+mult ∷ Term
+mult =
+  (Lam (someSymbolVal "m")
+   (Lam (someSymbolVal "n'")
+    (Lam (someSymbolVal "s")
+     (Lam (someSymbolVal "z")
+       (App (App (Var (someSymbolVal "m"))
+                 (App (Var (someSymbolVal "n'"))
+                      (Var (someSymbolVal "s"))))
+            (Var (someSymbolVal "z")))))))
+
+
+two' :: (t -> t) -> t -> t
+two' f x = f (f x)
+
+twoLam :: Term
+twoLam = Lam (someSymbolVal "f")
+           (Lam (someSymbolVal "x")
+             (App (Var (someSymbolVal "f"))
+                  (App (Var (someSymbolVal "f"))
+                       (Var (someSymbolVal "x")))))
+
+churchMultTwo ∷ Term
+churchMultTwo =
+    (Lam (someSymbolVal "s'")
+      (Lam (someSymbolVal "z'")
+        (App (App (App (App mult
+                            twoLam)
+                       twoLam)
+                  (Var (someSymbolVal "s'")))
+             (Var (someSymbolVal "z'")))))
+
+churchMult ∷ Term
+churchMult =
+  (Lam (someSymbolVal "n")
+    (Lam (someSymbolVal "s'")
+      (Lam (someSymbolVal "z'")
+        (App (App (App (App mult
+                            (Var (someSymbolVal "n")))
+                       (Var (someSymbolVal "n")))
+                  (Var (someSymbolVal "s'")))
+             (Var (someSymbolVal "z'"))))))
 
 churchMultBrief ∷ Term
 churchMultBrief =
@@ -151,9 +185,12 @@ churchMultTyp = Map.fromList
   , (someSymbolVal "s", (ArrT (SymT (someSymbolVal "a"))
                               (SymT (someSymbolVal "a"))))
   , (someSymbolVal "s'", (ArrT (SymT (someSymbolVal "a"))
-                              (SymT (someSymbolVal "a"))))
+                               (SymT (someSymbolVal "a"))))
   , (someSymbolVal "z", (SymT (someSymbolVal "a")))
   , (someSymbolVal "z'", (SymT (someSymbolVal "a")))
+  , (someSymbolVal "x", (SymT (someSymbolVal "a")))
+  , (someSymbolVal "f", (ArrT (SymT (someSymbolVal "a"))
+                              (SymT (someSymbolVal "a"))))
   ]
 
 -- Test assignment - s : a → a, z : a.
