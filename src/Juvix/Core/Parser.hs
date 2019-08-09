@@ -174,17 +174,18 @@ module Juvix.Core.Parser where
     do reserved "Free"
        fname <- name
        return $ Free fname
-
+            
   appTerm :: Parser ITerm
   appTerm =
     do iterm <- iterm
        reserved ":@:"
        cTerm <- cterm
+       eof
        return $ iterm :@: cTerm
 
   iterm :: Parser ITerm
   iterm =  appTerm --Application
-       <|> term --all ITerms except the application ITerm
+       -- <|> term --all ITerms except the application ITerm
   
   term :: Parser ITerm
   term =  parens term
@@ -203,7 +204,6 @@ module Juvix.Core.Parser where
       <|> boundTerm --Bound var
       <|> freeTerm --Free var
       
-
   cterm :: Parser CTerm
   cterm =  parens cterm
        <|> do reservedOp "Inf"
@@ -213,15 +213,8 @@ module Juvix.Core.Parser where
               cTerm <- cterm
               return $ Lam cTerm
 
-  parseWhole p =
-    do whiteSpace
-       t <- p
-       whiteSpace
-       eof
-       return p
-
   parseString :: Parser a -> String -> a
   parseString p str =
-    case parse (parseWhole p) "" str of
+    case parse p "" str of
          Left e -> error $ show e
          Right r -> r
