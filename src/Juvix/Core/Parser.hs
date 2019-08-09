@@ -177,18 +177,25 @@ module Juvix.Core.Parser where
             
   appTerm :: Parser ITerm
   appTerm =
-    do iterm <- iterm
+    do iterm <- term
        reserved ":@:"
        cTerm <- cterm
-       eof
        return $ iterm :@: cTerm
 
   iterm :: Parser ITerm
-  iterm =  appTerm --Application
-       -- <|> term --all ITerms except the application ITerm
-  
+  iterm =  appTerm --Application 
+       <|> term --all ITerms except the application ITerm
+  parseWhole :: Parser ITerm
+  parseWhole = 
+    do whiteSpace
+       t <- iterm
+       whiteSpace
+       eof
+       return t
+       
   term :: Parser ITerm
   term =  parens term
+      -- <|> appTerm
       <|> foldr1 (<|>) (map parseSimpleI reservedSimple) --ITerms without inputs
       <|> annTerm --ITerms with CTerms as input(s).
       <|> piTerm
