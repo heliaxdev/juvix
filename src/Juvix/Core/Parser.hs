@@ -177,9 +177,10 @@ module Juvix.Core.Parser where
             
   appTerm :: Parser ITerm
   appTerm =
-    do iterm <- term
-       reserved ":@:"
+    do reserved ":@:"
+       iterm <- term
        cTerm <- cterm
+       eof
        return $ iterm :@: cTerm
 
   iterm :: Parser ITerm
