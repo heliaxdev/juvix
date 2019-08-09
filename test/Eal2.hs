@@ -21,6 +21,9 @@ testGen' = execWithAssignment testAssignment
 checkAnswer ∷ IO (Either Errors (RPT, ParamTypeAssignment))
 checkAnswer = validEal testTerm testAssignment
 
+checkAnswer2 ∷ IO (Either Errors (RPT, ParamTypeAssignment))
+checkAnswer2 = validEal testTerm2 testAssignment
+
 -- TODO ∷ Currently errors as unificationconstraints errors
 checkAnswerOmega ∷ IO (Either Errors (RPT, ParamTypeAssignment))
 checkAnswerOmega = validEal omegaTerm omegaAssignment
@@ -41,7 +44,7 @@ resAnswer = do
   return $ fmap (flip assignTerm rtp) assignments
 
 --resAnswerTwo ∷ IO (Maybe RPT)
-resAnswerTwo :: IO (Maybe (RPT, ParamTypeAssignment))
+resAnswerTwo ∷ IO (Maybe (RPT, ParamTypeAssignment))
 resAnswerTwo = do
   let ((rtp, typ),env) = execWithAssignment churchMultTyp
                        $ generateTypeAndConstraitns churchMultTwo
@@ -72,6 +75,14 @@ testTerm = Lam (someSymbolVal "s")
                (App (Var (someSymbolVal "s"))
                     (App (Var (someSymbolVal "s"))
                          (Var (someSymbolVal "z")))))
+
+testTerm2 ∷ Term
+testTerm2 = Lam (someSymbolVal "s")
+             (Lam (someSymbolVal "z")
+               (App (Var (someSymbolVal "s"))
+                    (App (Var (someSymbolVal "s"))
+                         (App (Var (someSymbolVal "s"))
+                              (Var (someSymbolVal "z"))))))
 
 omegaTerm ∷ Term
 omegaTerm =
@@ -138,10 +149,10 @@ mult =
             (Var (someSymbolVal "z")))))))
 
 
-two' :: (t -> t) -> t -> t
+two' ∷ (t → t) → t → t
 two' f x = f (f x)
 
-twoLam :: Term
+twoLam ∷ Term
 twoLam = Lam (someSymbolVal "f")
            (Lam (someSymbolVal "x")
              (App (Var (someSymbolVal "f"))
