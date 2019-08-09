@@ -128,9 +128,9 @@ arg3 = ArrT arg2 arg2
 notTypeableInEalTyp ∷ Map SomeSymbol Type
 notTypeableInEalTyp = Map.fromList
   [ (someSymbolVal "n", ArrT arg1 (ArrT arg2 arg0))
-  , (someSymbolVal "y", arg2)
-  , (someSymbolVal "z", arg1)
-  , (someSymbolVal "x", arg3)
+  , (someSymbolVal "y", arg0)
+  , (someSymbolVal "z", arg0)
+  , (someSymbolVal "x", arg1)
   ]
 
 churchMultBrief ∷ Term
