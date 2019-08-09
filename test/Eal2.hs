@@ -112,6 +112,9 @@ notTypeableInEalL =
                        (App (Var (someSymbolVal "x"))
                             (Var (someSymbolVal "y")))))))))
 
+arg0 ∷ Type
+arg0 = SymT (someSymbolVal "a")
+
 arg1 ∷ Type
 arg1 = ArrT (SymT (someSymbolVal "a"))
             (SymT (someSymbolVal "a"))
@@ -119,12 +122,15 @@ arg1 = ArrT (SymT (someSymbolVal "a"))
 arg2 ∷ Type
 arg2 = ArrT arg1 (SymT (someSymbolVal "a"))
 
+arg3 ∷ Type
+arg3 = ArrT arg2 arg2
+
 notTypeableInEalTyp ∷ Map SomeSymbol Type
 notTypeableInEalTyp = Map.fromList
-  [ (someSymbolVal "n", ArrT arg1 (ArrT arg2 (SymT (someSymbolVal "a"))))
+  [ (someSymbolVal "n", ArrT arg1 (ArrT arg2 arg0))
   , (someSymbolVal "y", arg2)
   , (someSymbolVal "z", arg1)
-  , (someSymbolVal "x", arg1)
+  , (someSymbolVal "x", arg3)
   ]
 
 churchMultBrief ∷ Term
