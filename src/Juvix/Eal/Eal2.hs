@@ -105,7 +105,7 @@ boxAndTypeConstraint parameterizedAssignment term = do
                                 , ConstraintVar 1 origBangParam
                                 , ConstraintVar 1 param
                                 ] (Eq 0))
-      addConstraint (Constraint [ConstraintVar 1 (bangParam paramTy)] (Gte 0))
+      addConstraint (Constraint [ConstraintVar 1 (bangParam paramTy)] (Eq 0))
       -- Return parameterized term.
       pure (RBang param (RVar sym), paramTy)
     Lam sym body → do
