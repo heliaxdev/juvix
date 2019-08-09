@@ -68,6 +68,7 @@ unificationConstraints x y = error ("cannot unify " <> show x <> " with " <> sho
 
 -- Generate boxing & typing constraints.
 -- In one pass to avoid keeping extra maps.
+-- TODO ∷ Change occurrenceMap to a reader at this point in the code
 boxAndTypeConstraint ∷ ( HasState  "path" Path                    m
                        , HasState  "varPaths" VarPaths            m
                        , HasState  "nextParam" Param              m
