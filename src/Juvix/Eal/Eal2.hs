@@ -89,17 +89,17 @@ boxAndTypeConstraint parameterizedAssignment term = do
       case varPaths Map.!? sym of
         Just loc  → addConstraint (Constraint (ConstraintVar 1 <$> dropWhile (< loc) path) (Eq 0))
         Nothing   → addConstraint (Constraint (ConstraintVar 1 <$> path)                   (Eq 0))
-      let paramTy = parameterizedAssignment Map.! sym
+      let origParamTy = parameterizedAssignment Map.! sym
       -- Typing constraint: variable occurrences.
       occurrenceMap ← get @"occurrenceMap"
 
       let occurrences   = occurrenceMap Map.! sym
-          origBangParam = bangParam paramTy
+          origBangParam = bangParam origParamTy
 
       when (occurrences >= 2) $
         addConstraint (Constraint [ConstraintVar 1 origBangParam] (Gte 1))
       -- Calculate parameterized type for subterm.
-      paramTy ← reparameterize paramTy
+      paramTy ← reparameterize origParamTy
       -- Typing constraint: m = k + n, m >= 0; n = param, m = bangParam paramTy, k = origBangParam
       addConstraint (Constraint [ ConstraintVar (-1) (bangParam paramTy)
                                 , ConstraintVar 1 origBangParam
@@ -210,13 +210,13 @@ typChecker t typAssign = runEither (() <$ rec' t typAssign)
         Just t@(PArrT x _ _)
           | x > 0     → pure (assign, t)
           | otherwise → pure (Map.delete s assign, t)
-    rec' (RBang _ (RApp t1 t2)) assign = do
+    rec' (RBang _ term@(RApp t1 t2)) assign = do
       (newAssign , type1) ← rec' t1 assign
       (newAssign', type2) ← rec' t2 newAssign
       case type1 of
         PArrT _ arg result
           | arg == type2 → pure (newAssign', result)
-          | otherwise    → throw @"typ" (MisMatchArguments arg type2)
+          | otherwise    → throw @"typ" (MisMatchArguments arg type2 term)
         t@PSymT {}       → throw @"typ" (TypeIsNotFunction t)
     rec' (RBang x (RLam s t)) assign = do
       (newAssign, bodyType) ← rec' t assign

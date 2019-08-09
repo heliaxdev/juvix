@@ -9,7 +9,7 @@ import           Juvix.Eal.Types2
 import           Juvix.Library    hiding (link, reduce)
 
 
-runMultipleConstraints :: Int → [Constraint] → RPT → IO ()
+runMultipleConstraints ∷ Int → [Constraint] → RPT → IO ()
 runMultipleConstraints numRepeat constraints syntax = do
   let numset = grabTermNumbers syntax mempty
       recGen _               _         _      0   = pure ()
@@ -51,9 +51,12 @@ runMultipleConstraints numRepeat constraints syntax = do
     grabTermNumbers (RBang i (RApp t1 t2)) s =
       grabTermNumbers t1 (grabTermNumbers t2 (Set.insert i s))
 
-getConstraints :: [Constraint] → IO (Maybe [Integer])
+getConstraints ∷ [Constraint] → IO (Maybe [Integer])
 getConstraints constraints = do
-  (_,_,s) ← Z3.evalZ3 (constraintSystem constraints)
+  (r,v,s) ← Z3.evalZ3 (constraintSystem constraints)
+  putStrLn v
+  putText "-->"
+  print (r, s)
   pure s
 
 runConstraints ∷ [Constraint] → IO ()
@@ -93,13 +96,13 @@ constraintToZ3 varMap (Constraint vars op) = opToZ3 op =<< varsToZ3 varMap vars
 constraintsToZ3 ∷ Map.Map Int Z3.AST → [Constraint] → Z3.Z3 Z3.AST
 constraintsToZ3 varMap constraints = Z3.mkAnd =<< traverse (constraintToZ3 varMap) constraints
 
-constraintsToZ3Extra :: [Z3.AST] → Map Int Z3.AST → [Constraint] → Z3.Z3 Z3.AST
+constraintsToZ3Extra ∷ [Z3.AST] → Map Int Z3.AST → [Constraint] → Z3.Z3 Z3.AST
 constraintsToZ3Extra extra varMap constraints = do
   cons ← traverse (constraintToZ3 varMap) constraints
   and  ← Z3.mkAnd cons
   Z3.mkAnd (and : extra)
 
-makeVarMap :: Z3.MonadZ3 f ⇒ [Constraint] → f (Map Int Z3.AST)
+makeVarMap ∷ Z3.MonadZ3 f ⇒ [Constraint] → f (Map Int Z3.AST)
 makeVarMap constraints =
   let vars = Set.toList (collectVars constraints) in
   traverse (\v → (Z3.mkStringSymbol ("m_" <> show v)
@@ -108,7 +111,7 @@ makeVarMap constraints =
            vars
   >>| Map.fromList
 
-constraintSystemGen :: Z3.MonadZ3 m
+constraintSystemGen ∷ Z3.MonadZ3 m
                     ⇒ [Constraint]
                     → (Map Int Z3.AST → [Constraint] → m Z3.AST)
                     → m (Z3.Result, String, Maybe [Integer])

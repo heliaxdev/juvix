@@ -96,7 +96,7 @@ newtype EitherTyp b a =
 
 
 -- | Error type when running the type Chekcer
-data TypeErrors = MisMatchArguments PType PType
+data TypeErrors = MisMatchArguments PType PType RPTI
                 | TypeIsNotFunction PType
                 | MissingOverUse
                 | ExpectedFunction
