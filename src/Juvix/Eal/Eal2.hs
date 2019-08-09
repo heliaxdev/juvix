@@ -219,7 +219,11 @@ typChecker t typAssign = runEither (() <$ rec' t typAssign)
           | arg == type2 → pure (newAssign', result)
           | otherwise    → throw @"typ" (MisMatchArguments arg type2)
         t@PSymT {}       → throw @"typ" (TypeIsNotFunction t)
-    rec' (RBang _ (RLam _ t)) assign = rec' t assign
+    rec' (RBang x (RLam s t)) assign = do
+      (newAssign, bodyType) ← rec' t assign
+      case assign Map.!? s of
+        Just arg → pure (newAssign, PArrT x arg bodyType)
+        Nothing  → throw @"typ" MissingOverUse
 
 typCheckerErr :: RPTO → ParamTypeAssignment → Either Errors ()
 typCheckerErr t typeAssing = left Typ (typChecker t typeAssing)
