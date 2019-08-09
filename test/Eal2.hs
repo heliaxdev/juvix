@@ -25,9 +25,11 @@ checkAnswer = validEal testTerm testAssignment
 checkAnswerOmega ∷ IO (Either Errors (RPT, ParamTypeAssignment))
 checkAnswerOmega = validEal omegaTerm omegaAssignment
 
--- TODO ∷ Currently errors as unificationconstraints errors
 checkAnswerChurch ∷ IO (Either Errors (RPT, ParamTypeAssignment))
 checkAnswerChurch = validEal churchMult churchMultTyp
+
+checkAnswerNotTypeable ∷ IO (Either Errors (RPT, ParamTypeAssignment))
+checkAnswerNotTypeable = validEal notTypeableInEalL notTypeableInEalTyp
 
 resAnswer ∷ IO (Maybe RPT)
 resAnswer = do
@@ -89,9 +91,43 @@ churchMult =
     (Lam (someSymbolVal "s'")
       (Lam (someSymbolVal "z'")
         (App (App (App (App mult
-                  (Var (someSymbolVal "n")))
-                  (Var (someSymbolVal "n"))) (Var (someSymbolVal "s'")))
-                  (Var (someSymbolVal "z'"))))))
+                            (Var (someSymbolVal "n")))
+                       (Var (someSymbolVal "n")))
+                  (Var (someSymbolVal "s'")))
+             (Var (someSymbolVal "z'"))))))
+
+notTypeableInEal :: ((p -> p) -> ((p -> p) -> p) -> p) -> ((p -> p) -> p) -> p
+notTypeableInEal = (\n -> (n (\y -> (n (\_z -> y)) (\x -> (x (x y))))))
+
+notTypeableInEalL :: Term
+notTypeableInEalL =
+  (Lam (someSymbolVal "n")
+    (App (Var (someSymbolVal "n"))
+         (Lam (someSymbolVal "y")
+           (App (App (Var (someSymbolVal "n"))
+                     (Lam (someSymbolVal "z")
+                       (Var (someSymbolVal "y"))))
+                (Lam (someSymbolVal "x")
+                  (App (Var (someSymbolVal "x"))
+                       (App (Var (someSymbolVal "x"))
+                            (Var (someSymbolVal "y")))))))))
+
+arg1 :: Type
+arg1 = ArrT (SymT (someSymbolVal "a"))
+            (SymT (someSymbolVal "a"))
+
+arg2 :: Type
+arg2 = ArrT arg1 (SymT (someSymbolVal "a"))
+
+notTypeableInEalTyp :: Map SomeSymbol Type
+notTypeableInEalTyp = Map.fromList
+  [ (someSymbolVal "n", ArrT arg1 (ArrT arg2 (SymT (someSymbolVal "a"))))
+  , (someSymbolVal "y", arg1)
+  , (someSymbolVal "z", arg1)
+  , (someSymbolVal "x", arg2)
+  ]
+
+
 
 churchMultBrief ∷ Term
 churchMultBrief =
