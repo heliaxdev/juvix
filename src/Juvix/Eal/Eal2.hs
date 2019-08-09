@@ -1,10 +1,10 @@
 module Juvix.Eal.Eal2 where
 
+import           Control.Arrow    (left)
 import qualified Data.Map.Strict  as Map
 import           Juvix.Eal.Types2
 import           Juvix.Library    hiding (Type, link, reduce)
-import           Prelude                 (error)
-import           Control.Arrow           (left)
+import           Prelude          (error)
 {- Main functionality. -}
 
 -- Construct occurrence map.
@@ -20,7 +20,7 @@ setOccurrenceMap term = do
       setOccurrenceMap b
 
 -- Parameterize type.
-parameterizeType :: ( HasState  "nextParam" Param          m
+parameterizeType ∷ ( HasState  "nextParam" Param          m
                    , HasWriter "constraints" [Constraint] m )
                  ⇒ Type → m PType
 parameterizeType ty = do
@@ -36,7 +36,7 @@ parameterizeType ty = do
       pure (PArrT param arg body)
 
 -- Parameterize type assignment.
-parameterizeTypeAssignment :: ( HasState "nextParam" Param               m
+parameterizeTypeAssignment ∷ ( HasState "nextParam" Param               m
                              , HasWriter "constraints" [Constraint]     m
                              , HasState "typeAssignment" TypeAssignment m )
                            ⇒ m ParamTypeAssignment
@@ -64,13 +64,11 @@ unificationConstraints (PArrT a aArg aRes) (PArrT b bArg bRes) = do
   addConstraint (Constraint [ConstraintVar 1 a, ConstraintVar (-1) b] (Eq 0))
   unificationConstraints aArg bArg
   unificationConstraints aRes bRes
-
-unificationConstraints PSymT {} PArrT {} = error "doesn't happen"
-unificationConstraints PArrT {} PSymT {} = error "doesn't happen"
+unificationConstraints x y = error ("cannot unify " <> show x <> " with " <> show y)
 
 -- Generate boxing & typing constraints.
 -- In one pass to avoid keeping extra maps.
-boxAndTypeConstraint :: ( HasState  "path" Path                    m
+boxAndTypeConstraint ∷ ( HasState  "path" Path                    m
                        , HasState  "varPaths" VarPaths            m
                        , HasState  "nextParam" Param              m
                        , HasWriter "constraints" [Constraint]     m
@@ -174,7 +172,7 @@ generateConstraints term = generateTypeAndConstraitns term
                            >>| fst
 
 {- Bracket Checker. -}
-bracketChecker :: RPTO → Either BracketErrors ()
+bracketChecker ∷ RPTO → Either BracketErrors ()
 bracketChecker t = runEither (rec' t 0 mempty)
   where
     rec' (RBang changeBy (RVar sym)) n map =
@@ -194,12 +192,12 @@ bracketChecker t = runEither (rec' t 0 mempty)
           RApp t1 t2 → rec' t1 n' map >> rec' t2 n' map
           RVar _     → error "already is matched"
 
-bracketCheckerErr :: RPTO → Either Errors ()
+bracketCheckerErr ∷ RPTO → Either Errors ()
 bracketCheckerErr t = left Brack (bracketChecker t)
 
 {- Type Checker. -}
 -- Precondition ∷ all terms inside of RPTO must be unique
-typChecker :: RPTO → ParamTypeAssignment → Either TypeErrors ()
+typChecker ∷ RPTO → ParamTypeAssignment → Either TypeErrors ()
 typChecker t typAssign = runEither (() <$ rec' t typAssign)
   where
     rec' (RBang _ (RVar s)) assign =
@@ -225,7 +223,7 @@ typChecker t typAssign = runEither (() <$ rec' t typAssign)
         Just arg → pure (newAssign, PArrT x arg bodyType)
         Nothing  → throw @"typ" MissingOverUse
 
-typCheckerErr :: RPTO → ParamTypeAssignment → Either Errors ()
+typCheckerErr ∷ RPTO → ParamTypeAssignment → Either Errors ()
 typCheckerErr t typeAssing = left Typ (typChecker t typeAssing)
 
 {- Utility. -}
