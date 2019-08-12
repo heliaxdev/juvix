@@ -20,14 +20,15 @@ module Juvix.Core.Parser where
                 , Token.identStart      = letter
                 , Token.identLetter     = alphaNum
                 , Token.reservedNames   = [ "*","Nat","Zero", --ITerms without inputs
-                                            "Ann", ":", "Pi","Succ","NatElim", --ITerms with CTerms as inputs
+                                            "Ann", "Pi","Succ","NatElim", --ITerms with CTerms as inputs
                                             "Vec","Nil","Cons","VecElim",
                                             "Eq", "Refl","EqElim",
                                             "Bound", --Bound var
-                                            "Free","Local","Quote","Global", --Free var
-                                            ":@:" --application
+                                            "Free","Local","Quote","Global" --Free var
                                           ]
-                , Token.reservedOpNames = [ "Inf", "Lam"]
+                , Token.reservedOpNames = [ "Inf", "Lam", ":",
+                                            ":@:" --application 
+                                          ]
                 }
   lexer :: Token.GenTokenParser String u Data.Functor.Identity.Identity
   lexer = Token.makeTokenParser languageDef
@@ -59,7 +60,7 @@ module Juvix.Core.Parser where
                 theType <- cterm
                 return $ Ann theTerm theType
          <|> do theTerm <- cterm --Idris annotation syntax, atm doesn't work.
-                reserved ":"
+                reservedOp ":"
                 theType <- cterm
                 return $ Ann theTerm theType
 
@@ -177,7 +178,7 @@ module Juvix.Core.Parser where
             
   appTerm :: Parser ITerm
   appTerm =
-    do reserved ":@:"
+    do reservedOp ":@:"
        iterm <- term
        cTerm <- cterm
        eof
