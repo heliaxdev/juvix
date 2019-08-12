@@ -82,6 +82,7 @@ boxAndTypeConstraint parameterizedAssignment term = do
   varPaths ← get @"varPaths"
   param    ← addPath
   path     ← get @"path"
+  -- Boxing constraint.
   addConstraint (Constraint (ConstraintVar 1 <$> path) (Gte 0))
   case term of
     Var sym → do
@@ -100,16 +101,21 @@ boxAndTypeConstraint parameterizedAssignment term = do
         addConstraint (Constraint [ConstraintVar 1 origBangParam] (Gte 1))
       -- Calculate parameterized type for subterm.
       paramTy ← reparameterize origParamTy
-      -- Typing constraint: m = k + n, m >= 0; n = param, m = bangParam paramTy, k = origBangParam
+      -- Typing constraint: m = k + n ⟹ k + n - m = 0
+      -- where n = param
+      -- and   k = origBangParam
+      -- and   m = bangParam paramTy
       addConstraint (Constraint [ ConstraintVar (-1) (bangParam paramTy)
                                 , ConstraintVar 1 origBangParam
                                 , ConstraintVar 1 param
                                 ] (Eq 0))
+      -- Typing constraint: m >= 0
       addConstraint (Constraint [ConstraintVar 1 (bangParam paramTy)] (Gte 0))
       -- Return parameterized term.
       pure (RBang param (RVar sym), paramTy)
     Lam sym body → do
-      modify' @"varPaths" (Map.insert sym (succ param))
+      nextParam ← getNextParam
+      modify' @"varPaths" (Map.insert sym nextParam)
       (body, bodyTy) ← rec body
       -- Calculate parameterized type for subterm.
       lamTyParam ← freshParam
@@ -121,13 +127,17 @@ boxAndTypeConstraint parameterizedAssignment term = do
 
       -- Calculate final type.
       resTy ← reparameterize lamTy
-      -- Typing contraint: m = 0
+      -- Typing constraint: m = 0
       addConstraint (Constraint [ConstraintVar 1 lamTyParam] (Eq 0))
-      -- Typing constraint: m = k + n, m >= 0, n = param, m = bangParam resTy, k = bangParam lamTy
+      -- Typing constraint: m = k + n ⟹ k + n - m = 0
+      -- where k = bangParam lamTy ∈ ℤ
+      -- and   m = bangParam resTy ∈ ℤ
+      -- and   n = param           ∈ ℤ
       addConstraint (Constraint [ ConstraintVar (-1) (bangParam resTy)
                                 , ConstraintVar 1 (bangParam lamTy)
                                 , ConstraintVar 1 param
                                 ] (Eq 0))
+      -- Typing constraint: m >= 0
       addConstraint (Constraint [ConstraintVar 1 (bangParam resTy)] (Gte 0))
       -- Return parameterized term.
       pure (RBang param (RLam sym body), resTy)
@@ -139,14 +149,21 @@ boxAndTypeConstraint parameterizedAssignment term = do
       (b, bTy) ← rec b
       -- Calculate parameterized type for subterm.
       appTy ← reparameterize resTy
-      -- Typing constraint: U(A_1, A_2), m = 0
+      -- Typing constraint: U(A₁, A₂) ∪ m = 0
+      -- where the terms are from:
+      -- aTy = !^m(A₁ ⊸ B₁)
+      -- bTy = A₂
       unificationConstraints argTy bTy
       addConstraint (Constraint [ConstraintVar 1 (bangParam aTy)] (Eq 0))
-      -- Typing constraint: m = k + n, m >= 0, n = param, m = bangParam appTy, k = bangParam resTy
+      -- Typing constraint: m = k + n ⟹ k + n - m = 0
+      -- where n = param
+      -- and   k = bangParam resTy
+      -- and   m = bangParam appTy
       addConstraint (Constraint [ ConstraintVar (-1) (bangParam appTy)
                                 , ConstraintVar 1 (bangParam resTy)
                                 , ConstraintVar 1 param
                                 ] (Eq 0))
+      -- Typing constraint: m >= 0
       addConstraint (Constraint [ConstraintVar 1 (bangParam appTy)] (Gte 0))
       -- Return parameterized term.
       pure (RBang param (RApp a b), appTy)
@@ -237,7 +254,11 @@ bangParam ∷ PType → Param
 bangParam (PSymT param _)   = param
 bangParam (PArrT param _ _) = param
 
--- Generate fresh parameter.
+-- | Get the next fresh parameter
+getNextParam :: (HasState "nextParam" b f, Enum b) ⇒ f b
+getNextParam = get @"nextParam" >>| succ
+
+-- | Generate fresh parameter.
 freshParam ∷ (HasState "nextParam" Param m) ⇒ m Param
 freshParam = do
   param ← get @"nextParam"
