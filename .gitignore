@@ -21,3 +21,6 @@ tmp/
 # Idris temporary
 *.ibc
 stack.yaml.lock
+
+# Agda temporary
+*.agdai
