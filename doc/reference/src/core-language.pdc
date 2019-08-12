@@ -33,8 +33,6 @@ R, S, T, s, t &::= ∗_i\ & \text{sort $i$} \\
 &\ \ \ \ \ \ |\ T \parr T & \text{non-dependent multiplicative disjunction type} \\
 &\ \ \ \ \ \ |\ ιx.T\ & \text{self-type} \\
 &\ \ \ \ \ \ |\ λx.t\ & \text{abstraction} \\
-&\ \ \ \ \ \ |\ fst M\ & \text{first projection} \\
-&\ \ \ \ \ \ |\ snd M\ & \text{second projection} \\
 &\ \ \ \ \ \ |\ e\ & \text{elimination}\\
 \end{align*}
 \end{subfigure}
@@ -47,6 +45,10 @@ d, e, f &::= x\ & \text{variable} \\
 &\ \ \ \ \ \ |\ (s, t)\ & \text{pair} \\
 &\ \ \ \ \ \ |\ s\ \epsilon\ t\ & \text{additive conjunction} \\
 &\ \ \ \ \ \ |\ s\ \gamma\ t\ & \text{multiplicative disjunction} \\
+&\ \ \ \ \ \ |\ fst_⊗\ M\ & \text{first projection for multiplicative conjunction} \\
+&\ \ \ \ \ \ |\ snd_⊗\ M\ & \text{second projection for multiplicative conjunction} \\
+&\ \ \ \ \ \ |\ fst_{\&}\ M\ & \text{first projection for additive conjunction} \\
+&\ \ \ \ \ \ |\ snd_{\&}\ M\ & \text{second projection for additive conjunction} \\
 &\ \ \ \ \ \ |\ let\ (x, y) = d\ in\ e\ & \text{dependent pair pattern match} \\
 &\ \ \ \ \ \ |\ s \overset{π}{:} S & \text{type \& usage annotation} \\
 \end{align*}
@@ -138,6 +140,18 @@ The conversion rule allows conversion between judgementally equal types:
 
 Note that type equality is judged in a context with no resources.
 
+### Primitive constants & types
+
+\begin{prooftree}
+\AxiomC{$c \in C$}
+\AxiomC{$\kappa \in K$}
+\AxiomC{$c ⋮ \kappa$}
+\RightLabel{Prim}
+\TrinaryInfC{$⊢ c \overset{σ}{:} \kappa$}
+\end{prooftree}
+
+Primitive constants are typed according to the primitive typing relation, and they can be produced in any computational quantity.
+
 ### Dependent function types
 
 Function types $(x \overset{π}{:} S) → T$ record usage of the argument. The formation rule is:
@@ -215,14 +229,14 @@ Under the erased ($σ=0$) part of the theory, projection operators can be used a
 
 \begin{prooftree}
 \AxiomC{$Γ ⊢ M \overset{0}{:} (x \overset{π}{:} S) ⊗ T$}
-\UnaryInfC{$Γ ⊢ fst\ M \overset{0}{:} A$}
+\UnaryInfC{$Γ ⊢ fst_⊗\ M \overset{0}{:} A$}
 \end{prooftree}
 
 (should the last be $S$ ?)
 
 \begin{prooftree}
 \AxiomC{$Γ ⊢ M \overset{0}{:} (x \overset{π}{:} S) ⊗ T$}
-\UnaryInfC{$Γ ⊢ snd\ M \overset{0}{:} T[x := fst(M)]$}
+\UnaryInfC{$Γ ⊢ snd_⊗\ M \overset{0}{:} T[x := fst_⊗(M)]$}
 \end{prooftree}
 
 Under the resourceful part:
@@ -441,44 +455,50 @@ Lay out syntax-directed typechecker following McBride's paper.
 - Define erasure to untyped lambda calculus following McBride's paper.
 - Define erasure to dependent elementary affine logic analogously (but not erasing the pi types).
 
-Let programs of the untyped lambda calculus be $p ::= x\ |\ λx.p\ |\ p\ p$.
+Let programs of the untyped lambda calculus be $p ::= x\ |\ λx.p\ |\ p\ p\ |\ c$ where $c \in C$ is a primitive constant.
 
-Define the erasure operator $→_{e}$, such that erasure judgements take the form $Γ ⊢ t \overset{σ}{:} S →_{e} p$.
+Define the erasure operator $▶$, such that erasure judgements take the form $Γ ⊢ t \overset{σ}{:} S \ ▶\  p$.
+
+\begin{prooftree}
+\AxiomC{$$}
+\RightLabel{Prim-Erase}
+\UnaryInfC{$c \ ▶\  c$}
+\end{prooftree}
 
 \begin{prooftree}
 \AxiomC{$⊢ 0Γ,x \overset{σ}{:} S, 0Γ′$}
 \RightLabel{Var-Erase-+}
-\UnaryInfC{$0Γ,x \overset{σ}{:} S, 0Γ′ ⊢ x \overset{σ}{:} S →_{e} x$}
+\UnaryInfC{$0Γ,x \overset{σ}{:} S, 0Γ′ ⊢ x \overset{σ}{:} S \ ▶\  x$}
 \end{prooftree}
 
 \begin{prooftree}
-\AxiomC{$t \overset{σ}{:} T →_{e} p$}
+\AxiomC{$t \overset{σ}{:} T \ ▶\  p$}
 \AxiomC{$σπ = 0$}
 \RightLabel{Lam-Erase-0}
-\BinaryInfC{$λx.t : (x \overset{π}{:} S) → T →_{e} p$}
+\BinaryInfC{$λx.t : (x \overset{π}{:} S) → T \ ▶\  p$}
 \end{prooftree}
 
 \begin{prooftree}
-\AxiomC{$t \overset{σ}{:} T →_{e} p$}
+\AxiomC{$t \overset{σ}{:} T \ ▶\  p$}
 \AxiomC{$σπ /= 0$}
 \RightLabel{Lam-Erase-+}
-\BinaryInfC{$λx.t : (x \overset{π}{:} S) → T →_{e} λx.p$}
+\BinaryInfC{$λx.t : (x \overset{π}{:} S) → T \ ▶\  λx.p$}
 \end{prooftree}
 
 \begin{prooftree}
-\AxiomC{$Γ_1 ⊢ M \overset{σ}{:} (x \overset{π}{:} S) → T →_{e} p$}
+\AxiomC{$Γ_1 ⊢ M \overset{σ}{:} (x \overset{π}{:} S) → T \ ▶\  p$}
 \AxiomC{$Γ_2 ⊢ N \overset{0}{:} S$}
 \AxiomC{$σπ = 0$}
 \RightLabel{App-Erase-0}
-\TrinaryInfC{$Γ_1 ⊢ M N \overset{σ}{:} T[x := N] →_{e} p$}
+\TrinaryInfC{$Γ_1 ⊢ M N \overset{σ}{:} T[x := N] \ ▶\  p$}
 \end{prooftree}
 
 \begin{prooftree}
-\AxiomC{$Γ_1 ⊢ M \overset{σ}{:} (x \overset{π}{:} S) → T →_{e} p$}
-\AxiomC{$Γ_2 ⊢ N \overset{σπ}{:} S →_{e} p'$}
+\AxiomC{$Γ_1 ⊢ M \overset{σ}{:} (x \overset{π}{:} S) → T \ ▶\  p$}
+\AxiomC{$Γ_2 ⊢ N \overset{σπ}{:} S \ ▶\  p'$}
 \AxiomC{$σπ /= 0$}
 \RightLabel{App-Erase-+}
-\TrinaryInfC{$Γ_1 + Γ_2 ⊢ M N \overset{σ}{:} T[x := N] →_{e} p\ p'$}
+\TrinaryInfC{$Γ_1 + Γ_2 ⊢ M N \overset{σ}{:} T[x := N] \ ▶\  p\ p'$}
 \end{prooftree}
 
 In the *Lam-Erase-0* rule, the variable $x$ bound in $t$ will not occur in the corresponding $p$, since it is bound with usage $0$, with which it will remain regardless of how the context splits, so the rule *Var-Erase-+* cannot consume it, only contemplate it.
