@@ -8,7 +8,7 @@ jobs:
       - checkout
       - run:
           name: Install z3
-          command: sudo apt-get -y update && sudo apt-get -y install z3 libz3-4 libz3-dev 
+          command: sudo apt-get -y update && sudo apt-get -y install z3 libz3-dev 
       - restore_cache:
           name: Restore cached dependencies
           keys:
