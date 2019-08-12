@@ -18,6 +18,9 @@ testGen' ∷ ((RPT, ParamTypeAssignment), Env)
 testGen' = execWithAssignment testAssignment
          $ generateTypeAndConstraitns testTerm
 
+checkAnswerId ∷ IO (Either Errors (RPT, ParamTypeAssignment))
+checkAnswerId = validEal idTerm idAssignment
+
 checkAnswer ∷ IO (Either Errors (RPT, ParamTypeAssignment))
 checkAnswer = validEal testTerm testAssignment
 
@@ -67,6 +70,12 @@ res = runConstraints
 
 cons ∷ RPT
 cons = fst testGen
+
+idTerm ∷ Term
+idTerm = Lam (someSymbolVal "x") (Var (someSymbolVal "x"))
+
+idAssignment ∷ TypeAssignment
+idAssignment = Map.fromList [ (someSymbolVal "x", SymT (someSymbolVal "a")) ]
 
 -- Test term: \s . \z . s s z.
 testTerm ∷ Term
