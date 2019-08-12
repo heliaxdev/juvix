@@ -6,6 +6,9 @@ jobs:
       - image: fpco/stack-build:lts-13.30
     steps:
       - checkout
+      - run:
+          name: Install z3
+          command: sudo apt-get -y update && sudo apt-get -y install z3 libz3-4 libz3-dev 
       - restore_cache:
           name: Restore cached dependencies
           keys:
