@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   setup_dependencies:
     docker:
-      - image: fpco/stack-build:lts-13.25
+      - image: fpco/stack-build:lts-13.30
     steps:
       - checkout
       - restore_cache:
@@ -30,7 +30,7 @@ jobs:
  
   test_suite:
     docker:
-      - image: fpco/stack-build:lts-13.25
+      - image: fpco/stack-build:lts-13.30
     steps:
       - attach_workspace:
           at: /root
