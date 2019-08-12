@@ -115,7 +115,7 @@ boxAndTypeConstraint parameterizedAssignment term = do
       pure (RBang param (RVar sym), paramTy)
     Lam sym body → do
       nextParam ← getNextParam
-      modify' @"varPaths" (Map.insert sym nextParam)
+      modify' @"varPaths" (Map.insert sym (succ nextParam))
       (body, bodyTy) ← rec body
       -- Calculate parameterized type for subterm.
       lamTyParam ← freshParam
@@ -255,8 +255,8 @@ bangParam (PSymT param _)   = param
 bangParam (PArrT param _ _) = param
 
 -- | Get the next fresh parameter
-getNextParam :: (HasState "nextParam" b f, Enum b) ⇒ f b
-getNextParam = get @"nextParam" >>| succ
+getNextParam ∷ (HasState "nextParam" b f, Enum b) ⇒ f b
+getNextParam = get @"nextParam"
 
 -- | Generate fresh parameter.
 freshParam ∷ (HasState "nextParam" Param m) ⇒ m Param
