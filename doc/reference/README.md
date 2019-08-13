@@ -8,6 +8,7 @@ Built with [Pandoc](https://pandoc.org/).
 
 Additional requirements:
 
+- [texlive-science](https://security.archlinux.org/package/texlive-science)
 - [eisvogel LaTeX template](https://github.com/Wandmalfarbe/pandoc-latex-template)
 - [pandoc-include filter](https://pypi.org/project/pandoc-include/)
 - [pandoc-citeproc filter](https://github.com/jgm/pandoc-citeproc)
