@@ -7,15 +7,19 @@ module Juvix.Core.MainLang where
 
   -- Inferable terms
   data ITerm
-    =  Ann    CTerm CTerm -- annotated terms
-    |  Star               -- (STAR) Star (the type of types) is now a term
-    |  Pi CTerm CTerm     -- (PI) dependent function space
-    |  Bound  Int         -- Bound variables of type Int because it's represented by de Bruijn indices
-    |  Free   Name        -- Free variables of type name (see below)
-    |  ITerm :@: CTerm    -- the infix constructor :@: denotes application
-    |  Nat                -- Nat data type
-    |  Zero               -- data constructor of Nat
-    |  Succ CTerm         -- data constructor of Nat
+    =  Star Int             -- (sort i) i th ordering of (closed) universe.
+    |  k                    -- (Prim) primitive type
+    |  Pi Int CTerm CTerm   -- (PI) dependent function space, the first input (n:Int)  
+                            -- tracks how many times the second input (x:CTerm) is used.
+    |  (x) Int CTerm CTerm  -- dependent multiplicative conjunction (tensor product)
+    |  /\ Int CTerm CTerm   -- dependent additive conjunction type
+    |  \/ CTerm CTerm       -- non-dependent multiplicative disjunction type
+    |  Bound  Int           -- Bound variables of type Int because it's represented by de Bruijn indices
+    |  Free   Name          -- Free variables of type name (see below)
+    |  ITerm :@: CTerm      -- the infix constructor :@: denotes application
+    |  Nat                  -- Nat data type
+    |  Zero                 -- data constructor of Nat
+    |  Succ CTerm           -- data constructor of Nat
     |  NatElim CTerm CTerm CTerm CTerm             -- eliminator of Nat
     |  Vec CTerm CTerm                             -- Vec (vector) data type
     |  Nil CTerm                                   -- data constructor of Vec

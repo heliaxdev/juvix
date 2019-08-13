@@ -187,6 +187,7 @@ module Juvix.Core.Parser where
   iterm :: Parser ITerm
   iterm =  appTerm --Application 
        <|> term --all ITerms except the application ITerm
+  
   parseWhole :: Parser ITerm
   parseWhole = 
     do whiteSpace
