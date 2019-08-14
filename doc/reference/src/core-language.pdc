@@ -31,9 +31,9 @@ R, S, T, s, t &::= ∗_i\ & \text{sort $i$} & Star \\
 &\ \ \ \ \ \ |\ (x \overset{π}{:} S) ⊗ T\ & \text{dependent multiplicative conjunction type} & (x) \\
 &\ \ \ \ \ \ |\ (x \overset{π}{:} S)\ \&\ T\ & \text{dependent additive conjunction type} & /\ \\
 &\ \ \ \ \ \ |\ T \parr T & \text{non-dependent multiplicative disjunction type} & \/ \\
-&\ \ \ \ \ \ |\ ιx.T\ & \text{self-type} \\
-&\ \ \ \ \ \ |\ λx.t\ & \text{abstraction} \\
-&\ \ \ \ \ \ |\ e\ & \text{elimination}\\
+&\ \ \ \ \ \ |\ ιx.T\ & \text{self-type} & \\
+&\ \ \ \ \ \ |\ λx.t\ & \text{abstraction} & \\
+&\ \ \ \ \ \ |\ e\ & \text{elimination} & \\
 \end{align*}
 \end{subfigure}
 
