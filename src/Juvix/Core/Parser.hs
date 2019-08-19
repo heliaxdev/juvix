@@ -52,8 +52,8 @@ module Juvix.Core.Parser where
   parseSimpleI :: (String, b) -> ParsecT String u Data.Functor.Identity.Identity b
   parseSimpleI (str,term) = reserved str >> return term
   --List of simple ITerms without inputs
-  reservedSimple = [("*", Star), ("Nat", Nat), ("Zero", Zero)]
-
+  --reservedSimple = [("*", Star), ("Nat", Nat), ("Zero", Zero)]
+{-
   annTerm :: Parser ITerm
   annTerm =  do reserved "Ann"
                 theTerm <- cterm
@@ -228,3 +228,4 @@ module Juvix.Core.Parser where
     case parse p "" str of
          Left e -> error $ show e
          Right r -> r
+-}
