@@ -44,26 +44,23 @@ module Juvix.Core.Parser where
 
      whiteSpace ∷ Parser ()
      whiteSpace = Token.whiteSpace lexer
-
-     --parseSimpleI ∷ (String, b) -> Parser b
-     parseSimpleI (str,term) = reserved str >> return term
-
+     
      --Parser for naturals.
      nats ∷ Parser Integer
      nats =  parens nats
           <|> natural
-
+     
      piTerm ∷ Parser ITerm
      piTerm =
-          do   reserved "Pi"
-               pi <- nats
-               input <- cterm
-               func <- cterm
-               return $ Pi input func
+       do reserved "Pi"
+          pi <- nats
+          input <- cterm
+          func <- cterm
+          return $ Pi input func
 
      boundTerm ∷ Parser ITerm
      boundTerm =
-     do reserved "Bound"
+       do reserved "Bound"
           index <- nats
           return $ Bound (fromInteger index)
 
@@ -73,25 +70,25 @@ module Juvix.Core.Parser where
           <|> identifier
      --Parser for Name data type
      name ∷ Parser Name
-     name =  do reserved "Local"
+     name = do reserved "Local"
                index <- nats
                return $ Local (fromInteger index)
-     <|> do reserved "Quote"
+        <|> do reserved "Quote"
                index <- nats
                return $ Quote (fromInteger index)
-     <|> do reserved "Global"
+        <|> do reserved "Global"
                gname <- gName
                return $ Global gname
 
      freeTerm ∷ Parser ITerm
      freeTerm =
-     do reserved "Free"
+       do reserved "Free"
           fname <- name
           return $ Free fname
 
      appTerm ∷ Parser ITerm
      appTerm =
-     do reserved "App"
+       do reserved "App"
           pi <- nats
           iterm <- term
           cTerm <- cterm
@@ -104,7 +101,7 @@ module Juvix.Core.Parser where
 
      parseWhole ∷ Parser ITerm
      parseWhole =
-     do whiteSpace
+       do whiteSpace
           t <- iterm
           whiteSpace
           eof
@@ -112,24 +109,25 @@ module Juvix.Core.Parser where
 
      term ∷ Parser ITerm
      term =  parens term
-     <|> appTerm
+        <|> appTerm
      --ITerms with CTerms as input(s).
-     <|> piTerm
-     <|> boundTerm --Bound var
-     <|> freeTerm --Free var
+        <|> piTerm
+        <|> boundTerm --Bound var
+        <|> freeTerm --Free var
 
      cterm ∷ Parser CTerm
      cterm =  parens cterm
           <|> do reservedOp "Inf"
-               iterm <- term
-               return $ Inf iterm
+                 iterm <- term
+                 return $ Inf iterm
           <|> do reservedOp "Lam"
-               pi <- nats
-               cTerm <- cterm
-               return $ Lam pi cTerm
+                 pi <- nats
+                 cTerm <- cterm
+                 return $ Lam pi cTerm
 
-     --parseString ∷ Parser a -> String -> a
+     parseString ∷ Parser a → String → a
      parseString p str =
-     case parse p "" str of
+       case parse p "" str of
           Left e -> error $ show e
           Right r -> r
+
