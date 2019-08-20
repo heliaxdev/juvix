@@ -1,15 +1,12 @@
 module Juvix.Core.Parser where
 
 import           Prelude
---  import           Juvix.Core.MainLang
+import           Juvix.Core.MainLang
 import           Text.Parsec
 import           Text.ParserCombinators.Parsec
 import           Text.ParserCombinators.Parsec.Language
 import           Data.Functor.Identity
 import qualified Text.ParserCombinators.Parsec.Token as Token
-
---Takes a string and output an ITerm.
---iTerms ∷ Parser ITerms
 
 languageDef ∷ GenLanguageDef String u Data.Functor.Identity.Identity
 languageDef =
@@ -18,10 +15,7 @@ languageDef =
               , Token.commentLine     = "//"
               , Token.identStart      = letter
               , Token.identLetter     = alphaNum
-              , Token.reservedNames   = [ "*","Nat","Zero", --ITerms without inputs
-                                          "Ann", "Pi","Succ","NatElim", --ITerms with CTerms as inputs
-                                          "Vec","Nil","Cons","VecElim",
-                                          "Eq", "Refl","EqElim",
+              , Token.reservedNames   = [ "Pi", "App" --ITerms with CTerms as inputs
                                           "Bound", --Bound var
                                           "Free","Local","Quote","Global" --Free var
                                         ]
@@ -54,109 +48,25 @@ whiteSpace = Token.whiteSpace lexer
 parseSimpleI ∷ (String, b) → Parser b
 parseSimpleI (str,term) = reserved str >> return term
 
---List of simple ITerms without inputs
---reservedSimple = [("*", Star), ("Nat", Nat), ("Zero", Zero)]
-{-
-annTerm ∷ Parser ITerm
-annTerm =  do reserved "Ann"
-              theTerm <- cterm
-              theType <- cterm
-              return $ Ann theTerm theType
-       <|> do theTerm <- cterm --Idris annotation syntax, atm doesn't work.
-              reservedOp ":"
-              theType <- cterm
-              return $ Ann theTerm theType
+--Parser for naturals.
+nats ∷ Parser Integer
+nats =  parens nats
+      <|> natural
 
 piTerm ∷ Parser ITerm
 piTerm =
   do reserved "Pi"
+     pi <- nats
      input <- cterm
      func <- cterm
      return $ Pi input func
 
-succTerm ∷ Parser ITerm
-succTerm =
-  do reserved "Succ"
-     num <- cterm
-     return $ Succ num
-
-natelimTerm ∷ Parser ITerm
-natelimTerm =
-  do reserved "NatElim"
-     motive <- cterm
-     mZero <- cterm
-     inductive <- cterm
-     k <- cterm
-     return $ NatElim motive mZero inductive k
-
-vecTerm ∷ Parser ITerm
-vecTerm =
-  do reserved "Vec"
-     theType <- cterm
-     numOfElement <- cterm
-     return $ Vec theType numOfElement
-
-nilTerm ∷ Parser ITerm
-nilTerm =
-  do reserved "Nil"
-     theType <- cterm
-     return $ Nil theType
-
-consTerm ∷ Parser ITerm
-consTerm =
-  do reserved "Cons"
-     eleType <- cterm
-     numOfElement <- cterm
-     newEle <- cterm
-     theVec <- cterm
-     return $ Cons eleType numOfElement newEle theVec
-
-vecelimTerm ∷ Parser ITerm
-vecelimTerm =
-  do reserved "VecElim"
-     eleType <- cterm
-     motive <- cterm
-     mZero <- cterm
-     inductive <- cterm
-     numOfElement <- cterm
-     xs <- cterm
-     return $ VecElim eleType motive mZero inductive numOfElement xs
-
-eqTerm ∷ Parser ITerm
-eqTerm =
-  do reserved "Eq"
-     theType <- cterm
-     x <- cterm
-     y <- cterm
-     return $ Eq theType x y
-
-reflTerm ∷ Parser ITerm
-reflTerm =
-  do reserved "Refl"
-     theType <- cterm
-     x <- cterm
-     return $ Refl theType x
-
-eqelimTerm ∷ Parser ITerm
-eqelimTerm =
-  do reserved "EqElim"
-     theType <- cterm
-     motive <- cterm
-     refl <- cterm
-     x <- cterm
-     y <- cterm
-     eqxy <- cterm
-     return $ EqElim theType motive refl x y eqxy
-
 boundTerm ∷ Parser ITerm
 boundTerm =
   do reserved "Bound"
-     index <- bIndex
+     index <- nats
      return $ Bound (fromInteger index)
---Parser for de Bruijn indices of bound variables
-bIndex ∷ Parser Integer
-bIndex =  parens bIndex
-      <|> natural
+
 --Parser for the global free variable name
 gName ∷ Parser String
 gName =  parens gName
@@ -164,10 +74,10 @@ gName =  parens gName
 --Parser for Name data type
 name ∷ Parser Name
 name =  do reserved "Local"
-           index <- bIndex
+           index <- nats
            return $ Local (fromInteger index)
     <|> do reserved "Quote"
-           index <- bIndex
+           index <- nats
            return $ Quote (fromInteger index)
     <|> do reserved "Global"
            gname <- gName
@@ -181,11 +91,12 @@ freeTerm =
 
 appTerm ∷ Parser ITerm
 appTerm =
-  do reservedOp ":@:"
+  do reserved "App"
+     pi <- nats
      iterm <- term
      cTerm <- cterm
      eof
-     return $ iterm :@: cTerm
+     return $ App pi term cterm
 
 iterm ∷ Parser ITerm
 iterm =  appTerm --Application
@@ -201,19 +112,9 @@ parseWhole =
 
 term ∷ Parser ITerm
 term =  parens term
-    -- <|> appTerm
-    <|> foldr1 (<|>) (map parseSimpleI reservedSimple) --ITerms without inputs
-    <|> annTerm --ITerms with CTerms as input(s).
+    <|> appTerm
+    --ITerms with CTerms as input(s).
     <|> piTerm
-    <|> succTerm
-    <|> natelimTerm
-    <|> vecTerm
-    <|> nilTerm
-    <|> consTerm
-    <|> vecelimTerm
-    <|> eqTerm
-    <|> reflTerm
-    <|> eqelimTerm
     <|> boundTerm --Bound var
     <|> freeTerm --Free var
 
@@ -223,12 +124,12 @@ cterm =  parens cterm
             iterm <- term
             return $ Inf iterm
      <|> do reservedOp "Lam"
+            pi <- nats
             cTerm <- cterm
-            return $ Lam cTerm
+            return $ Lam pi cTerm
 
 parseString ∷ Parser a → String → a
 parseString p str =
   case parse p "" str of
        Left e → error $ show e
        Right r → r
--}

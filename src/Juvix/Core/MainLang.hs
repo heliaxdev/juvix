@@ -9,20 +9,23 @@ import           Numeric.Natural
 data ITerm
   =  Star Natural             -- (sort i) i th ordering of (closed) universe.
   |  Natural                  -- (Prim) primitive type
-  |  Pi Natural CTerm CTerm   -- (PI) dependent function space, the first input (n:Natural)
-                              -- tracks how many times the second input (x:CTerm) is used.
+  |  Pi Natural CTerm CTerm   -- formation rule of the dependent function type (PI). 
+                              -- the Natural(π) tracks how many times x is used.
   |  Pm Natural CTerm CTerm   -- dependent multiplicative conjunction (tensor product)
   |  Pa Natural CTerm CTerm   -- dependent additive conjunction type
-  |  NPm CTerm CTerm      -- non-dependent multiplicative disjunction type
-  |  Bound Natural        -- Bound variables of type Int, represented by de Bruijn indices
-  |  Free Name            -- Free variables of type name (see below)
-  |  App ITerm CTerm      -- application, f s
+  |  NPm CTerm CTerm          -- non-dependent multiplicative disjunction type
+  |  Bound Natural            -- Bound variables, in de Bruijn indices
+  |  Free Name                -- Free variables of type name (see below)
+  |  App Natural ITerm CTerm  -- elimination rule of PI (APP).
+                              -- the Natural(π) tracks how x is use.
   deriving (Show, Eq)
 
 --Checkable terms
 data CTerm
-  =  Inf  ITerm --(CHK) Inf is the constructor that embeds ITerm to CTerm
-  |  Lam  CTerm --(LAM) Lam stands for Lambda abstractions
+  =  Inf  ITerm         --(CONV) conversion rule. TODO make sure 0Γ ⊢ S≡T
+                        -- Inf is the constructor that embeds ITerm to CTerm
+  |  Lam  Natural CTerm --(LAM) Introduction rule of PI.
+                        -- The abstracted variable's usage is tracked with the Natural(π).
   deriving (Show, Eq)
 
 data Name
