@@ -121,16 +121,28 @@ Term judgements have the form:
 Γ ⊢ M \overset{σ}{:} S
 \end{align}
 
-where $σ \in {0,1}$. A judgement with $σ = 0$ constructs a term with no computational content, while a judgement with $σ = 1$ constructs a term which will be computed with. E.g.,
+where $σ \in {0,1}$. A judgement with $σ = 0$ constructs a term with no computational content, while a judgement with $σ = 1$ constructs a term which will be computed with. 
+
+E.g., for the following judgement:
+
+\begin{align*}
+    n \overset{0}{:} Nat, x \overset{1}{:} Fin(n) ⊢ x \overset{\sigma}{:} Fin(n)
+\end{align*}
 
 When $σ = 0$, the judgment expresses that the term can be typed:
 \begin{align*}
-    n \overset{0}{:} Nat, x \overset{0}{:} Fin(n) ⊢ x \overset{0}{:} Fin(n)
+    n \overset{0}{:} Nat, x \overset{1}{:} Fin(n) ⊢ x \overset{0}{:} Fin(n)
 \end{align*}
+
+Because the final colon is annotated to zero, this represents contemplation, not computation. When type checking, $n$ and $x$ can appear arbitary times.
+
 Computational judgement:
 \begin{align*}
-    n \overset{0}{:} Nat (?), x \overset{1}{:} Fin(n) ⊢ x \overset{1}{:} Fin(n)
+    n \overset{0}{:} Nat, x \overset{1}{:} Fin(n) ⊢ x \overset{1}{:} Fin(n)
 \end{align*}
+
+Because the final colon is annotated to one, during computation, $n$ is used exactly $0$ times, $x$ is used exactly one time.
+In our language, $x$ can also be annotated as $ω$, indicating that it is used an arbitary number of times.
 
 ## Typing rules
 
