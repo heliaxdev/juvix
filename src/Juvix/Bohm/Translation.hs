@@ -5,8 +5,8 @@ module Juvix.Bohm.Translation(astToNet, netToAst) where
 import qualified Data.Map.Strict      as Map
 
 import           Juvix.Library        hiding (link, empty)
-import           Juvix.Backends.Graph
 import           Juvix.Backends.Interface
+import           Juvix.NodeInterface
 import qualified Juvix.Nets.Bohm      as B
 import qualified Juvix.Bohm.Type      as BT
 
@@ -104,8 +104,68 @@ astToNet bohm = net'
     genericAux2PrimArg b1 b2 lc        = genericAux2 (b1, Prim) (b2, Aux2) (lc, Aux1)
     genericAux1PrimArg b1 langToCreate = genericAux1 (b1, Prim) (langToCreate, Aux1)
 
-netToAst :: Net B.Lang → BT.Bohm
+netToAst :: Network net ⇒ net B.Lang → Maybe BT.Bohm
 netToAst = undefined
+  where
+    run = do
+      -- rec' assumes that we are given a statement at the top of the graphical AST
+      let rec' n = do
+            n ← B.langToProperPort n
+            case n of
+              Nothing → pure Nothing
+              Just n →
+                case n of
+                  B.IsAux3 {B._tag3 = tag, B._prim = prim, B._aux1 = _aux1, B._aux2 = aux2, B._aux3 = aux3} →
+                    case tag of
+                      B.IfElse → do
+                        case (prim, aux2, aux3) of
+                          (Primary p, Auxiliary a2, Auxiliary a3) → do
+                            p  ← rec' p
+                            a2 ← rec' a2
+                            a3 ← rec' a3
+                            pure (BT.If <$> p <*> a2 <*> a3)
+                          _ → pure Nothing
+                  B.IsAux2 {B._tag2 = _tag, B._prim = _prim, B._aux1 = _aux1, B._aux2 = _aux2} → undefined
+                  B.IsAux1 {B._tag1 = _tag, B._prim = _prim, B._aux1 = _aux1} → undefined
+                  B.IsPrim {B._tag0 = _tag, B._prim = _prim} → undefined
+
+          getTop _n 0    = pure Nothing
+          getTop n limit = do
+            let topOrFreeAux n aux =
+                  case aux of
+                    Auxiliary a → getTop a (pred limit)
+                    _           → pure (Just n)
+                topOrFreePrim n prim =
+                  case prim of
+                    Primary a → getTop a (pred limit)
+                    _         → pure (Just n)
+            port ← B.langToProperPort n
+            case port of
+              Nothing → pure Nothing
+              Just port →
+                case port of
+                  B.IsAux3 {B._tag3 = tag, B._aux1 = aux1} →
+                    case tag of
+                      B.IfElse → topOrFreeAux n aux1
+                  B.IsAux2 {B._tag2 = tag, B._prim = prim, B._aux1 = aux1, B._aux2 = _aux2} →
+                    case tag of
+                      B.Infix {}  → topOrFreeAux n aux1
+                      B.InfixB {} → topOrFreeAux n aux1
+                      B.App       → topOrFreeAux n aux1
+                      B.Or        → topOrFreeAux n aux1
+                      B.And       → topOrFreeAux n aux1
+                      B.Cons      → topOrFreePrim n prim
+                      B.Lambda    → topOrFreePrim n prim
+                      B.Mu        → topOrFreePrim n prim
+                      B.FanIn _i  → undefined
+                  B.IsAux1 {B._tag1 = _tag, B._prim = _prim, B._aux1 = _aux1} → undefined
+                  B.IsPrim {B._tag0 = _tag, B._prim = _prim} → undefined
+      nodes ← nodes
+      case nodes of
+        [] → pure Nothing
+        n : _ → do
+          topN ← getTop n (100000 :: Int)
+          traverse rec' topN
 
 -- Helper Functions-------------------------------------------------------------
 
