@@ -45,6 +45,11 @@ test6Gen = traverse (netToGif "tmp/" "boo" 1000 . astToNet) (parseBohm "( (lambd
 test67Gen :: IO (Either ParseError (InfoNet (FlipNet Lang)))
 test67Gen = traverse (netToGif "tmp/" "boo" 1000 . astToNet) (parseBohm "( (lambda x. (x + y + y)) 2)")
 
+
+-- TODO ∷ run Net → Ast with this, and see if it gives back a church 2!
+test8Gen :: IO (Either ParseError (InfoNet (FlipNet Lang)))
+test8Gen = traverse (netToGif "tmp/" "boo" 1000 . astToNet) (parseBohm "(lambda x. lambda y. ((lambda z. (z (z y))) (lambda w. (x w))))")
+
 printTest3 :: IO ()
 printTest3 = showNet "test3.dot" (runFlip net)
   where

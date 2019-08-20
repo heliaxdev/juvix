@@ -109,63 +109,48 @@ netToAst = undefined
   where
     run = do
       -- rec' assumes that we are given a statement at the top of the graphical AST
-      let rec' n = do
-            n ← B.langToProperPort n
-            case n of
-              Nothing → pure Nothing
-              Just n →
-                case n of
-                  B.IsAux3 {B._tag3 = tag, B._prim = prim, B._aux1 = _aux1, B._aux2 = aux2, B._aux3 = aux3} →
-                    case tag of
-                      B.IfElse → do
-                        case (prim, aux2, aux3) of
-                          (Primary p, Auxiliary a2, Auxiliary a3) → do
-                            p  ← rec' p
-                            a2 ← rec' a2
-                            a3 ← rec' a3
-                            pure (BT.If <$> p <*> a2 <*> a3)
-                          _ → pure Nothing
-                  B.IsAux2 {B._tag2 = _tag, B._prim = _prim, B._aux1 = _aux1, B._aux2 = _aux2} → undefined
-                  B.IsAux1 {B._tag1 = _tag, B._prim = _prim, B._aux1 = _aux1} → undefined
-                  B.IsPrim {B._tag0 = _tag, B._prim = _prim} → undefined
-
-          getTop _n 0    = pure Nothing
-          getTop n limit = do
-            let topOrFreeAux n aux =
-                  case aux of
-                    Auxiliary a → getTop a (pred limit)
-                    _           → pure (Just n)
-                topOrFreePrim n prim =
-                  case prim of
-                    Primary a → getTop a (pred limit)
-                    _         → pure (Just n)
+      let rec' n comeFrom fanMap = do
             port ← B.langToProperPort n
             case port of
               Nothing → pure Nothing
               Just port →
                 case port of
-                  B.IsAux3 {B._tag3 = tag, B._aux1 = aux1} →
+                  B.IsAux3 {B._tag3 = tag, B._prim = prim, B._aux1 = _aux1, B._aux2 = aux2, B._aux3 = aux3} →
                     case tag of
-                      B.IfElse → topOrFreeAux n aux1
-                  B.IsAux2 {B._tag2 = tag, B._prim = prim, B._aux1 = aux1, B._aux2 = _aux2} →
-                    case tag of
-                      B.Infix {}  → topOrFreeAux n aux1
-                      B.InfixB {} → topOrFreeAux n aux1
-                      B.App       → topOrFreeAux n aux1
-                      B.Or        → topOrFreeAux n aux1
-                      B.And       → topOrFreeAux n aux1
-                      B.Cons      → topOrFreePrim n prim
-                      B.Lambda    → topOrFreePrim n prim
-                      B.Mu        → topOrFreePrim n prim
-                      B.FanIn _i  → undefined
+                      B.IfElse → do
+                        case (prim, aux2, aux3) of
+                          (Primary p, Auxiliary a2, Auxiliary a3) → do
+                            p  ← rec' p  (Just (n, Prim)) fanMap
+                            a2 ← rec' a2 (Just (n, Aux2)) fanMap
+                            a3 ← rec' a3 (Just (n, Aux3)) fanMap
+                            pure (BT.If <$> p <*> a2 <*> a3)
+                          _ → pure Nothing
+                  B.IsAux2 {B._tag2 = _tag, B._prim = _prim, B._aux1 = _aux1, B._aux2 = _aux2} → undefined
                   B.IsAux1 {B._tag1 = _tag, B._prim = _prim, B._aux1 = _aux1} → undefined
                   B.IsPrim {B._tag0 = _tag, B._prim = _prim} → undefined
+          isFree (B.IsAux3 _ (Primary _) (Auxiliary _) (Auxiliary _) (Auxiliary _)) = False
+          isFree (B.IsAux2 _ (Primary _) (Auxiliary _) (Auxiliary _))               = False
+          isFree (B.IsAux1 _ (Primary _) (Auxiliary _))                             = False
+          isFree (B.IsPrim _ (Primary _))                                           = False
+          isFree B.IsPrim {} = True
+          isFree B.IsAux1 {} = True
+          isFree B.IsAux2 {} = True
+          isFree B.IsAux3 {} = True
       nodes ← nodes
-      case nodes of
+      frees ← filterM (\n → do
+                          n ← B.langToProperPort n
+                          case n of
+                            Nothing → pure False
+                            Just x  → pure (isFree x))
+                      nodes
+      case frees of
+        -- This case should only happen when the code is in a irreducible state
         [] → pure Nothing
-        n : _ → do
-          topN ← getTop n (100000 :: Int)
-          traverse rec' topN
+        -- This case should happen when the graph is properly typed
+        [n] → rec' n Nothing Map.empty
+        -- This case should only happen if the graph is incomplete or has multiple
+        -- dijoint sets of nodes in the graph
+        _ : _ → pure Nothing
 
 -- Helper Functions-------------------------------------------------------------
 
