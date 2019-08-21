@@ -5,6 +5,7 @@ module Juvix.Library ( module Protolude
                      , module Capability.Writer
                      , module Capability.Stream
                      , (∨), (∧), (|<<), (>>|), (|>)
+                     , traverseM
                      ) where
 
 import           Capability.Error
@@ -37,3 +38,10 @@ infixl 1 >>|
 (|>) :: a → (a → b) → b
 (|>) = (&)
 infixl 1 |>
+
+
+traverseM :: (Monad m, Traversable m, Applicative f)
+          ⇒ (a1 → f (m a2))
+          → m a1
+          → f (m a2)
+traverseM f = fmap join . traverse f
