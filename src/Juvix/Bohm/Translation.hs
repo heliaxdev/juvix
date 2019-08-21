@@ -4,6 +4,7 @@ module Juvix.Bohm.Translation(astToNet, netToAst) where
 
 import qualified Data.Map.Strict      as Map
 import           Data.List                  ((!!))
+import           Prelude                    (error)
 
 import           Juvix.Library        hiding (link, empty)
 import           Juvix.Backends.Interface
@@ -105,6 +106,20 @@ astToNet bohm = net'
     genericAux2PrimArg b1 b2 lc        = genericAux2 (b1, Prim) (b2, Aux2) (lc, Aux1)
     genericAux1PrimArg b1 langToCreate = genericAux1 (b1, Prim) (langToCreate, Aux1)
 
+data FanPorts = Circle | Star deriving Show
+
+fanPortsToAux :: FanPorts → PortType
+fanPortsToAux Circle = Aux1
+fanPortsToAux Star   = Aux2
+
+auxToFanPorts :: PortType → FanPorts
+auxToFanPorts Aux1 = Circle
+auxToFanPorts Aux2 = Star
+auxToFanPorts _    = error " only send an Aux1 or Aux2 to auxToFanPorts"
+
+data FanStatus = In FanPorts
+               | Completed FanPorts
+               deriving Show
 
 netToAst :: Network net ⇒ net B.Lang → Maybe BT.Bohm
 netToAst = undefined
@@ -117,7 +132,7 @@ netToAst = undefined
               Nothing → pure Nothing
               Just port →
                 case port of
-                  B.IsAux3 {B._tag3 = tag, B._prim = prim, B._aux1 = _aux1, B._aux2 = aux2, B._aux3 = aux3} →
+                  B.IsAux3 {B._tag3 = tag, B._prim = prim, B._aux2 = aux2, B._aux3 = aux3} →
                     case tag of
                       B.IfElse → do
                         case (prim, aux2, aux3) of
@@ -153,20 +168,17 @@ netToAst = undefined
                                     a2 ← rec' a2 (Just (n, Aux2)) fanMap newNodeVarMap
                                     pure (lamOrMu symb <$> a2)
                                   FreeNode → pure Nothing
-                          case comeFrom of
+                          mEdge ← traverseM findEdge comeFrom
+                          case mEdge of
+                            -- We are pointing to the symbol of this lambda
+                            Just (_, Aux2) →
+                              -- The symbol has to be here, or else, there is an issue
+                              -- in the AST!
+                              pure (Just (BT.Symbol' (nodeVarMap Map.! n)))
                             -- We must be starting with Lambda, thus make a full lambda!
                             Nothing → fullLamCase lamOrMu
-                            -- Still may be either case!
-                            Just nodePort → do
-                              mEdge ← findEdge nodePort
-                              case mEdge of
-                                -- We are pointing to the symbol of this lambda
-                                Just (_, Aux2) →
-                                  -- The symbol has to be here, or else, there is an issue
-                                  -- in the AST!
-                                  pure (Just (BT.Symbol' (nodeVarMap Map.! n)))
-                                -- This case it has to Prim, so construct a full lambda
-                                _ → fullLamCase lamOrMu
+                            -- This case it has to Prim, so construct a full lambda
+                            _ → fullLamCase lamOrMu
                     in case tag of
                       B.Infix b  → parentAux1 (BT.Infix' (inFixMap b))
                       B.InfixB b → parentAux1 (BT.Infix' (inFixMapB b))
@@ -180,9 +192,84 @@ netToAst = undefined
                       -- same with mu
                       B.Mu       → lamMu BT.Letrec
                       B.FanIn i  → do
-                        undefined
+                        -- First we are going to look up if we came from the fan
+                        -- in of this fan out note that we don't cover the impossible
+                        -- case where we enter through Aux1 in both the same fan in/out
+                        case fanMap Map.!? i of
+                          -- we haven't visited or completed a fan in
+                          -- Check if we came through the main port or Circle or Star
+                          Nothing → do
+                            mPort ← traverseM findEdge comeFrom
+                            let freeChoice =
+                                  let newFanMap = Map.insert i (In Circle) fanMap
+                                      cameFrom  = (Just (n, fanPortsToAux Circle))
+                                  in case aux1 of
+                                    Auxiliary aux1 →
+                                      rec' aux1 cameFrom newFanMap nodeVarMap
+                                    -- Never happens by precondition!
+                                    FreeNode → pure Nothing
+                                fromCircleOrStar con =
+                                  let newFanMap = Map.insert i (In con) fanMap
+                                      cameFrom = (Just (n, fanPortsToAux Circle))
+                                  in case prim of
+                                    Primary prim →
+                                      rec' prim cameFrom newFanMap nodeVarMap
+                                    _ → pure Nothing -- doesn't happen!
+                            case mPort of
+                              -- We are starting at a FanIn or the graph is invalid!
+                              -- So pick the circle direction to go with!
+                              Nothing        → freeChoice
+                              Just (_, Prim) → freeChoice              -- from fan-In, pick a direction to go!
+                              Just (_, Aux2) → fromCircleOrStar Star   -- from ★, mark it; go through prim!
+                              Just (_, Aux1) → fromCircleOrStar Circle -- from ●, mark it; go through prim!
+                              -- This case should never happen
+                              _ → pure Nothing
+                          -- We have been in a FanIn Before, figure out what state of the world we are in!
+                          Just status →
+                            case status of
+                              -- TODO ∷ Note that I don't do analysis of coming through
+                              -- the same exact node, So there may be a bug?
+
+                              -- We came in through a port, we must leave through it!
+                              In port →
+                                let newFanMap = Map.insert i (Completed port) fanMap
+                                    cameFrom  = (Just (n, fanPortsToAux port))
+                                    aux Circle = aux1
+                                    aux Star   = aux2
+                                in case aux port of
+                                  Auxiliary aux → rec' aux cameFrom newFanMap nodeVarMap
+                                  FreeNode      → pure Nothing -- doesn't happen
+                              -- We have already completed a port, but we don't have
+                              -- enough informationb to determine where to go next!
+                              -- so case on which port we have entered through
+                              -- TODO ∷ port is unused, as we don't branch on it in Prim
+                              -- do we actually have to consider that case and use port?
+                              Completed _port → do
+                                mPort ← traverseM findEdge comeFrom
+                                let through con =
+                                      let newFanMap = Map.insert i (In con) fanMap
+                                          cameFrom  = (Just (n, fanPortsToAux con))
+                                      in case prim of
+                                        Primary prim →
+                                          rec' prim cameFrom newFanMap nodeVarMap
+                                        Free → pure Nothing -- never happens
+                                case mPort of
+                                  -- Shouldn't happen, as the previous node *must* exist
+                                  Nothing → pure Nothing
+                                  Just (_, Aux1) → through (auxToFanPorts Aux1)
+                                  Just (_, Aux2) → through (auxToFanPorts Aux2)
+                                  Just (_, Prim) → pure Nothing -- TODO ∷ This case probably doesn't happen ∃
+                                  Just (_,_)     → pure Nothing -- Shouldn't happen!
                   B.IsAux1 {B._tag1 = _tag, B._prim = _prim, B._aux1 = _aux1} → undefined
-                  B.IsPrim {B._tag0 = _tag, B._prim = _prim} → undefined
+                  B.IsPrim {B._tag0 = tag} →
+                    pure $ Just $
+                      case tag of
+                        B.Erase    → BT.Erase
+                        B.Nil      → BT.Nil
+                        B.Tru      → BT.True'
+                        B.Fals     → BT.False'
+                        B.IntLit i → BT.IntLit i
+                        B.Symbol s → BT.Symbol' s
           isFree (B.IsAux3 _ (Primary _) (Auxiliary _) (Auxiliary _) (Auxiliary _)) = False
           isFree (B.IsAux2 _ (Primary _) (Auxiliary _) (Auxiliary _))               = False
           isFree (B.IsAux1 _ (Primary _) (Auxiliary _))                             = False
