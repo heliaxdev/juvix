@@ -261,7 +261,15 @@ netToAst = undefined
                                   Just (_, Prim) → pure Nothing -- TODO ∷ This case probably doesn't happen ∃
                                   Just (_,_)     → pure Nothing -- Shouldn't happen!
                   B.IsAux1 {B._tag1 = _tag, B._prim = _prim, B._aux1 = _aux1} → undefined
-                  B.IsPrim {B._tag0 = _tag, B._prim = _prim} → undefined
+                  B.IsPrim {B._tag0 = tag} →
+                    pure $ Just $
+                      case tag of
+                        B.Erase    → BT.Erase
+                        B.Nil      → BT.Nil
+                        B.Tru      → BT.True'
+                        B.Fals     → BT.False'
+                        B.IntLit i → BT.IntLit i
+                        B.Symbol s → BT.Symbol' s
           isFree (B.IsAux3 _ (Primary _) (Auxiliary _) (Auxiliary _) (Auxiliary _)) = False
           isFree (B.IsAux2 _ (Primary _) (Auxiliary _) (Auxiliary _))               = False
           isFree (B.IsAux1 _ (Primary _) (Auxiliary _))                             = False
