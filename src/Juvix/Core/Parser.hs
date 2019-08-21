@@ -15,10 +15,10 @@ module Juvix.Core.Parser where
                , Token.commentLine     = "//"
                , Token.identStart      = letter
                , Token.identLetter     = alphaNum
-               , Token.reservedNames   = [ "Pi", "App" --ITerms with CTerms as inputs
-                                             "Bound", --Bound var
-                                             "Free","Local","Quote","Global" --Free var
-                                             ]
+               , Token.reservedNames   = [ "Pi", "App", --ITerms with CTerms as inputs
+                                           "Bound", --Bound var
+                                           "Free","Local","Quote","Global" --Free var
+                                         ]
                , Token.reservedOpNames = [ "Inf", "Lam", ":",
                                              ":@:" --application
                                              ]
@@ -44,9 +44,9 @@ module Juvix.Core.Parser where
 
      whiteSpace ∷ Parser ()
      whiteSpace = Token.whiteSpace lexer
-     
+     {-
      --Parser for naturals.
-     nats ∷ Parser Integer
+     nats ∷ Parser Natural
      nats =  parens nats
           <|> natural
      
@@ -93,7 +93,7 @@ module Juvix.Core.Parser where
           iterm <- term
           cTerm <- cterm
           eof
-          return $ App pi term cterm
+          return $ App pi iterm cTerm
 
      iterm ∷ Parser ITerm
      iterm =  appTerm --Application
@@ -131,3 +131,4 @@ module Juvix.Core.Parser where
           Left e -> error $ show e
           Right r -> r
 
+-}
