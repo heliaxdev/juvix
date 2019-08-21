@@ -3,6 +3,7 @@
 module Juvix.Bohm.Translation(astToNet, netToAst) where
 
 import qualified Data.Map.Strict      as Map
+import           Data.List                  ((!!))
 
 import           Juvix.Library        hiding (link, empty)
 import           Juvix.Backends.Interface
@@ -67,6 +68,11 @@ astToNet bohm = net'
           nodeInfo ← (,) <$> (newNode (B.Primar $ B.Symbol s)) <*> pure Prim
           put @"free" (Map.insert s nodeInfo frees)
           pure nodeInfo
+    recursive (BT.Letrec sym body) context = do
+      numMu          ← newNode (B.Auxiliary2 B.Mu)
+      (bNode, bPort) ← recursive body (Map.insert sym (numMu, Aux2) context)
+      link (numMu, Aux1) (bNode, bPort)
+      pure (numMu, Prim)
     recursive (BT.Lambda s body) context = do
       numLam          ← newNode (B.Auxiliary2 B.Lambda)
       (bNode,  bPort) ← recursive body (Map.insert s (numLam, Aux2) context)
@@ -81,11 +87,6 @@ astToNet bohm = net'
     recursive (BT.Let sym bound body) context = do
       (numBound, portBound) ← recursive bound context
       recursive body (Map.insert sym (numBound, portBound) context)
-    recursive (BT.Letrec sym body) context = do
-      numMu          ← newNode (B.Auxiliary2 B.Mu)
-      (bNode, bPort) ← recursive body (Map.insert sym (numMu, Aux2) context)
-      link (numMu, Aux1) (bNode, bPort)
-      pure (numMu, Prim)
     recursive (BT.If b1 b2 b3) c = do
       (numIf, retPort) ← genericAux2 (b1, Prim) (b2, Aux3) (B.Auxiliary3 B.IfElse, Aux1) c
       (b3Num, b3Port)  ← recursive b3 c
@@ -104,12 +105,13 @@ astToNet bohm = net'
     genericAux2PrimArg b1 b2 lc        = genericAux2 (b1, Prim) (b2, Aux2) (lc, Aux1)
     genericAux1PrimArg b1 langToCreate = genericAux1 (b1, Prim) (langToCreate, Aux1)
 
+
 netToAst :: Network net ⇒ net B.Lang → Maybe BT.Bohm
 netToAst = undefined
   where
     run = do
       -- rec' assumes that we are given a statement at the top of the graphical AST
-      let rec' n comeFrom fanMap = do
+      let rec' n comeFrom fanMap nodeVarMap = do
             port ← B.langToProperPort n
             case port of
               Nothing → pure Nothing
@@ -120,12 +122,65 @@ netToAst = undefined
                       B.IfElse → do
                         case (prim, aux2, aux3) of
                           (Primary p, Auxiliary a2, Auxiliary a3) → do
-                            p  ← rec' p  (Just (n, Prim)) fanMap
-                            a2 ← rec' a2 (Just (n, Aux2)) fanMap
-                            a3 ← rec' a3 (Just (n, Aux3)) fanMap
+                            p  ← rec' p  (Just (n, Prim)) fanMap nodeVarMap
+                            a2 ← rec' a2 (Just (n, Aux2)) fanMap nodeVarMap
+                            a3 ← rec' a3 (Just (n, Aux3)) fanMap nodeVarMap
                             pure (BT.If <$> p <*> a2 <*> a3)
                           _ → pure Nothing
-                  B.IsAux2 {B._tag2 = _tag, B._prim = _prim, B._aux1 = _aux1, B._aux2 = _aux2} → undefined
+                  B.IsAux2 {B._tag2 = tag, B._prim = prim, B._aux1 = aux1, B._aux2 = aux2} →
+                    let parentAux1 con = do
+                          case (prim, aux2) of
+                            (Primary p, Auxiliary a2) → do
+                              p  ← rec' p  (Just (n, Prim)) fanMap nodeVarMap
+                              a2 ← rec' a2 (Just (n, Aux2)) fanMap nodeVarMap
+                              pure (con <$> p <*> a2)
+                            _ → pure Nothing
+                        parentPrim con = do
+                          case (aux1, aux2) of
+                            (Auxiliary a1, Auxiliary a2) → do
+                              a1 ← rec' a1 (Just (n, Aux1)) fanMap nodeVarMap
+                              a2 ← rec' a2 (Just (n, Aux2)) fanMap nodeVarMap
+                              pure (con <$> a1 <*> a2)
+                            _ → pure Nothing
+                        -- Case for Lambda and mu
+                        lamMu lamOrMu = do
+                          let fullLamCase lamOrMu =
+                                let num           = newMapNum nodeVarMap
+                                    symb          = numToSymbol num
+                                    newNodeVarMap = Map.insert n symb nodeVarMap
+                                in case aux2 of
+                                  Auxiliary a2 → do
+                                    a2 ← rec' a2 (Just (n, Aux2)) fanMap newNodeVarMap
+                                    pure (lamOrMu symb <$> a2)
+                                  FreeNode → pure Nothing
+                          case comeFrom of
+                            -- We must be starting with Lambda, thus make a full lambda!
+                            Nothing → fullLamCase lamOrMu
+                            -- Still may be either case!
+                            Just nodePort → do
+                              mEdge ← findEdge nodePort
+                              case mEdge of
+                                -- We are pointing to the symbol of this lambda
+                                Just (_, Aux2) →
+                                  -- The symbol has to be here, or else, there is an issue
+                                  -- in the AST!
+                                  pure (Just (BT.Symbol' (nodeVarMap Map.! n)))
+                                -- This case it has to Prim, so construct a full lambda
+                                _ → fullLamCase lamOrMu
+                    in case tag of
+                      B.Infix b  → parentAux1 (BT.Infix' (inFixMap b))
+                      B.InfixB b → parentAux1 (BT.Infix' (inFixMapB b))
+                      B.Or       → parentAux1 (BT.Infix' BT.Or)
+                      B.And      → parentAux1 (BT.Infix' BT.And)
+                      B.App      → parentAux1 BT.Application
+                      B.Cons     → parentPrim BT.Cons
+                      -- Lambda may be the lambda node
+                      -- Or the symbol the Lambda contains
+                      B.Lambda   → lamMu BT.Lambda
+                      -- same with mu
+                      B.Mu       → lamMu BT.Letrec
+                      B.FanIn i  → do
+                        undefined
                   B.IsAux1 {B._tag1 = _tag, B._prim = _prim, B._aux1 = _aux1} → undefined
                   B.IsPrim {B._tag0 = _tag, B._prim = _prim} → undefined
           isFree (B.IsAux3 _ (Primary _) (Auxiliary _) (Auxiliary _) (Auxiliary _)) = False
@@ -147,7 +202,7 @@ netToAst = undefined
         -- This case should only happen when the code is in a irreducible state
         [] → pure Nothing
         -- This case should happen when the graph is properly typed
-        [n] → rec' n Nothing Map.empty
+        [n] → rec' n Nothing Map.empty Map.empty
         -- This case should only happen if the graph is incomplete or has multiple
         -- dijoint sets of nodes in the graph
         _ : _ → pure Nothing
@@ -174,3 +229,30 @@ chaseAndCreateFan (num,port) = do
       linkAll nodeFan
       deleteEdge t1 (num,port)
       pure (numFan, Aux2)
+
+inFixMap ∷ B.Infix → BT.Op
+inFixMap B.Prod = BT.Mult
+inFixMap B.Add  = BT.Plus
+inFixMap B.Sub  = BT.Sub
+inFixMap B.Mod  = BT.Mod
+inFixMap B.Div  = BT.Division
+
+inFixMapB ∷ B.InfixB → BT.Op
+inFixMapB B.Eq   = BT.Eq
+inFixMapB B.Neq  = BT.Neq
+inFixMapB B.Less = BT.Lt
+inFixMapB B.More = BT.Gt
+inFixMapB B.Meq  = BT.Ge
+inFixMapB B.Leq  = BT.Le
+
+-- | numToSymbol generates a symbol from a number
+numToSymbol :: Int → SomeSymbol
+numToSymbol x
+  | x < 26    = someSymbolVal (return ((['x'..'z'] <> ['a'..'w']) !! x))
+  | otherwise = someSymbolVal ("%gen" <> show x)
+
+
+-- | generate a new number based on the map size
+-- Only gives an unique if the key has an isomorphism with the size, and no data is deleted.
+newMapNum :: Map k a → Int
+newMapNum = Map.size
