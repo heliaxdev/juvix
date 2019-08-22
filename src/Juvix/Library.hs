@@ -8,6 +8,7 @@ module Juvix.Library ( module Protolude
                      , traverseM
                      ) where
 
+import           Prelude                  (Show (..))
 import           Capability.Error
 import           Capability.Reader
 import           Capability.State
@@ -45,3 +46,7 @@ traverseM :: (Monad m, Traversable m, Applicative f)
           → m a1
           → f (m a2)
 traverseM f = fmap join . traverse f
+
+
+instance Show ((->) a b) where
+  show _ = "fun"

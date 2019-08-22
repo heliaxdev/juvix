@@ -29,6 +29,9 @@ newtype EnvState net a = EnvS (State (Env net) a)
 execEnvState :: Network net ⇒ EnvState net a → Env net → Env net
 execEnvState (EnvS m) = execState m
 
+evalEnvState :: Network net ⇒ EnvState net a → Env net → a
+evalEnvState (EnvS m) = evalState m
+
 astToNet :: Network net ⇒ BT.Bohm → net B.Lang
 astToNet bohm = net'
   where
@@ -38,10 +41,13 @@ astToNet bohm = net'
     recursive BT.False'     _context = (,) <$> newNode (B.Primar B.Fals)       <*> pure Prim
     recursive BT.True'      _context = (,) <$> newNode (B.Primar B.Tru)        <*> pure Prim
     recursive BT.Nil        _context = (,) <$> newNode (B.Primar B.Nil)        <*> pure Prim
-    recursive (BT.Car b)     context = genericAux1PrimArg b (B.Auxiliary1 B.Car)     context
-    recursive (BT.Cdr b)     context = genericAux1PrimArg b (B.Auxiliary1 B.Cdr)     context
-    recursive (BT.IsNil b)   context = genericAux1PrimArg b (B.Auxiliary1 B.TestNil) context
-    recursive (BT.Not b)     context = genericAux1PrimArg b (B.Auxiliary1 B.Not)     context
+    recursive (BT.Erase)    _context = (,) <$> newNode (B.Primar B.Erase)      <*> pure Prim
+    recursive (BT.Car b)     context    = genericAux1PrimArg b (B.Auxiliary1 B.Car)     context
+    recursive (BT.Cdr b)     context    = genericAux1PrimArg b (B.Auxiliary1 B.Cdr)     context
+    recursive (BT.IsNil b)   context    = genericAux1PrimArg b (B.Auxiliary1 B.TestNil) context
+    recursive (BT.Not b)     context    = genericAux1PrimArg b (B.Auxiliary1 B.Not)     context
+    recursive (BT.Curried f b) context  = genericAux1PrimArg b (B.Auxiliary1 $ B.Curried f) context
+    recursive (BT.CurriedB f b) context = genericAux1PrimArg b (B.Auxiliary1 $ B.CurriedB f) context
     recursive (BT.Infix' BT.Mult b1 b2) c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.Infix B.Prod)  c
     recursive (BT.Infix' BT.Plus b1 b2) c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.Infix B.Add)   c
     recursive (BT.Infix' BT.Sub b1 b2)  c     = genericAux2PrimArg b1 b2 (B.Auxiliary2 $ B.Infix B.Sub)   c
@@ -121,8 +127,8 @@ data FanStatus = In FanPorts
                | Completed FanPorts
                deriving Show
 
-netToAst :: Network net ⇒ net B.Lang → Maybe BT.Bohm
-netToAst = undefined
+netToAst :: DifferentRep net ⇒ net B.Lang → Maybe BT.Bohm
+netToAst net = evalEnvState run (Env 0 net mempty)
   where
     run = do
       -- rec' assumes that we are given a statement at the top of the graphical AST
@@ -260,7 +266,20 @@ netToAst = undefined
                                   Just (_, Aux2) → through (auxToFanPorts Aux2)
                                   Just (_, Prim) → pure Nothing -- TODO ∷ This case probably doesn't happen ∃
                                   Just (_,_)     → pure Nothing -- Shouldn't happen!
-                  B.IsAux1 {B._tag1 = _tag, B._prim = _prim, B._aux1 = _aux1} → undefined
+                  B.IsAux1 {B._tag1 = tag, B._prim = prim} →
+                    let parentAux con =
+                          case prim of
+                            Primary prim → do
+                              prim ← rec' prim (Just (n, Prim)) fanMap nodeVarMap
+                              pure (con <$> prim)
+                            Free → pure Nothing -- doesn't happen
+                    in case tag of
+                      B.Not        → parentAux BT.Not
+                      B.Cdr        → parentAux BT.Cdr
+                      B.Car        → parentAux BT.Car
+                      B.TestNil    → parentAux BT.IsNil
+                      B.Curried f  → parentAux (BT.Curried f)
+                      B.CurriedB f → parentAux (BT.CurriedB f)
                   B.IsPrim {B._tag0 = tag} →
                     pure $ Just $
                       case tag of

@@ -23,7 +23,8 @@ data Bohm
   -- Not valid syntax but for read back of a graph
   | Erase
   -- Not valid syntax but for read back of a graph
-  | Curried Bohm
+  | Curried (Int → Int) Bohm
+  | CurriedB (Int → Bool) Bohm
   deriving Show
 
 data Op = Mult | Plus | Sub | Division
