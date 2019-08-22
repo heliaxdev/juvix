@@ -169,10 +169,10 @@ netToAst net = evalEnvState run (Env 0 net mempty)
                                 let num           = newMapNum nodeVarMap
                                     symb          = numToSymbol num
                                     newNodeVarMap = Map.insert n symb nodeVarMap
-                                in case aux2 of
-                                  Auxiliary a2 → do
-                                    a2 ← rec' a2 (Just (n, Aux2)) fanMap newNodeVarMap
-                                    pure (lamOrMu symb <$> a2)
+                                in case aux1 of
+                                  Auxiliary a1 → do
+                                    a1 ← rec' a1 (Just (n, Aux1)) fanMap newNodeVarMap
+                                    pure (lamOrMu symb <$> a1)
                                   FreeNode → pure Nothing
                           mEdge ← traverseM findEdge comeFrom
                           case mEdge of
