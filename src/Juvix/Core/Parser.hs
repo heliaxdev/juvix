@@ -45,7 +45,7 @@ reserved = Token.reserved lexer
 reservedOp :: String -> Parser ()
 reservedOp = Token.reservedOp lexer
 
-parens :: Parser String -> Parser String
+parens :: Parser a -> Parser a
 parens = Token.parens lexer -- parses surrounding parenthesis, and what is inside them
 
 natural :: Parser Integer
@@ -143,7 +143,8 @@ parseWhole p =
         return t
 
 term ∷ Parser ITerm
-term = sortTerm
+term = parens term
+     <|> sortTerm
      <|> appTerm
      <|> piTerm
      <|> pmTerm
@@ -166,4 +167,3 @@ parseString p str =
      case parse p "" str of
      Left e -> error $ show e
      Right r -> r
-
