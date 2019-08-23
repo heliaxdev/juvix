@@ -154,7 +154,8 @@ term = parens term
      <|> freeTerm --Free var
 
 cterm ∷ Parser CTerm
-cterm =  do reservedOp "Inf"
+cterm =  parens cterm
+     <|> do reservedOp "Inf"
             iterm <- term
             return $ Inf iterm
      <|> do reservedOp "Lam"

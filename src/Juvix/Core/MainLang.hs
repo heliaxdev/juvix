@@ -11,15 +11,15 @@ data NatAndw -- semiring of (Nat,w) for usage annotation
 
 instance Show NatAndw where
   show (Natural n) = show n
-  show Omega   = "w"
+  show Omega       = "w"
 
 instance Eq NatAndw where
+  Natural x == Natural y = x == y
+  Natural _ == Omega = True
   Omega == _ = True
-  
+
 instance Num NatAndw where
   x - y = x - y
-
-type Nat = Natural
 
 -- Inferable terms
 data ITerm
