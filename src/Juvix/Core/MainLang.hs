@@ -21,8 +21,8 @@ instance Eq NatAndw where
 instance Num NatAndw where
   x - y = x - y
 
--- Inferable terms
-data ITerm
+-- checkable terms
+data CTerm
   = Star Natural -- (sort i) i th ordering of (closed) universe.
   | Nat Natural -- (Prim) primitive type
   | Pi NatAndw CTerm CTerm -- formation rule of the dependent function type (PI).
@@ -30,18 +30,19 @@ data ITerm
   | Pm NatAndw CTerm CTerm -- dependent multiplicative conjunction (tensor product)
   | Pa NatAndw CTerm CTerm -- dependent additive conjunction type
   | NPm CTerm CTerm -- non-dependent multiplicative disjunction type
-  | Bound Natural -- Bound variables, in de Bruijn indices
+  | Lam NatAndw CTerm --(LAM) Introduction rule of PI.
+                        -- The abstracted variable's usage is tracked with the NatAndw(π).
+  | Conv ITerm --(CONV) conversion rule. TODO make sure 0Γ ⊢ S≡T
+              -- Conv is the constructor that embeds ITerm to CTerm
+  deriving (Show, Eq)
+
+-- inferable terms
+data ITerm
+  = Bound Natural -- Bound variables, in de Bruijn indices
   | Free Name -- Free variables of type name (see below)
   | App NatAndw ITerm CTerm -- elimination rule of PI (APP).
                               -- the NatAndw(π) tracks how x is use.
-  deriving (Show, Eq)
-
---Checkable terms
-data CTerm
-  = Inf ITerm --(CONV) conversion rule. TODO make sure 0Γ ⊢ S≡T
-                        -- Inf is the constructor that embeds ITerm to CTerm
-  | Lam NatAndw CTerm --(LAM) Introduction rule of PI.
-                        -- The abstracted variable's usage is tracked with the NatAndw(π).
+  | Ann NatAndw CTerm CTerm --Annotation with usage.
   deriving (Show, Eq)
 
 data Name
@@ -114,7 +115,7 @@ vapp x y =
      showVal y ++ "\n to \n" ++ showVal x)
 
 cEval :: CTerm -> Env -> Value
-cEval (Inf ii) d = iEval ii d
+cEval (Conv ii) d = iEval ii d
 
 --cEval (Lam  e)    d =  VLam (\ x -> cEval e (x : d))
 --substitution function for inferable terms
@@ -129,6 +130,6 @@ iSubst _ii _r (Star i) = Star i
 --iSubst ii r (Pi n ty ty')     =  Pi
 --substitution function for checkable terms
 cSubst :: Natural -> ITerm -> CTerm -> CTerm
-cSubst ii r (Inf e) = Inf (iSubst ii r e)
+cSubst ii r (Conv e) = Conv (iSubst ii r e)
 --cSubst ii r (Lam e) =  Lam (cSubst (ii + 1) r e)
 -}

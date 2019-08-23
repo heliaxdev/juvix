@@ -28,8 +28,9 @@ languageDef =
         , "Quote"
         , "Global" --Free var
         , "w" --Omega
+        , "App"
         ]
-    , Token.reservedOpNames = ["Inf", "\\", ":"]
+    , Token.reservedOpNames = ["Conv", "\\", ":"]
     }
 
 lexer :: Token.GenTokenParser String u Data.Functor.Identity.Identity
@@ -60,21 +61,21 @@ natw =   do reserved "w"
      <|> do n <- natural
             return $ Natural (fromInteger n) 
             
-sortTerm :: Parser ITerm
+sortTerm :: Parser CTerm
 sortTerm =
-     do reserved "*"
-        n <- natural
-        return $ Star (fromInteger n)
+  do reserved "*"
+     n <- natural
+     return $ Star (fromInteger n)
 
-piTerm ∷ Parser ITerm
+piTerm ∷ Parser CTerm
 piTerm = 
-     do reserved "[Π]"
-        pi <- natw
-        input <- cterm
-        func <- cterm
-        return $ Pi pi input func
+  do reserved "[Π]"
+     pi <- natw
+     input <- cterm
+     func <- cterm
+     return $ Pi pi input func
         
-pmTerm ∷ Parser ITerm
+pmTerm ∷ Parser CTerm
 pmTerm = 
   do reserved "[π]"
      pm <- natw
@@ -82,7 +83,7 @@ pmTerm =
      func <- cterm
      return $ Pm pm input func
      
-paTerm ∷ Parser ITerm
+paTerm ∷ Parser CTerm
 paTerm = 
   do reserved "/\\"
      pa <- natw
@@ -90,78 +91,97 @@ paTerm =
      func <- cterm
      return $ Pa pa input func
      
-npmTerm :: Parser ITerm
+npmTerm :: Parser CTerm
 npmTerm =
   do reserved "\\/"
-     input1 <- cterm
-     input2 <- cterm
-     return $ NPm input1 input2
+     fst <- cterm
+     snd <- cterm
+     return $ NPm fst snd
+
+lamTerm :: Parser CTerm
+lamTerm = 
+  do reservedOp "\\"
+     pi <- natw
+     func <- cterm
+     return $ Lam pi func
+
+convTerm :: Parser CTerm
+convTerm =
+  do reservedOp "Conv"
+     termToConvert <- iterm
+     return $ Conv termToConvert
 
 boundTerm ∷ Parser ITerm
 boundTerm =
-     do reserved "Bound"
-        index <- natural
-        return $ Bound (fromInteger index)
+  do reserved "Bound"
+     index <- natural
+     return $ Bound (fromInteger index)
 
 --Parser for the global free variable name
 gName ∷ Parser String
 gName =  parens gName
      <|> identifier
+
 --Parser for Name data type
 name ∷ Parser Name
 name = do reserved "Local"
           index <- natural
           return $ Local (fromInteger index)
-     <|> do reserved "Quote"
-            index <- natural
-            return $ Quote (fromInteger index)
-     <|> do reserved "Global"
-            gname <- gName
-            return $ Global gname
+   <|> do reserved "Quote"
+          index <- natural
+          return $ Quote (fromInteger index)
+   <|> do reserved "Global"
+          gname <- gName
+          return $ Global gname
 
 freeTerm ∷ Parser ITerm
 freeTerm =
-     do reserved "Free"
-        fname <- name
-        return $ Free fname
+  do reserved "Free"
+     fname <- name
+     return $ Free fname
 
 appTerm ∷ Parser ITerm
 appTerm =
-     do reserved "App"
-        pi <- natw
-        iterm <- term
-        cTerm <- cterm
-        eof
-        return $ App pi iterm cTerm
+  do reserved "App"
+     pi <- natw
+     func <- iterm
+     var <- cterm
+     eof
+     return $ App pi func var
+
+annTerm ∷ Parser ITerm
+annTerm =
+  do pi <- natw
+     term <- cterm
+     reservedOp ":"
+     ann <- cterm
+     eof
+     return $ Ann pi term ann
 
 parseWhole ∷ Parser a -> Parser a
 parseWhole p =
-     do whiteSpace
-        t <- p
-        whiteSpace
-        eof
-        return t
+  do whiteSpace
+     t <- p
+     whiteSpace
+     eof
+     return t
 
-term ∷ Parser ITerm
-term = parens term
+cterm ∷ Parser CTerm
+cterm = parens cterm
      <|> sortTerm
-     <|> appTerm
      <|> piTerm
      <|> pmTerm
      <|> paTerm
      <|> npmTerm
-     <|> boundTerm --Bound var
-     <|> freeTerm --Free var
+     <|> lamTerm
+     <|> convTerm
 
-cterm ∷ Parser CTerm
-cterm =  parens cterm
-     <|> do reservedOp "Inf"
-            iterm <- term
-            return $ Inf iterm
-     <|> do reservedOp "Lam"
-            pi <- natw
-            cTerm <- cterm
-            return $ Lam pi cTerm
+iterm ∷ Parser ITerm
+iterm =  parens iterm
+     <|> boundTerm --Bound var
+     <|> freeTerm --Free var<|> appTerm
+     <|> appTerm
+     <|> annTerm
 
 parseString ∷ Parser a → String → a
 parseString p str =
