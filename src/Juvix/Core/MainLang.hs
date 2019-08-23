@@ -1,4 +1,4 @@
--- Quantitative type implementation following
+-- Quantitative type implementation inspired by
 -- Atkey 2017 and McBride 2016.
 module Juvix.Core.MainLang where
 
@@ -17,9 +17,6 @@ instance Eq NatAndw where
   Natural x == Natural y = x == y
   Natural _ == Omega = True
   Omega == _ = True
-
-instance Num NatAndw where
-  x - y = x - y
 
 -- checkable terms
 data CTerm
@@ -55,6 +52,7 @@ data Name
 data Value
   = VLam Value (Value -> Value)
   | VStar Natural
+  | VNat Natural
   | VPi NatAndw Value (Value -> Value)
   | VPm NatAndw Value (Value -> Value)
   | VPa NatAndw Value (Value -> Value)
@@ -69,6 +67,7 @@ data Neutral
 showVal :: Value -> String
 showVal (VLam _ f) = showFun f
 showVal (VStar i) = "*" ++ show i
+showVal (VNat i) = show i
 showVal (VPi n v f) = "[" ++ show n ++ "]" ++ showVal v ++ " -> " ++ showFun f
 showVal (VPm n v f) =
   "([" ++ show n ++ "]" ++ showVal v ++ ", " ++ showFun f ++ ")"
@@ -90,20 +89,23 @@ type Context = [(Name, Type)]
 
 toInt :: Natural -> Int
 toInt = fromInteger . toInteger
-{-}
+{-
 --Evaluation
 type Env = [Value]
 
 iEval :: ITerm -> Env -> Value
 iEval (Star i) _d = VStar i
 iEval (Pi Omega ty ty') d = VPi Omega (cEval ty d) (\x -> cEval ty' (x : d))
-iEval (Pi n ty ty') d = VPi (n - 1) (cEval ty d) (\x -> cEval ty' (x : d))
-iEval (Pm n ty ty') d = VPm (n - 1) (cEval ty d) (\x -> cEval ty' (x : d))
-iEval (Pa n ty ty') d = VPa (n - 1) (cEval ty d) (\x -> cEval ty' (x : d))
+iEval (Pi (Natural n) ty ty') d =
+  VPi (Natural (n - 1)) (cEval ty d) (\x -> cEval ty' (x : d))
+iEval (Pm n ty ty') d =
+  VPm (Natural (n - 1)) (cEval ty d) (\x -> cEval ty' (x : d))
+iEval (Pa n ty ty') d =
+  VPa (Natural (n - 1)) (cEval ty d) (\x -> cEval ty' (x : d))
 iEval (Free x) _d = vfree x
 iEval (Bound ii) d = d !! (toInt ii) --(!!) :: [a] -> Int -> a, the list lookup operator.
 iEval (App n iterm cterm) d = vapp (iEval iterm d) (cEval cterm d)
-iEval Nat _ = undefined
+iEval (Nat i) _ = VNat i
 iEval (NPm ty ty') d = undefined VNPm ty ty' d
 
 vapp :: Value -> Value -> Value
