@@ -66,7 +66,28 @@ library:
     - Juvix
     - Juvix.Core
     - Juvix.EAL
+    - Juvix.EAL.Check
+    - Juvix.EAL.EAL
+    - Juvix.EAL.EAL2
+    - Juvix.EAL.Solve
+    - Juvix.EAL.Types2
+    - Juvix.EAL.Parser
     - Juvix.Utility
+    - Juvix.Nets.Bohm
+    - Juvix.Nets.Combinators
+    - Juvix.Backends.Interface
+    - Juvix.Backends.Env
+    - Juvix.Backends.Graph
+    - Juvix.Backends.Maps
+    - Juvix.Bohm.Parser
+    - Juvix.Bohm.Translation
+    - Juvix.Library
+    - Juvix.Visualize.Dot
+    - Juvix.Visualize.Graph
+    - Juvix.Encoding.Encoding
+    - Juvix.Encoding.Mendler
+    - Juvix.Encoding.Scott
+    - Juvix.Encoding.Types
 
 executables:
   juvix:
