@@ -44,6 +44,9 @@ handleSpecial str cont = do
   case str of
     "?"    → liftIO (putDoc specialsDoc) >> cont
     "exit" → return ()
+    "tutorial" → do
+      H.outputStrLn "Interactive tutorial coming soon!"
+      cont
     'c' : ' ' : rest -> do
       let parsed = Core.parseString Core.cterm rest
       H.outputStrLn $ show parsed
@@ -68,6 +71,7 @@ specials ∷ [Special]
 specials = [
   Special "c [term]"  "Parse a Juvix Core term",
   Special "e [term]"  "Parse an EAL term",
+  Special "tutorial"  "Embark upon an interactive tutorial",
   Special "?"         "Show this help message",
   Special "exit"      "Quit interactive mode"
   ]
