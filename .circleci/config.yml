@@ -8,7 +8,7 @@ jobs:
       - checkout
       - run:
           name: Install z3
-          command: sudo apt-get -y update && sudo apt-get -y install z3 libz3-dev 
+          command: git clone https://github.com/Z3Prover/z3.git && cd z3 && python scripts/mk_make.py && cd build && make && make install
       - restore_cache:
           name: Restore cached dependencies
           keys:
