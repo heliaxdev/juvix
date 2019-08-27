@@ -51,6 +51,11 @@ test67Gen = traverse (netToGif "tmp/" "boo" 1000 . astToNet) (parseBohm "( (lamb
 -- gives back a term for all except for Omega, but that is reasonable
 testAst (Right (InfoNet {net = n})) = netToAst n
 
+-- run these on any of the tests above
+-- gives back a term for all except for Omega, but that is reasonable
+testAst (Right (InfoNet {net = n})) = netToAst n
+
+
 test78Back ∷ Maybe Juvix.Bohm.Type.Bohm
 test78Back = netToAst n
   where
