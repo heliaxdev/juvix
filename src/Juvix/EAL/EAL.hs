@@ -261,7 +261,7 @@ putParam p (PSymT _ s)     = PSymT p s
 putParam p (PArrT _ t1 t2) = PArrT p t1 t2
 
 -- putParamPos ∷ Param → PType → PType
-addParamPos :: HasThrow "typ" TypeErrors m ⇒ Param → PType → m PType
+addParamPos ∷ HasThrow "typ" TypeErrors m ⇒ Param → PType → m PType
 addParamPos toAdd (PSymT p s)
   | toAdd + p < 0 = throw @"typ" TooManyHats
   | otherwise     = pure (PSymT (toAdd + p) s)

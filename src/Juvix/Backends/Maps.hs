@@ -26,7 +26,7 @@ runMapNet f net = runNet f net (toInteger (length (ofNet net)))
 
 
 -- used for debugging, i.e. getting information back from the net
-runMapNet' :: EnvNetInfo (Net a1) a2 → Net a1 → (a2, InfoNet (Net a1))
+runMapNet' ∷ EnvNetInfo (Net a1) a2 → Net a1 → (a2, InfoNet (Net a1))
 runMapNet' f net = runNet' f net (toInteger (length (ofNet net)))
 -- Network Instances  ----------------------------------------------------------
 
