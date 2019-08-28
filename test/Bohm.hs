@@ -11,6 +11,7 @@ import           Juvix.Library
 import           Juvix.Nets.Bohm
 import           Juvix.Utility
 
+import           Juvix.Bohm.Translation
 import           Juvix.Visualize.Dot
 import           Juvix.Visualize.Graph
 
@@ -21,7 +22,7 @@ import           Text.Parsec
 import           Data.Graph.Inductive     hiding (Network, Node, delNodes,nodes)
 
 --test1 ∷ Either ParseError (InfoNet (FlipNet Lang))
-test1 :: Either ParseError (InfoNet (Juvix.Backends.Maps.Net Lang))
+test1 ∷ Either ParseError (InfoNet (Juvix.Backends.Maps.Net Lang))
 test1 = runMapNet (reduceAll 10 >> findEdge (1, Aux1)) . astToNet <$> parseBohm "(lambda x. x)"
 
 test1' = runMapNet (reduceAll 1) . astToNet <$> parseBohm "((lambda x. x) y)"

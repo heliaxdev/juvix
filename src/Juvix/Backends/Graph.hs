@@ -23,7 +23,7 @@ runFlipNet ∷ EnvNetInfo (FlipNet b) a → FlipNet b → InfoNet (FlipNet b)
 runFlipNet f net = runNet f net
                           (toInteger (length (Graph.nodes (runFlip net))))
 
-runFlipNet' :: EnvNetInfo (FlipNet b) a → FlipNet b → (a, InfoNet (FlipNet b))
+runFlipNet' ∷ EnvNetInfo (FlipNet b) a → FlipNet b → (a, InfoNet (FlipNet b))
 runFlipNet' f net = runNet' f net
                            (toInteger (length (Graph.nodes (runFlip net))))
 
