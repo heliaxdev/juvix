@@ -19,6 +19,13 @@ instance Eq NatAndw where
   Natural _ == Omega = True
   Omega == _ = True
 
+instance Num NatAndw where
+  Omega + _ = Omega
+  _ + Omega = Omega
+  Omega * _ = Omega
+  _ * Omega = Omega
+  --Natural x + Natural y = Natural (x + y)
+
 -- checkable terms
 data CTerm
   = Star Natural -- (sort i) i th ordering of (closed) universe.
@@ -87,9 +94,9 @@ vfree :: Name -> Value
 vfree n = VNeutral (NFree n)
 
 --Contexts map variables to their types.
-type Type = Value
+type Annotation = (NatAndw, Value)
 
-type Context = [(Name, NatAndw, Type)]
+type Context = [(Name, Annotation)]
 
 toInt :: Natural -> Int
 toInt = fromInteger . toInteger
@@ -191,31 +198,37 @@ boundfree ii (Quote k) = Bound (ii - k - 1)
 boundfree _ii x        = Free x
 
 --error message for inferring/checking types
-errorMsg :: Natural -> ITerm -> Value -> Value -> String
+errorMsg :: Natural -> ITerm -> Annotation -> Annotation -> String
 errorMsg binder iterm expectedT gotT =
   "Type mismatched. \n" ++
   show iterm ++
   " \n (binder number " ++
   show binder ++
   ") is of type \n" ++
-  show (showVal gotT) ++
-  "\n but the expected type is " ++ show (showVal expectedT) ++ "."
+  show (showVal (snd gotT)) ++
+  " , with" ++
+  show (fst gotT) ++
+  "usage.\n But the expected type is " ++
+  show (showVal (snd expectedT)) ++
+  " , with" ++ show (fst expectedT) ++ "usage."
 
---Type checking
+--Type (and usage) checking
 type Result a = Either String a --when type checking fails, it throws an error.
 
 --checkable terms take a type as input and returns ().
-cType :: Natural -> Context -> CTerm -> NatAndw -> Type -> Result ()
+cType :: Natural -> Context -> CTerm -> Annotation -> Result ()
 cType ii g (Star n) v = undefined
 cType ii g (Conv e) v = do
   v' <- iType ii g e
-  unless (quote0 v == quote0 v') (throwError (errorMsg ii e v v'))
-cType ii g (Lam pi f) sigma (VPi pi_ ty ty') =
+  unless
+    ((fst v) == (fst v') && quote0 (snd v) == quote0 (snd v'))
+    (throwError (errorMsg ii e v v'))
+cType ii g (Lam pi f) (pi', VPi pi_ ty ty') =
   cType
     (ii + 1)
-    ((Local ii, pi, ty) : g)
+    ((Local ii, (pi, ty)) : g)
     (cSubst 0 (Free (Local ii)) f)
-    (ty' (vfree (Local ii)))
+    (pi', ty' (vfree (Local ii)))
 cType ii _g cterm theType =
   throwError
     ("Type mismatch: \n" ++
@@ -223,13 +236,13 @@ cType ii _g cterm theType =
      "\n (binder number " ++
      show ii ++
      ") is not a checkable term. Cannot check that it is of type " ++
-     showVal theType)
+     showVal (snd theType) ++ " with " ++ show (fst theType) ++ "usage.")
 
 --inferable terms have type as output.
-iType0 :: Context -> ITerm -> Result Type
+iType0 :: Context -> ITerm -> Result Annotation
 iType0 = iType 0
 
-iType :: Natural -> Context -> ITerm -> Result Type
+iType :: Natural -> Context -> ITerm -> Result Annotation
 iType ii g (Free x) =
   case lookup x g of
     Just ty -> return ty
