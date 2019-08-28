@@ -1,5 +1,8 @@
 # Juvix
 
+![Tardigrade](https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Water_bear.jpg/279px-Water_bear.jpg)
+<br /><sub><sup>([Aditya via Wikimedia Commons, CC-BY-SA 3.0](https://commons.wikimedia.org/wiki/File:Water_bear.jpg))</sup></sub>
+
 ![GitHub](https://img.shields.io/github/license/cryptiumlabs/juvix)
 ![Build status](https://img.shields.io/circleci/build/github/cryptiumlabs/juvix?token=abc123def456)
 ![GitHub issues](https://img.shields.io/github/issues/cryptiumlabs/juvix)
