@@ -20,11 +20,12 @@ instance Eq NatAndw where
   Omega == _ = True
 
 instance Num NatAndw where
+  Natural x + Natural y = Natural (x + y)
   Omega + _ = Omega
   _ + Omega = Omega
+  Natural j * Natural k = Natural (j * k)
   Omega * _ = Omega
   _ * Omega = Omega
-  --Natural x + Natural y = Natural (x + y)
 
 -- checkable terms
 data CTerm
