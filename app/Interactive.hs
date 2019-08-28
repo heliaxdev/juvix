@@ -11,6 +11,7 @@ import           Config
 import           Options
 
 import qualified Juvix.Backends.Env           as Env
+import qualified Juvix.Backends.Graph         as Graph
 import qualified Juvix.Backends.Maps          as Maps
 import qualified Juvix.Bohm                   as Bohm
 import qualified Juvix.Core                   as Core
@@ -51,11 +52,27 @@ handleSpecial str cont = do
     "tutorial" → do
       H.outputStrLn "Interactive tutorial coming soon!"
       cont
-    'c' : ' ' : rest -> do
+    'c' : 'p' : ' ' : rest -> do
       let parsed = Core.parseString Core.cterm rest
       H.outputStrLn $ show parsed
       cont
-    'e' : ' ' : rest -> do
+    'c' : 'e' : ' ' : rest -> do
+      let parsed = Core.parseString Core.cterm rest
+      H.outputStrLn $ show parsed
+      case parsed of
+        Just cterm -> do
+          eal <- eraseAndSolveCore cterm
+          case eal of
+            Right (term, _) -> do
+              transformAndEvaluateEal term
+            _ -> return ()
+        Nothing -> return ()
+      cont
+    'e' : 'p' : ' ' : rest -> do
+      let parsed = EAL.parseEal rest
+      H.outputStrLn $ show parsed
+      cont
+    'e' : 'e' : ' ' : rest -> do
       let parsed = EAL.parseEal rest
       H.outputStrLn $ show parsed
       case parsed of
@@ -64,14 +81,21 @@ handleSpecial str cont = do
       cont
     _      → H.outputStrLn "Unknown special command" >> cont
 
+eraseAndSolveCore ∷ Core.CTerm → H.InputT IO (Either EAL.Errors (EAL.RPT, EAL.ParamTypeAssignment))
+eraseAndSolveCore cterm = do
+  let (term, typeAssignment) = Core.erase' cterm
+  res <- liftIO (EAL.validEal term typeAssignment)
+  H.outputStrLn ("Inferred EAL term & type: " <> show res)
+  pure res
+
 transformAndEvaluateEal ∷ EAL.RPTO → H.InputT IO ()
 transformAndEvaluateEal term = do
   let bohm = EAL.ealToBohm term
   H.outputStrLn ("Converted to BOHM: " <> show bohm)
-  let net ∷ Maps.Net Bohm.Lang
+  let net ∷ Graph.FlipNet Bohm.Lang
       net = Bohm.astToNet bohm
   H.outputStrLn ("Translated to net: " <> show net)
-  let reduced = Maps.runMapNet (Bohm.reduceAll 1000000) net
+  let reduced = Graph.runFlipNet (Bohm.reduceAll 1000000) net
       info = Env.info reduced
       res = Env.net reduced
       readback = Bohm.netToAst res
@@ -90,11 +114,13 @@ specialDoc (Special command helpDesc) = text $ T.unpack $ mconcat [":", command,
 
 specials ∷ [Special]
 specials = [
-  Special "c [term]"  "Parse a Juvix Core term",
-  Special "e [term]"  "Parse an EAL term",
-  Special "tutorial"  "Embark upon an interactive tutorial",
-  Special "?"         "Show this help message",
-  Special "exit"      "Quit interactive mode"
+  Special "cp [term]"   "Parse a Juvix Core term",
+  Special "ce [term"    "Parse a Juvix Core term, translate to EAL, solve constraints, evaluate & read-back",
+  Special "ep [term]"   "Parse an EAL term",
+  Special "ee [term]"   "Parse an EAL term, evaluate & read-back",
+  Special "tutorial"    "Embark upon an interactive tutorial",
+  Special "?"           "Show this help message",
+  Special "exit"        "Quit interactive mode"
   ]
 
 data Special = Special {
