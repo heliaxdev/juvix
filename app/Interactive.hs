@@ -73,19 +73,27 @@ handleSpecial str cont = do
           eal <- eraseAndSolveCore cterm
           case eal of
             Right (term, _) -> do
-              transformAndEvaluateEal term
+              transformAndEvaluateEal True term
             _ -> return ()
         Nothing -> return ()
       cont
     'e' : 'p' : ' ' : rest -> do
       let parsed = EAL.parseEal rest
-      H.outputStrLn $ show parsed
+      case parsed of
+        Right r -> transformAndEvaluateEal True r
+        _       -> return ()
+      cont
+    'e' : 'q' : ' ' : rest -> do
+      let parsed = EAL.parseEal rest
+      case parsed of
+        Right r -> transformAndEvaluateEal False r
+        _       -> return ()
       cont
     'e' : 'e' : ' ' : rest -> do
       let parsed = EAL.parseEal rest
       H.outputStrLn $ show parsed
       case parsed of
-        Right r -> transformAndEvaluateEal r
+        Right r -> transformAndEvaluateEal True r
         _       -> return ()
       cont
     _      → H.outputStrLn "Unknown special command" >> cont
@@ -97,18 +105,18 @@ eraseAndSolveCore cterm = do
   H.outputStrLn ("Inferred EAL term & type: " <> show res)
   pure res
 
-transformAndEvaluateEal ∷ EAL.RPTO → H.InputT IO ()
-transformAndEvaluateEal term = do
+transformAndEvaluateEal ∷ Bool → EAL.RPTO → H.InputT IO ()
+transformAndEvaluateEal debug term = do
   let bohm = EAL.ealToBohm term
-  H.outputStrLn ("Converted to BOHM: " <> show bohm)
+  when debug $ H.outputStrLn ("Converted to BOHM: " <> show bohm)
   let net ∷ Graph.FlipNet Bohm.Lang
       net = Bohm.astToNet bohm
-  H.outputStrLn ("Translated to net: " <> show net)
+  when debug $ H.outputStrLn ("Translated to net: " <> show net)
   let reduced = Graph.runFlipNet (Bohm.reduceAll 1000000) net
       info = Env.info reduced
       res = Env.net reduced
       readback = Bohm.netToAst res
-  H.outputStrLn ("Reduction info: " <> show info)
+  when debug $ H.outputStrLn ("Reduction info: " <> show info)
   H.outputStrLn ("Read-back term: " <> show readback)
 
 specialsDoc ∷ Doc
@@ -128,6 +136,7 @@ specials = [
   Special "ce [term"    "Parse a Juvix Core term, translate to EAL, solve constraints, evaluate & read-back",
   Special "ep [term]"   "Parse an EAL term",
   Special "ee [term]"   "Parse an EAL term, evaluate & read-back",
+  Special "eq [term]"   "Parse an EAL term, evaluate & read-back quietly",
   Special "tutorial"    "Embark upon an interactive tutorial",
   Special "?"           "Show this help message",
   Special "exit"        "Quit interactive mode"
