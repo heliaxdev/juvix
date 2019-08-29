@@ -26,6 +26,7 @@ instance Num NatAndw where
   SNat j * SNat k = SNat (j * k)
   Omega * _ = Omega
   _ * Omega = Omega
+  fromInteger x = SNat (fromInteger x)
 
 -- checkable terms
 data CTerm
