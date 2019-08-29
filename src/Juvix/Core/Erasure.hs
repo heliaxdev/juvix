@@ -37,7 +37,7 @@ erase term =
         Core.Free n  ->
           case n of
             Core.Global s -> pure (EAL.Var (someSymbolVal s))
-        Core.App _ a b -> do
+        Core.App a b -> do
           a <- erase b
           b <- erase b
           pure (EAL.App a b)
