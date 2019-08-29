@@ -181,7 +181,8 @@ cterm ∷ Parser CTerm
 cterm =
   parens cterm <|> sortTerm <|> piTerm <|> pmTerm <|> paTerm <|> npmTerm <|>
   lamTerm <|>
-  convTerm
+  convTerm <|>
+  ctermOnly
 
 iterm ∷ Parser ITerm
 iterm = parens iterm <|> boundTerm <|> freeTerm <|> appTerm <|> annTerm

@@ -2,7 +2,7 @@
 
 module Juvix.EAL.Parser where
 
-import           Prelude                                (error, String)
+import           Prelude                                (String, error)
 import           Text.Parsec
 import           Text.Parsec.Expr                       as E
 import           Text.Parsec.String
@@ -74,7 +74,7 @@ parseBohmFile fname = do
   pure $ parseEal' fname (show input)
 
 -- Grammar ---------------------------------------------------------------------
-expressionGen :: Stream s m Char ⇒ ParsecT s u m RPTI → ParsecT s u m RPTO
+expressionGen ∷ Stream s m Char ⇒ ParsecT s u m RPTI → ParsecT s u m RPTO
 expressionGen ealGen = do
   bang  ← try (string "!-") <|> string "!"
   bangs ← many (try (string "!-") <|> string "!" <|> string " ")
