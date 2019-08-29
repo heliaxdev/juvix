@@ -61,7 +61,7 @@ natw =
      return Omega
      <|> do
     n <- natural
-    return $ Natural (fromInteger n)
+    return $ SNat (fromInteger n)
 
 sortTerm ∷ Parser CTerm
 sortTerm = do

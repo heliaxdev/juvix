@@ -7,23 +7,23 @@ import           Numeric.Natural
 import           Prelude
 
 data NatAndw -- semiring of (Nat,w) for usage annotation
-  = Natural Natural -- 0, 1, or n usage
+  = SNat Natural -- 0, 1, or n usage
   | Omega -- unspecified usage
 
 instance Show NatAndw where
-  show (Natural n) = show n
-  show Omega       = "w"
+  show (SNat n) = show n
+  show Omega    = "w"
 
 instance Eq NatAndw where
-  Natural x == Natural y = x == y
-  Natural _ == Omega = True
+  SNat x == SNat y = x == y
+  SNat _ == Omega = True
   Omega == _ = True
 
 instance Num NatAndw where
-  Natural x + Natural y = Natural (x + y)
+  SNat x + SNat y = SNat (x + y)
   Omega + _ = Omega
   _ + Omega = Omega
-  Natural j * Natural k = Natural (j * k)
+  SNat j * SNat k = SNat (j * k)
   Omega * _ = Omega
   _ * Omega = Omega
 
@@ -181,7 +181,7 @@ boundfree ii (Quote k) = Bound (ii - k - 1)
 boundfree _ii x        = Free x
 
 --error message for inferring/checking types
-errorMsg ∷ Natural → ITerm → Annotation → Annotation → String
+errorMsg ∷ Natural → CTerm → Annotation → Annotation → String
 errorMsg binder iterm expectedT gotT =
   "Type mismatched. \n" ++
   show iterm ++
@@ -200,13 +200,16 @@ type Result a = Either String a --when type checking fails, it throws an error.
 
 --checkable terms take a type as input and returns ().
 cType ∷ Natural → Context → CTerm → Annotation → Result ()
-cType ii g (Star n) v = undefined
+cType ii _g (Star n) v =
+  unless
+    (fst v == 0 && quote0 (snd v) == Star (n + 1))
+    (throwError (errorMsg ii (Star n) (0, VStar (n + 1)) v))
 cType ii g (Conv e) v = do
   v' <- iType ii g e
   unless
     (fst v == fst v' && quote0 (snd v) == quote0 (snd v'))
-    (throwError (errorMsg ii e v v'))
-cType ii g (Lam pi f) (pi', VPi pi_ ty ty') =
+    (throwError (errorMsg ii (Conv e) v v'))
+cType ii g (Lam pi f) (pi', VPi _pi ty ty') =
   cType
     (ii + 1)
     ((Local ii, (pi, ty)) : g)
