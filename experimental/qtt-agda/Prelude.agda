@@ -61,7 +61,7 @@ open Bool public using (Bool ; true ; false ; if_then_else_)
 module Relation where
   open import Relation.Nullary public
   open import Relation.Nullary.Decidable public
-  open import Relation.Binary public
+  open import Relation.Binary public hiding (Irrelevant)
 open Relation public
   using (Rel ; Dec ; yes ; no ; Decidable ; ¬_ ; True ; False ; ⌊_⌋)
 
