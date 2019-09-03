@@ -29,17 +29,6 @@ languageDef =
         , "Global" --Free var
         , "w" --Omega
         , "App" --application
-        , "VStar" --Values
-        , "VNats"
-        , "VPi"
-        , "VPm"
-        , "VPa"
-        , "VNPm"
-        , "VLam"
-        , "VNeutral"
-        , "VNat"
-        , "NFree" --Neutral
-        , "NApp"
         ]
     , Token.reservedOpNames = ["Conv", "\\", ":", "cType"]
     }
@@ -205,72 +194,21 @@ ctermOnly = do
   anyTerm <- cOriTerm
   return
     (case anyTerm of
-       Left i  -> (Conv i)
+       Left i  -> Conv i
        Right c -> c)
 
-vStar :: Parser Value
-vStar = do
-  reserved "VStar"
-  i <- natural
-  return VStar i
-
-vNats :: Parser Value
-vNats = do
-  reserved "VNats"
-  return VNats
-
-{-
-vPi :: Parser Value
-vPi = do
-  reserved "VPi"
-  usage <- natw
-  var <- pValue
-  func <-
--}
-neutral :: Parser Neutral
-neutral =
-  do reserved "NFree"
-     freeName <- name
-     return NFree freeName
-     <|> do
-    reserved "NApp"
-    var <- neutral
-    func <- pValue
-    return NApp var func
-
-vNeutral :: Parser Value
-vNeutral = do
-  reserved "VNeutral"
-
-pValue :: Parser Value
-pValue = vStar <|> vNats <|> vLam <|> vNeutral <|> vNat
-
--- <|> vPi <|> vPm <|> vPa <|> vNpm
-pAnnotation :: Parser Annotation --Annotation = (NatAndw, Value)
-pAnnotation = do
-  usage <- natw
-  Parsec.spaces
-  typeValue <- pValue
-  return (usage, typeValue)
-
-pContext :: Parser Context --Context = [(Name, Annotation)]
-pContext = do
-  varName <- pName
-  Parsec.spaces
-  varAnn <- pAnnotation
-  return (varName, varAnn)
-
---Parses type checker input
-pCType :: Parser Either String ()
+--the type checker takes in a term, its usage and type, and returns ...
+pCType :: Parser (Result ())
 pCType = do
   reservedOp "cType"
-  index <- natural
-  context <- pContext
-  cterm <- ctermOnly
-  return 
-    case cType index context cterm of
+  theTerm <- ctermOnly
+  usage <- natw
+  theType <- ctermOnly
+  return $ cType 0 [] theTerm (usage, cEval theType [])
+    {-case cType 0 [] theTerm (usage, cEval theType []) of
       Left msg -> return putStr msg
       Right _ -> return _
+      -}
 
 parseString :: Parser a -> String -> Maybe a
 parseString p str =
