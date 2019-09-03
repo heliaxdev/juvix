@@ -55,8 +55,6 @@ d, e, f &::= x\ & \text{variable} &\ &\ &\ x\\
 &\ \ \ \ \ \ |\ (s, t)\ & \text{pair} &\ &\ &\ (s, t) \\
 &\ \ \ \ \ \ |\ s\ \epsilon\ t\ & \text{additive conjunction} &\ &\ &\ TBD \\
 &\ \ \ \ \ \ |\ s\ \gamma\ t\ & \text{multiplicative disjunction} &\ &\ &\ TBD \\
-&\ \ \ \ \ \ |\ fst_⊗\ M\ & \text{first projection for multiplicative conjunction} &\ &\ &\ fst\ M \\
-&\ \ \ \ \ \ |\ snd_⊗\ M\ & \text{second projection for multiplicative conjunction} &\ &\ &\ snd\ M \\
 &\ \ \ \ \ \ |\ fst_{\&}\ M\ & \text{first projection for additive conjunction} &\ &\ &\ fst\ M \\
 &\ \ \ \ \ \ |\ snd_{\&}\ M\ & \text{second projection for additive conjunction} &\ &\ &\ snd\ M \\
 &\ \ \ \ \ \ |\ let\ (x, y) = d\ in\ e\ & \text{dependent pair pattern match} &\ &\ &\ let\ (x, y) = d\ in\ e \\
@@ -71,7 +69,7 @@ Judgements have the following form:
 
 $$ x_1 \overset{ρ_1}{:} S_1, ..., x_n \overset{ρ_n}{:} S_n \vdash\ M \overset{σ}{:} T $$
 
-where $ρ_1 ... ρ_n$ are elements of the semiring and $σ$ is either the $0$ or $1$ of the semiring. When $σ = 0$, it is the typing judgement. When $σ = 1$, the judgement expresses the computational resources required.
+where $ρ_1 ... ρ_n$ are elements of the semiring and $σ$ is either the $0$ or $1$ of the semiring.
 
 Further define the syntactic categories of usages $ρ, π$ and precontexts $Γ$:
 
