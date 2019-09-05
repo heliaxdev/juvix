@@ -205,10 +205,6 @@ pCType = do
   usage <- natw
   theType <- ctermOnly
   return $ cType 0 [] theTerm (usage, cEval theType [])
-    {-case cType 0 [] theTerm (usage, cEval theType []) of
-      Left msg -> return putStr msg
-      Right _ -> return _
-      -}
 
 parseString ∷ Parser a → String → Maybe a
 parseString p str =
