@@ -190,11 +190,11 @@ errorMsg binder iterm expectedT gotT =
   show binder ++
   ") is of type \n" ++
   show (showVal (snd gotT)) ++
-  " , with" ++
+  " , with " ++
   show (fst gotT) ++
-  "usage.\n But the expected type is " ++
+  " usage.\n But the expected type is " ++
   show (showVal (snd expectedT)) ++
-  " , with" ++ show (fst expectedT) ++ "usage."
+  " , with " ++ show (fst expectedT) ++ " usage."
 
 --Type (and usage) checking
 type Result a = Either String a --when type checking fails, it throws an error.
@@ -205,6 +205,10 @@ cType ii _g (Star n) v =
   unless
     (fst v == 0 && quote0 (snd v) == Star (n + 1))
     (throwError (errorMsg ii (Star n) (0, VStar (n + 1)) v))
+cType ii _g Nats v =
+  unless
+    (fst v == 0 && quote0 (snd v) == Star 0)
+    (throwError (errorMsg ii Nats (0, VStar 0) v))
 cType ii g (Conv e) v = do
   v' <- iType ii g e
   unless
