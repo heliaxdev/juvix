@@ -212,6 +212,7 @@ usageCompare Omega pi    = True --actual usage can be any when required usage is
 
 --checker for checkable terms checks the term against an annotation and returns ().
 cType ∷ Natural → Context → CTerm → Annotation → Result ()
+-- *
 cType ii _g (Star n) ann =
   unless -- TODO i only needs to be < j in typing rule?
     (usageCompare (SNat 0) (fst ann) && quote0 (snd ann) == Star (n + 1))
@@ -220,7 +221,7 @@ cType ii _g Nats ann =
   unless
     (usageCompare (SNat 0) (fst ann) && quote0 (snd ann) == Star 0)
     (throwError (errorMsg ii Nats (0, VStar 0) ann))
--- as per the typing rule *-Pi, usage annotation is not checked.
+-- *-Pi, usage annotation is not checked.
 cType ii g (Pi pi varType resultType) ann = do
   cType ii g varType ann
   let ty = cEval varType []
@@ -229,15 +230,18 @@ cType ii g (Pi pi varType resultType) ann = do
     ((Local ii, (pi, ty)) : g)
     (cSubst 0 (Free (Local ii)) resultType)
     ann
-cType ii g (Pm pi var func) ann = undefined
-cType ii g (Pa pi var func) ann = undefined
+cType ii g (Pm pi varType resultType) ann = undefined
+cType ii g (Pa pi varType resultType) ann = undefined
 cType ii g (NPm first second) ann = undefined
-cType ii g (Lam pi f) (pi', VPi _pi ty ty') =
+-- (Lam) introduction rule of dependent function type
+--
+cType ii g (Lam _usage s) (sig, VPi pi ty ty') = do
+  let sVal = cEval s []
   cType
     (ii + 1)
-    ((Local ii, (pi, ty)) : g)
-    (cSubst 0 (Free (Local ii)) f)
-    (pi', ty' (vfree (Local ii)))
+    ((Local ii, (sig * pi, sVal)) : g)
+    (cSubst 0 (Free (Local ii)) s) --x (varType) in context S with sigma*pi usage.
+    (sig, ty' (vfree (Local ii))) --is of type M (usage sigma) in context T
 cType ii g (Conv e) ann = do
   ann' <- iType ii g e
   unless
@@ -250,7 +254,7 @@ cType ii _g cterm theType =
      "\n (binder number " ++
      show ii ++
      ") is not a checkable term. Cannot check that it is of type " ++
-     showVal (snd theType) ++ " with " ++ show (fst theType) ++ "usage.")
+     showVal (snd theType) ++ " with " ++ show (fst theType) ++ " usage.")
 
 --inferable terms have type as output.
 iType0 ∷ Context → ITerm → Result Value
