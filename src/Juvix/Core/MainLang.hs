@@ -234,12 +234,12 @@ cType ii g (Pm pi varType resultType) ann = undefined
 cType ii g (Pa pi varType resultType) ann = undefined
 cType ii g (NPm first second) ann = undefined
 -- (Lam) introduction rule of dependent function type
---
+-- Does Lam need NatAndw as input? The type checker doesn't seem to check that.
 cType ii g (Lam _usage s) (sig, VPi pi ty ty') = do
   let sVal = cEval s []
   cType
     (ii + 1)
-    ((Local ii, (sig * pi, sVal)) : g)
+    ((Local ii, (sig * pi, sVal)) : g) --put s in the context with usage sig*pi
     (cSubst 0 (Free (Local ii)) s) --x (varType) in context S with sigma*pi usage.
     (sig, ty' (vfree (Local ii))) --is of type M (usage sigma) in context T
 cType ii g (Conv e) ann = do
@@ -270,8 +270,22 @@ iType ii g (Free x) =
   case lookup x g of
     Just ann -> return $ snd ann
     Nothing  -> throwError (iTypeErrorMsg ii x)
+--Prim-Const typing rule
 iType _ii _g (Nat _) = return VNats
--- Typing rule not in lang ref atm?
+--App rule
+iType ii g (App func var) = do
+  funcTy <- iType ii g func
+  case funcTy of
+    VPi pi varTy resultTy -> do
+      cType ii g var (pi, varTy)
+      return (resultTy (cEval var []))
+    _ ->
+      throwError
+        (show func ++
+         "\n (binder number " ++
+         show ii ++
+         ") is not a function type and thus \n" ++
+         show var ++ "\n cannot be applied to it.")
 iType ii g (Ann pi theTerm theType)
   --TODO check theType is of type Star first? But we have stakable universes now.
   --cType ii g theType (0, VStar 0)
