@@ -180,8 +180,13 @@ cterm ∷ Parser CTerm
 cterm =
   parens cterm <|> sortTerm <|> piTerm <|> pmTerm <|> paTerm <|> npmTerm <|>
   lamTerm <|>
-  convTerm
- -- <|>  ctermOnly
+  convTerm <|>
+  convITerm
+
+convITerm ∷ Parser CTerm
+convITerm = do
+  theTerm <- iterm
+  return $ Conv theTerm
 
 iterm ∷ Parser ITerm
 iterm = parens iterm <|> boundTerm <|> freeTerm <|> appTerm <|> annTerm
