@@ -272,20 +272,20 @@ iType ii g (Free x) =
     Nothing  -> throwError (iTypeErrorMsg ii x)
 --Prim-Const typing rule
 iType _ii _g (Nat _) = return VNats
---App rule
-iType ii g (App func var) = do
-  funcTy <- iType ii g func
-  case funcTy of
+--App rule, function M applies to N
+iType ii g (App m n) = do
+  mTy <- iType ii g m --type of M has to be of type Pi
+  case mTy of
     VPi pi varTy resultTy -> do
-      cType ii g var (pi, varTy)
-      return (resultTy (cEval var []))
+      cType ii g n (pi, varTy) --
+      return (resultTy (cEval n [])) --
     _ ->
       throwError
-        (show func ++
+        (show m ++
          "\n (binder number " ++
          show ii ++
          ") is not a function type and thus \n" ++
-         show var ++ "\n cannot be applied to it.")
+         show n ++ "\n cannot be applied to it.")
 iType ii g (Ann pi theTerm theType)
   --TODO check theType is of type Star first? But we have stakable universes now.
   --cType ii g theType (0, VStar 0)
