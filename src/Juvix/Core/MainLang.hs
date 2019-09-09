@@ -221,15 +221,22 @@ cType ii _g Nats ann =
   unless
     (SNat 0 == fst ann && quote0 (snd ann) == Star 0)
     (throwError (errorMsg ii Nats (0, VStar 0) ann))
--- *-Pi, usage annotation is not checked.
+-- *-Pi.M and N are of type Star i with 0 usage.
 cType ii g (Pi pi varType resultType) ann = do
-  cType ii g varType ann
-  let ty = cEval varType []
-  cType
-    (ii + 1)
-    ((Local ii, (pi, ty)) : g)
-    (cSubst 0 (Free (Local ii)) resultType)
-    ann
+  unless (SNat 0 == fst ann) (throwError "Sigma has to be 0.") -- checks sigma = 0.
+  let ty = snd ann
+  case ty of
+    VStar _ -> do
+      cType ii g varType ann -- checks varType is of type Star i
+      let ty = cEval varType []
+      cType -- checks resultType is of type Star i
+        (ii + 1)
+        ((Local ii, (pi, ty)) : g)
+        (cSubst 0 (Free (Local ii)) resultType)
+        ann
+    _ ->
+      throwError
+        "The variable type and the result type must be of type * at the same level."
 cType ii g (Pm pi varType resultType) ann = undefined
 cType ii g (Pa pi varType resultType) ann = undefined
 cType ii g (NPm first second) ann = undefined
@@ -277,7 +284,7 @@ iType ii g (App m n) = do
   mTy <- iType ii g m --type of M has to be of type Pi
   case mTy of
     (sig, VPi pi varTy resultTy) -> do
-      cType ii g n (pi, varTy) --
+      cType ii g n (pi, varTy) --N has to be of type varTy with usage pi
       return (sig, resultTy (cEval n []))
     _ ->
       throwError
