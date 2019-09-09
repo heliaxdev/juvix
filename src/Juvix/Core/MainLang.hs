@@ -215,11 +215,11 @@ cType ∷ Natural → Context → CTerm → Annotation → Result ()
 -- *
 cType ii _g (Star n) ann =
   unless -- TODO i only needs to be < j in typing rule?
-    (usageCompare (SNat 0) (fst ann) && quote0 (snd ann) == Star (n + 1))
+    (SNat 0 == fst ann && quote0 (snd ann) == Star (n + 1))
     (throwError (errorMsg ii (Star n) (0, VStar (n + 1)) ann))
 cType ii _g Nats ann =
   unless
-    (usageCompare (SNat 0) (fst ann) && quote0 (snd ann) == Star 0)
+    (SNat 0 == fst ann && quote0 (snd ann) == Star 0)
     (throwError (errorMsg ii Nats (0, VStar 0) ann))
 -- *-Pi, usage annotation is not checked.
 cType ii g (Pi pi varType resultType) ann = do
@@ -245,8 +245,8 @@ cType ii g (Lam _usage s) (sig, VPi pi ty ty') = do
 cType ii g (Conv e) ann = do
   ann' <- iType ii g e
   unless
-    (quote0 (snd ann) == quote0 ann')
-    (throwError (errorMsg ii (Conv e) ann (Omega, ann')))
+    (fst ann == fst ann' && quote0 (snd ann) == quote0 (snd ann'))
+    (throwError (errorMsg ii (Conv e) ann ann'))
 cType ii _g cterm theType =
   throwError
     ("Type mismatch: \n" ++
@@ -257,7 +257,7 @@ cType ii _g cterm theType =
      showVal (snd theType) ++ " with " ++ show (fst theType) ++ " usage.")
 
 --inferable terms have type as output.
-iType0 ∷ Context → ITerm → Result Value
+iType0 ∷ Context → ITerm → Result Annotation
 iType0 = iType 0
 
 iTypeErrorMsg ∷ Natural → Name → String
@@ -265,20 +265,20 @@ iTypeErrorMsg ii x =
   "Cannot find the type of \n" ++
   show x ++ "\n (binder number " ++ show ii ++ ") in the environment."
 
-iType ∷ Natural → Context → ITerm → Result Value
+iType ∷ Natural → Context → ITerm → Result Annotation
 iType ii g (Free x) =
   case lookup x g of
-    Just ann -> return $ snd ann
+    Just ann -> return ann
     Nothing  -> throwError (iTypeErrorMsg ii x)
 --Prim-Const typing rule
-iType _ii _g (Nat _) = return VNats
+iType _ii _g (Nat _) = return (Omega, VNats)
 --App rule, function M applies to N
 iType ii g (App m n) = do
   mTy <- iType ii g m --type of M has to be of type Pi
   case mTy of
-    VPi pi varTy resultTy -> do
+    (sig, VPi pi varTy resultTy) -> do
       cType ii g n (pi, varTy) --
-      return (resultTy (cEval n [])) --
+      return (sig, resultTy (cEval n []))
     _ ->
       throwError
         (show m ++
@@ -292,4 +292,4 @@ iType ii g (Ann pi theTerm theType)
  = do
   let ty = cEval theType []
   cType ii g theTerm (pi, ty)
-  return ty
+  return (pi, ty)
