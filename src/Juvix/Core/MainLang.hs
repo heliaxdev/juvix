@@ -40,7 +40,7 @@ data CTerm
   | Pm Usage CTerm CTerm -- dependent multiplicative conjunction (tensor product)
   | Pa Usage CTerm CTerm -- dependent additive conjunction type
   | NPm CTerm CTerm -- non-dependent multiplicative disjunction type
-  | Lam Usage CTerm --(LAM) Introduction rule of PI.
+  | Lam CTerm --(LAM) Introduction rule of PI.
                         -- The abstracted variable's usage is tracked with the Usage(π).
   | Conv ITerm --(CONV) conversion rule. TODO make sure 0Γ ⊢ S≡T
               -- Conv is the constructor that embeds ITerm to CTerm
@@ -70,12 +70,12 @@ data Value
   | VPm Usage Value (Value → Value)
   | VPa Usage Value (Value → Value)
   | VNPm Value Value
-  | VLam Usage (Value → Value)
+  | VLam (Value → Value)
   | VNeutral Neutral
   | VNat Natural
 
 showVal ∷ Value → String
-showVal (VLam _ f) = showFun f
+showVal (VLam f) = showFun f
 showVal (VStar i) = "*" ++ show i
 showVal VNats = "Nats"
 showVal (VPi n v f) = "[" ++ show n ++ "]" ++ showVal v ++ " -> " ++ showFun f
@@ -114,7 +114,7 @@ cEval (Pi pi ty ty') d = VPi pi (cEval ty d) (\x -> cEval ty' (x : d))
 cEval (Pm pi ty ty') d = VPm pi (cEval ty d) (\x -> cEval ty' (x : d))
 cEval (Pa pi ty ty') d = VPa pi (cEval ty d) (\x -> cEval ty' (x : d))
 cEval (NPm ty ty') d   = VNPm (cEval ty d) (cEval ty' d)
-cEval (Lam pi e) d     = VLam pi (\x -> cEval e (x : d))
+cEval (Lam e) d        = VLam (\x -> cEval e (x : d))
 cEval (Conv ii) d      = iEval ii d
 
 toInt ∷ Natural → Int
@@ -128,7 +128,7 @@ iEval (App iterm cterm) d    = vapp (iEval iterm d) (cEval cterm d)
 iEval (Ann _pi term _type) d = cEval term d
 
 vapp ∷ Value → Value → Value
-vapp (VLam _pi f) v = f v
+vapp (VLam f) v = f v
 vapp (VNeutral n) v = VNeutral (NApp n v)
 vapp x y =
   error
@@ -143,7 +143,7 @@ cSubst ii r (Pi pi ty ty') = Pi pi (cSubst ii r ty) (cSubst (ii + 1) r ty')
 cSubst ii r (Pm pi ty ty') = Pm pi (cSubst ii r ty) (cSubst (ii + 1) r ty')
 cSubst ii r (Pa pi ty ty') = Pa pi (cSubst ii r ty) (cSubst (ii + 1) r ty')
 cSubst ii r (NPm fst snd)  = NPm (cSubst ii r fst) (cSubst ii r snd)
-cSubst ii r (Lam pi f)     = Lam pi (cSubst (ii + 1) r f)
+cSubst ii r (Lam f)        = Lam (cSubst (ii + 1) r f)
 cSubst ii r (Conv e)       = Conv (iSubst ii r e)
 
 --substitution function for inferable terms
@@ -171,7 +171,7 @@ quote ii (VPm pi fst snd) =
 quote ii (VPa pi fst snd) =
   Pa pi (quote ii fst) (quote (ii + 1) (snd (vfree (Quote ii))))
 quote ii (VNPm fst snd) = NPm (quote ii fst) (quote ii snd)
-quote ii (VLam pi f) = Lam pi (quote (ii + 1) (f (vfree (Quote ii))))
+quote ii (VLam f) = Lam (quote (ii + 1) (f (vfree (Quote ii))))
 quote ii (VNeutral n) = Conv (neutralQuote ii n)
 quote _ii (VNat n) = Conv (Nat n)
 
@@ -242,7 +242,7 @@ cType ii g (Pa pi varType resultType) ann = undefined
 cType ii g (NPm first second) ann = undefined
 -- (Lam) introduction rule of dependent function type
 -- Does Lam need NatAndw as input? The type checker doesn't seem to check that.
-cType ii g (Lam _usage s) (sig, VPi pi ty ty') = do
+cType ii g (Lam s) (sig, VPi pi ty ty') = do
   let sVal = cEval s []
   cType
     (ii + 1)
