@@ -42,6 +42,8 @@ header-includes:
     - \usepackage{tikz}
     - \usetikzlibrary{arrows,automata}
     - \newtheorem{theorem}{Theorem}
+    - \usepackage{tcolorbox}
+    - \tcbuselibrary{theorems}
 ---
 
 \pagebreak

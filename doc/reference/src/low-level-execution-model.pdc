@@ -369,17 +369,37 @@ The oracle-free abstract algorithm for optimal reduction operates on four node t
 
 ### Argument for correctness
 
+
 ## Bespoke term encoding
 
 - Primitive types (integer, string, bytes) ~> node types w/data
 - n-arity primitive functions (+, -, *, concat, index) ~> rewrite rules
-- alt-term encoding: $lam x. x + x + x$ ~> $3 * x$ rewrite rule instead of multi-node graph
+- alt-term encoding: $\lambda x. x + x + x$ ~> $3 * x$ rewrite rule instead of multi-node graph
 
 - Over set of underlying opcodes & von-Neumann-ish VM (e.g. x86, LLVM, EVM).
 - Use linear types (e.g. rewrite memory locations in place)
 - Must be semantically equivalent to interaction system encoding after read-back
 - Must preserve any-order reduction (exists some maximum `n` rewrite steps after which graph read-back must have final form regardless of order)
 - Can relax diamond property (strong confluence)? unclear if necessary
+
+### Argument for Correct read-back
+
+We wish to show that a read-back of an EAL-expression that has undergone zero or more reductions gives back the same result as normal evaluation up to alpha equality.
+
+Before we can prove this result, we must first prove a few lemmas and theorems first as well talk about what fan in's with the same label imply.
+
+The first lemma we wish to prove is the following
+
+\newtcbtheorem[number within=section]{Theorem}{Lemma}{}{Th}
+\begin{Theorem}{AST→Net has one free port}{AST->Net}
+  Let A = be a valid BOHM ADT.
+
+  Now Consider
+\begin{tcolorbox}[title=case 1]
+  We have $2 + 2 = 4$.
+\end{tcolorbox}
+\end{Theorem}
+
 
 ## Evaluator cost model
 
