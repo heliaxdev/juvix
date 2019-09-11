@@ -214,7 +214,7 @@ reduce = do
               IsPrim _ Free       → pure isChanged
 
 
-curryMatch :: (InfoNetworkDiff net Lang m)
+curryMatch ∷ (InfoNetworkDiff net Lang m)
            ⇒ (t → (Primitive, Node) → m b) → t → Node → Bool → m Bool
 curryMatch curry currNodeInfo nodeConnected isChanged = do
   langToProperPort nodeConnected >>= \case
