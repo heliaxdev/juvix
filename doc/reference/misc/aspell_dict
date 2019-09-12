@@ -1,4 +1,4 @@
-personal_ws-1.1 en 280 
+personal_ws-1.1 en 285 
 succ
 textwidth
 AST
@@ -23,6 +23,7 @@ polymorphism
 snd
 Superoptimal
 parallelise
+ceruleanblue
 monoid
 Mazza's
 mdframed
@@ -80,6 +81,7 @@ forall
 EVM
 von
 typ
+oceanboatblue
 textbackslash
 vwire
 usetikzlibrary
@@ -101,6 +103,7 @@ interoperation
 fontsize
 FixM
 inetbigcell
+mediumpersianblue
 semiring
 TinyRAM
 nonfungible
@@ -201,6 +204,7 @@ tcbuselibrary
 inode
 OpenCL
 pdc
+bondiblue
 verifiers
 prover
 LaTeX
@@ -224,6 +228,7 @@ vectorisation
 automata
 UX
 textit
+palered
 ADT
 inetcell
 TrinaryInfC

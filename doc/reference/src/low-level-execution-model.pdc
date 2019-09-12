@@ -34,12 +34,12 @@ The EAL term is first erased to a simply-typed term, with EAL types and levels o
 **Abstraction** is applied to terms of the form $λx.t$ and type $A ⊸ B$.
 
 \begin{tikzpicture}
-\inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
-\inetbigcell[below = 30pt]{l}{$λ$}[3]
+  \inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
+  \inetbigcell[below = 30pt]{l}{$λ$}[3]
 
-\axWire{g/1}{l/1}{$(arg)$}{}
-\cutWire{g.out}{l/2}{}{}
-\outwire[]{l.out}{$A ⊸ B$}
+  \axWire{g/1}{l/1}{$(arg)$}{}
+  \cutWire{g.out}{l/2}{}{}
+  \outwire[]{l.out}{$A ⊸ B$}
 \end{tikzpicture}
 
 Wiring of the argument $x$ varies depending on variable usage linearity:
@@ -47,37 +47,37 @@ Wiring of the argument $x$ varies depending on variable usage linearity:
 **Weakening**: If $x$ does not appear in the body $t$, the $λ$ argument port is connected to an eraser.
 
 \begin{tikzpicture}
-\inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
-\inode[]{e}{$⊗$}
-\inetbigcell[below = 30pt]{l}{$λ$}[3]
+  \inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
+  \inode[]{e}{$⊗$}
+  \inetbigcell[below = 30pt]{l}{$λ$}[3]
 
-\cutWire{e}{l/1}{$$}{}
-\cutWire{g.out}{l/2}{$$}{}
-\outwire[]{l.out}{$A ⊸ B$}
+  \cutWire{e}{l/1}{$$}{}
+  \cutWire{g.out}{l/2}{$$}{}
+  \outwire[]{l.out}{$A ⊸ B$}
 \end{tikzpicture}
 
 **Linear / contraction**: If *x* appears once or more in the body $t$, the $λ$ argument port is connected to the occurrence(s). If there is more than one occurrence, usages will be shared by a set of fan nodes constructed by the application encoding.
 
 \begin{tikzpicture}
-\inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
-\inetbigcell[below = 30pt]{l}{$λ$}[3]
+  \inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
+  \inetbigcell[below = 30pt]{l}{$λ$}[3]
 
-\axWire{g/1}{l/1}{}{}
-\cutWire{g.out}{l/2}{}{}
-\outwire[]{l.out}{$A ⊸ B$}
+  \axWire{g/1}{l/1}{}{}
+  \cutWire{g.out}{l/2}{}{}
+  \outwire[]{l.out}{$A ⊸ B$}
 \end{tikzpicture}
 
 **Application** is applied to terms of the form $(t_1 t_2)$ and type $C$.
 
 \begin{tikzpicture}
 
-\inetbigcell[right = -25 pt]{g}{$\phi(t_1)$}[3]
-\inetbigcell[right = 25 pt]{h}{$\phi(t_2)$}[3]
-\inetbigcell[below = 40 pt]{a}{$@$}[3]
+  \inetbigcell[right = -25 pt]{g}{$\phi(t_1)$}[3]
+  \inetbigcell[right = 25 pt]{h}{$\phi(t_2)$}[3]
+  \inetbigcell[below = 40 pt]{a}{$@$}[3]
 
-\cutWire{g.out}{a/1}{}{}
-\cutWire{h.out}{a/2}{}{}
-\outwire[]{a.out}{$C$}
+  \cutWire{g.out}{a/1}{}{}
+  \cutWire{h.out}{a/2}{}{}
+  \outwire[]{a.out}{$C$}
 
 \end{tikzpicture}
 
@@ -111,257 +111,257 @@ The oracle-free abstract algorithm for optimal reduction operates on four node t
 \restylefloat{figure}
 
 \begin{figure}[H]
-\caption{Lambda-application annihilation (beta reduction)}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$@$}[5]
-\inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$λ$}}[5]
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\outwire[]{l/1}{c}
-\outwire[]{l/4}{b}
-\cutWire{a.out}{l.out}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\wirecross[]{a}{c}{b}{d}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Lambda-application annihilation (beta reduction)}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$@$}[5]
+      \inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$λ$}}[5]
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \outwire[]{l/1}{c}
+      \outwire[]{l/4}{b}
+      \cutWire{a.out}{l.out}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \wirecross[]{a}{c}{b}{d}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Fan-fan commutation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$f_i$}[5]
-\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$f_j$}}[5]
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\outwire[]{b/1}{c}
-\outwire[]{b/4}{b}
-\cutWire{a.out}{b.out}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$f_j$}}[5]
-\inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$f_j$}}[5]
-\inetcell[below = 40 pt of a]{c}{$f_i$}[5]
-\inetcell[below = 40 pt of b]{d}{$f_i$}[5]
-\inwire[]{a.out}{a}
-\inwire[]{b.out}{d}
-\outwire[]{c.out}{b}
-\outwire[]{d.out}{c}
-\swire[0]{a/4}{c/1}{}{}
-\swire[0]{b/1}{d/4}{}{}
-\swire[0]{a/1}{d/1}{}{}
-\swire[0]{b/4}{c/4}{}{}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Fan-fan commutation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$f_i$}[5]
+      \inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$f_j$}}[5]
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \outwire[]{b/1}{c}
+      \outwire[]{b/4}{b}
+      \cutWire{a.out}{b.out}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$f_j$}}[5]
+      \inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$f_j$}}[5]
+      \inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+      \inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+      \inwire[]{a.out}{a}
+      \inwire[]{b.out}{d}
+      \outwire[]{c.out}{b}
+      \outwire[]{d.out}{c}
+      \swire[0]{a/4}{c/1}{}{}
+      \swire[0]{b/1}{d/4}{}{}
+      \swire[0]{a/1}{d/1}{}{}
+      \swire[0]{b/4}{c/4}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Fan-application commutation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$f_i$}[5]
-\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$@$}}[5]
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\outwire[]{b/1}{c}
-\outwire[]{b/4}{b}
-\cutWire{a.out}{b.out}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$@$}}[5]
-\inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$@$}}[5]
-\inetcell[below = 40 pt of a]{c}{$f_i$}[5]
-\inetcell[below = 40 pt of b]{d}{$f_i$}[5]
-\inwire[]{a.out}{a}
-\inwire[]{b.out}{d}
-\outwire[]{c.out}{b}
-\outwire[]{d.out}{c}
-\swire[0]{a/4}{c/1}{}{}
-\swire[0]{b/1}{d/4}{}{}
-\swire[0]{a/1}{d/1}{}{}
-\swire[0]{b/4}{c/4}{}{}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Fan-application commutation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$f_i$}[5]
+      \inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$@$}}[5]
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \outwire[]{b/1}{c}
+      \outwire[]{b/4}{b}
+      \cutWire{a.out}{b.out}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$@$}}[5]
+      \inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$@$}}[5]
+      \inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+      \inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+      \inwire[]{a.out}{a}
+      \inwire[]{b.out}{d}
+      \outwire[]{c.out}{b}
+      \outwire[]{d.out}{c}
+      \swire[0]{a/4}{c/1}{}{}
+      \swire[0]{b/1}{d/4}{}{}
+      \swire[0]{a/1}{d/1}{}{}
+      \swire[0]{b/4}{c/4}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Fan-lambda commutation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$f_i$}[5]
-\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$λ$}}[5]
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\outwire[]{b/1}{c}
-\outwire[]{b/4}{b}
-\cutWire{a.out}{b.out}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$λ$}}[5]
-\inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$λ$}}[5]
-\inetcell[below = 40 pt of a]{c}{$f_i$}[5]
-\inetcell[below = 40 pt of b]{d}{$f_i$}[5]
-\inwire[]{a.out}{a}
-\inwire[]{b.out}{d}
-\outwire[]{c.out}{b}
-\outwire[]{d.out}{c}
-\swire[0]{a/4}{c/1}{}{}
-\swire[0]{b/1}{d/4}{}{}
-\swire[0]{a/1}{d/1}{}{}
-\swire[0]{b/4}{c/4}{}{}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Fan-lambda commutation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$f_i$}[5]
+      \inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$λ$}}[5]
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \outwire[]{b/1}{c}
+      \outwire[]{b/4}{b}
+      \cutWire{a.out}{b.out}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$λ$}}[5]
+      \inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$λ$}}[5]
+      \inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+      \inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+      \inwire[]{a.out}{a}
+      \inwire[]{b.out}{d}
+      \outwire[]{c.out}{b}
+      \outwire[]{d.out}{c}
+      \swire[0]{a/4}{c/1}{}{}
+      \swire[0]{b/1}{d/4}{}{}
+      \swire[0]{a/1}{d/1}{}{}
+      \swire[0]{b/4}{c/4}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Fan-fan annihilation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$f_i$}[5]
-\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$f_i$}}[5]
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\outwire[]{b/1}{c}
-\outwire[]{b/4}{b}
-\cutWire{a.out}{b.out}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\wirestraight[]{a}{c}{b}{d}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Fan-fan annihilation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$f_i$}[5]
+      \inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$f_i$}}[5]
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \outwire[]{b/1}{c}
+      \outwire[]{b/4}{b}
+      \cutWire{a.out}{b.out}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \wirestraight[]{a}{c}{b}{d}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Eraser-lambda commutation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$λ$}[5]
-\inode[below = 40 pt]{b}{$⊗$}
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\cutWire{a.out}{b.north}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inode[]{a}{$⊗$}
-\inode[right = 20 pt]{b}{$⊗$}
-\inwire[]{a}{a}
-\inwire[]{b}{d}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Eraser-lambda commutation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$λ$}[5]
+      \inode[below = 40 pt]{b}{$⊗$}
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \cutWire{a.out}{b.north}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inode[]{a}{$⊗$}
+      \inode[right = 20 pt]{b}{$⊗$}
+      \inwire[]{a}{a}
+      \inwire[]{b}{d}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Eraser-application commutation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$@$}[5]
-\inode[below = 40 pt]{b}{$⊗$}
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\cutWire{a.out}{b.north}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inode[]{a}{$⊗$}
-\inode[right = 20 pt]{b}{$⊗$}
-\inwire[]{a}{a}
-\inwire[]{b}{d}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Eraser-application commutation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$@$}[5]
+      \inode[below = 40 pt]{b}{$⊗$}
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \cutWire{a.out}{b.north}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inode[]{a}{$⊗$}
+      \inode[right = 20 pt]{b}{$⊗$}
+      \inwire[]{a}{a}
+      \inwire[]{b}{d}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Eraser-fan commutation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$f_i$}[5]
-\inode[below = 40 pt]{b}{$⊗$}
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\cutWire{a.out}{b.north}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inode[]{a}{$⊗$}
-\inode[right = 20 pt]{b}{$⊗$}
-\inwire[]{a}{a}
-\inwire[]{b}{d}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Eraser-fan commutation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$f_i$}[5]
+      \inode[below = 40 pt]{b}{$⊗$}
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \cutWire{a.out}{b.north}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inode[]{a}{$⊗$}
+      \inode[right = 20 pt]{b}{$⊗$}
+      \inwire[]{a}{a}
+      \inwire[]{b}{d}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Eraser-eraser annihilation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inode[]{a}{$⊗$}
-\inode[below = 40 pt]{b}{$⊗$}
-\vwire{a}{b}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\end{subfigure}
+  \caption{Eraser-eraser annihilation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inode[]{a}{$⊗$}
+      \inode[below = 40 pt]{b}{$⊗$}
+      \vwire{a}{b}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+  \end{subfigure}
 \end{figure}
 
 \floatstyle{boxed}
@@ -390,10 +390,14 @@ Before we can prove this result, we must first prove a few lemmas and theorems f
 
 The first lemma we wish to prove is the following
 
-\definecolorseries{boxcol}{rgb}{last}{blue}{red}
-\resetcolorseries[28]{boxcol}
+\definecolor{ceruleanblue}{rgb}{0.16, 0.32, 0.75}
 
-\newtcbtheorem[number within=section]{Lemma}{Lemma}{colframe=black!60!blue!60!gray}{Lm}
+\definecolor{mediumpersianblue}{rgb}{0.0, 0.4, 0.65}
+
+\definecolor{palered-violet}{rgb}{0.86, 0.44, 0.58}
+\definecolor{bondiblue}{rgb}{0.0, 0.58, 0.71}
+
+\newtcbtheorem[number within=section]{Lemma}{Lemma}{colframe=mediumpersianblue}{Lm}
 \begin{Lemma}{AST→Net has one free port}{AST->Net}
   Let $A$ = be a valid BOHM ADT.
   \\ \\
@@ -420,13 +424,100 @@ Now we need to prove that evaluating this net does not change this fact
 
 \newtcbtheorem[number within=section]{Theorem}{Theorem}{colframe=blue!45!gray}{Th}
 \begin{Theorem}{AST→Net→Eval has one free port}{AST->Net->Eval}
-  Let $A = Net(AST)$.
-
+  Let $A = Net AST$.
+  \\ \\
   By lemma \ref{Lm:AST->Net} $A$ has one free port.
+  \\ \\
+  We must now show $Eval A$ does not change the number of free ports.
+  \\ \\
+  We can show this by simply considering how every reduction rule works. For the sake of brevity, we will 
 
-\begin{tcolorbox}[title=case 1]
-  We have $2 + 2 = 4$.
-\end{tcolorbox}
+  \begin{tcolorbox}[title=Case 1 - Rewrire, colframe=palered-violet]
+    \begin{figure}[H]
+      \caption{Lambda-application annihilation (beta reduction)}
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \inetcell[]{a}{$@$}[5]
+          \inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$λ$}}[5]
+          \inwire[]{a/1}{a}
+          \inwire[]{a/4}{d}
+          \outwire[]{l/1}{c}
+          \outwire[]{l/4}{b}
+          \cutWire{a.out}{l.out}{}{}
+        \end{tikzpicture}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.05\textwidth}
+        \huge{→}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \wirecross[]{a}{c}{b}{d}
+        \end{tikzpicture}
+      \end{subfigure}
+    \end{figure}
+
+    We can see, there are no changes in the number of free ports
+  \end{tcolorbox}
+
+  \begin{tcolorbox}[title=Case 2 - Isolation, colframe=palered-violet]
+    \begin{figure}[H]
+      \caption{Lambda-application annihilation (beta reduction)}
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \inetcell[]{a}{$@$}[5]
+          \inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$λ$}}[5]
+          \inwire[]{a/1}{a}
+          \inwire[]{a/4}{d}
+          \outwire[]{l/1}{c}
+          \outwire[]{l/4}{b}
+          \cutWire{a.out}{l.out}{}{}
+        \end{tikzpicture}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.05\textwidth}
+        \huge{→}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \wirecross[]{a}{c}{b}{d}
+        \end{tikzpicture}
+      \end{subfigure}
+    \end{figure}
+
+    We can see, there are no changes in the number of free ports
+  \end{tcolorbox}
+
+  \begin{tcolorbox}[title=Case 3 - Duplication, colframe=palered-violet]
+    \begin{figure}[H]
+      \caption{Lambda-application annihilation (beta reduction)}
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \inetcell[]{a}{$@$}[5]
+          \inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$λ$}}[5]
+          \inwire[]{a/1}{a}
+          \inwire[]{a/4}{d}
+          \outwire[]{l/1}{c}
+          \outwire[]{l/4}{b}
+          \cutWire{a.out}{l.out}{}{}
+        \end{tikzpicture}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.05\textwidth}
+        \huge{→}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \wirecross[]{a}{c}{b}{d}
+        \end{tikzpicture}
+      \end{subfigure}
+    \end{figure}
+
+    We can see, there are no changes in the number of free ports
+  \end{tcolorbox}
 \end{Theorem}
 
 ## Evaluator cost model
