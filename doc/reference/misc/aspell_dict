@@ -1,9 +1,10 @@
-personal_ws-1.1 en 270 
+personal_ws-1.1 en 280 
 succ
 textwidth
 AST
 bfseries
 EAL
+realized
 Nuttin
 Elim
 Juvix's
@@ -27,10 +28,12 @@ Mazza's
 mdframed
 Coq
 subcaption
+definecolorseries
 subterm
 GPUs
 callees
 src
+cdots
 framemethod
 typechecking
 rightline
@@ -60,6 +63,7 @@ mult
 untyped
 BOHM
 BinaryInfC
+boxcol
 abst
 inequations
 wirestraight
@@ -150,6 +154,7 @@ FPGA
 disjunction
 xxs
 ax
+Eval
 innerbottommargin
 AxiomC
 catamorphism
@@ -178,10 +183,12 @@ hyperref
 le
 conv
 skipbelow
+Lm
 Blockchains
 textbf
 pluggable
 Neumann
+cref
 vdash
 Milner
 unintuitive
@@ -228,6 +235,7 @@ ys
 monadic
 DejaVuSerifCondensed
 wirecross
+tcbcolframe
 restylefloat
 CUDA
 composable
@@ -238,7 +246,7 @@ alg
 theoexample
 Typeclasses
 isEven
-RGB
+rgb
 combinators
 concat
 deconstructors
@@ -257,6 +265,7 @@ typecheckers
 DTEAL
 mathbb
 arg
+resetcolorseries
 param
 TBD
 memoisation
@@ -264,6 +273,7 @@ center
 subfigure
 todo
 parr
+gray
 definecolor
 superoptimisation
 Mendler

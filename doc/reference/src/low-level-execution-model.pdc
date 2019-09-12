@@ -390,16 +390,44 @@ Before we can prove this result, we must first prove a few lemmas and theorems f
 
 The first lemma we wish to prove is the following
 
-\newtcbtheorem[number within=section]{Theorem}{Lemma}{}{Th}
-\begin{Theorem}{AST→Net has one free port}{AST->Net}
-  Let A = be a valid BOHM ADT.
+\definecolorseries{boxcol}{rgb}{last}{blue}{red}
+\resetcolorseries[28]{boxcol}
 
-  Now Consider
+\newtcbtheorem[number within=section]{Lemma}{Lemma}{colframe=black!60!blue!60!gray}{Lm}
+\begin{Lemma}{AST→Net has one free port}{AST->Net}
+  Let $A$ = be a valid BOHM ADT.
+  \\ \\
+  Now Consider the net over $A$, let $N_a$ be this net.
+  \\ \\
+  Now let us consider any sub case of $A$, $L = P(n_1 \star \cdots \star n_k)$.
+  \\ \\
+  The node corresponding to $L$ looks.
+
+  \begin{tikzpicture}
+    \draw (0,0) circle (.8cm);
+  \end{tikzpicture}
+
+  Where the labels in $N_a$ are the same as in $L$, with $n_{k+1}$ being an extra port which connects to the ADT above it.
+  \\ \\
+  For an ADT to be realized, we must have all arguments, so all these ports must be connected.
+  Now, if $L$ is $A$, then we have one free port, however if it is not, then this free port must not be free but instead be connected to the ADT above it.
+  \\ \\
+  $\therefore$ AST→Net has one free port
+\end{Lemma}
+
+
+Now we need to prove that evaluating this net does not change this fact
+
+\newtcbtheorem[number within=section]{Theorem}{Theorem}{colframe=blue!45!gray}{Th}
+\begin{Theorem}{AST→Net→Eval has one free port}{AST->Net->Eval}
+  Let $A = Net(AST)$.
+
+  By lemma \ref{Lm:AST->Net} $A$ has one free port.
+
 \begin{tcolorbox}[title=case 1]
   We have $2 + 2 = 4$.
 \end{tcolorbox}
 \end{Theorem}
-
 
 ## Evaluator cost model
 
