@@ -31,7 +31,7 @@ erase term =
       pure (EAL.Lam name body)
     Core.Conv iterm -> do
       case iterm of
-        Core.Bound n _str -> do
+        Core.Bound n -> do
           name <- unDeBruijin (fromIntegral n)
           pure (EAL.Var name)
         Core.Free n  ->

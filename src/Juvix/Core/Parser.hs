@@ -116,8 +116,7 @@ boundTerm ∷ Parser ITerm
 boundTerm = do
   reserved "Bound"
   index <- natural
-  name <- identifier
-  return $ Bound (fromInteger index) name
+  return $ Bound (fromInteger index)
 
 --Parser for the global free variable name
 gName ∷ Parser String

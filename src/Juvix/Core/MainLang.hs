@@ -46,11 +46,9 @@ data CTerm
               -- Conv is the constructor that embeds ITerm to CTerm
   deriving (Show, Eq)
 
-type Bname = String -- String name for bound variables
-
 -- inferable terms
 data ITerm
-  = Bound Natural Bname -- Bound variables, Bound (de Bruijn indices) name.
+  = Bound Natural -- Bound variables, in de Bruijn indices
   | Free Name -- Free variables of type name (see below)
   | Nat Natural -- primitive constant (naturals)
   | App ITerm CTerm -- elimination rule of PI (APP).
@@ -124,7 +122,7 @@ toInt = fromInteger . toInteger
 
 iEval ∷ ITerm → Env → Value
 iEval (Free x) _d            = vfree x
-iEval (Bound ii _varName) d  = d !! toInt ii --(!!) :: [a] -> Int -> a, the list lookup operator.
+iEval (Bound ii) d           = d !! toInt ii --(!!) :: [a] -> Int -> a, the list lookup operator.
 iEval (Nat n) _d             = VNat n
 iEval (App iterm cterm) d    = vapp (iEval iterm d) (cEval cterm d)
 iEval (Ann _pi term _type) d = cEval term d
@@ -150,9 +148,9 @@ cSubst ii r (Conv e)       = Conv (iSubst ii r e)
 
 --substitution function for inferable terms
 iSubst ∷ Natural → ITerm → ITerm → ITerm
-iSubst ii r (Bound j varName)
+iSubst ii r (Bound j)
   | ii == j = r
-  | otherwise = Bound j varName
+  | otherwise = Bound j
 iSubst _ii _r (Free y) = Free y
 iSubst _ii _r (Nat n) = Nat n
 iSubst ii r (App it ct) = App (iSubst ii r it) (cSubst ii r ct)
@@ -183,7 +181,7 @@ neutralQuote ii (NApp n v) = App (neutralQuote ii n) (quote ii v)
 
 --checks if the variable occurring at the head of the application is a bound variable or a free name
 boundfree ∷ Natural → Name → ITerm
-boundfree ii (Quote k) = Bound (ii - k - 1) "dummy"
+boundfree ii (Quote k) = Bound (ii - k - 1)
 boundfree _ii x        = Free x
 
 --error message for inferring/checking types
