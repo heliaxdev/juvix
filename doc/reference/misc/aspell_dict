@@ -1,4 +1,4 @@
-personal_ws-1.1 en 287 
+personal_ws-1.1 en 299 
 succ
 textwidth
 AST
@@ -46,6 +46,7 @@ AlgebraM
 frontend
 boolean
 params
+candypink
 topline
 encodings
 locatable
@@ -70,6 +71,7 @@ inequations
 wirestraight
 cryptographic
 substructural
+cadetblue
 IBC
 typeable
 blockchain
@@ -77,6 +79,7 @@ colframe
 typecheck
 bussproofs
 renewenvironment
+textcolor
 forall
 EVM
 von
@@ -85,6 +88,7 @@ oceanboatblue
 textbackslash
 vwire
 usetikzlibrary
+readback
 fonttitle
 Hindley
 Prerelease
@@ -92,6 +96,7 @@ affine
 quadratically
 iff
 Terraform
+colored
 Agda
 inets
 fst
@@ -133,7 +138,9 @@ UnaryInfC
 Lamping's
 vspace
 Brujin
+mypink
 swire
+mauvetaupe
 cmll
 typable
 notin
@@ -141,6 +148,7 @@ ish
 microtype
 equalities
 eWASM
+palechestnut
 optimality
 Conor
 Stumpf
@@ -183,6 +191,7 @@ lang
 amsmath
 parallelises
 hyperref
+cmyk
 le
 conv
 skipbelow
@@ -193,10 +202,11 @@ pluggable
 Neumann
 cref
 vdash
+lavenderpurple
 Milner
 unintuitive
-TikZ
 tikz
+TikZ
 refl
 deconstructor
 tikzstyle
@@ -212,6 +222,7 @@ Damiano
 axWire
 subterms
 th
+brickred
 usepackage
 usaging
 imprecisions
@@ -263,6 +274,7 @@ ruleset
 verifiability
 dataflow
 QuaternaryInfC
+ceil
 precontexts
 tcbcounter
 sequent

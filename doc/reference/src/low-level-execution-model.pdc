@@ -390,15 +390,6 @@ Before we can prove this result, we must first prove a few lemmas and theorems f
 
 The first lemma we wish to prove is the following
 
-\definecolor{ceruleanblue}{rgb}{0.16, 0.32, 0.75}
-
-\definecolor{mediumpersianblue}{rgb}{0.0, 0.4, 0.65}
-
-\definecolor{palered-violet}{rgb}{0.86, 0.44, 0.58}
-\definecolor{bondiblue}{rgb}{0.0, 0.58, 0.71}
-\definecolor{antiquefuchsia}{rgb}{0.57, 0.36, 0.51}
-
-\newtcbtheorem[number within=section]{Lemma}{Lemma}{colframe=mediumpersianblue, breakable}{Lm}
 \begin{Lemma}{AST→Net has one free port}{AST->Net}
   Let $A$ = be a valid BOHM ADT.
   \\ \\
@@ -424,7 +415,6 @@ The first lemma we wish to prove is the following
 Now we need to prove that evaluating this net does not change this fact
 
 
-\newtcbtheorem[number within=section]{Theorem}{Theorem}{colframe=mediumpersianblue, breakable}{Th}
 \begin{Theorem}{AST→Net→Eval has one free port}{AST->Net->Eval}
   Let $A = Net(AST)$.
   \\ \\
@@ -434,7 +424,7 @@ Now we need to prove that evaluating this net does not change this fact
   \\ \\
   We can show this by simply considering how every reduction rule works. For the sake of brevity, we will only consider the three variations of rewrite rules present in the BOHM system WLOG.
 
-  \begin{tcolorbox}[title=Case 1 - Rewire, colframe=antiquefuchsia]
+  \begin{tcolorbox}[title=Case 1 - Rewire, colframe=inner-box-1]
     \begin{figure}[H]
       \begin{subfigure}[c]{0.1\textwidth}
         \begin{tikzpicture}
@@ -464,7 +454,7 @@ Now we need to prove that evaluating this net does not change this fact
     The rest of the wires are simply rewired to each other, thus not effecting the total number of free ports
   \end{tcolorbox}
 
-  \begin{tcolorbox}[title=Case 2 - Isolation, colframe=antiquefuchsia]
+  \begin{tcolorbox}[title=Case 2 - Isolation, colframe=inner-box-1]
     \begin{figure}[H]
       \caption{Eraser-application commutation}
       \begin{subfigure}[c]{0.1\textwidth}
@@ -496,7 +486,7 @@ Now we need to prove that evaluating this net does not change this fact
     Additionally an eraser node is connected to the $b$, since the eraser node only has a main port, the number of free ports is not affected.
   \end{tcolorbox}
 
-  \begin{tcolorbox}[title=Case 3 - Duplication, colframe=antiquefuchsia]
+  \begin{tcolorbox}[title=Case 3 - Duplication, colframe=inner-box-1]
     \begin{figure}[H]
       \begin{subfigure}[c]{0.1\textwidth}
         \begin{tikzpicture}
@@ -531,9 +521,22 @@ Now we need to prove that evaluating this net does not change this fact
         \end{tikzpicture}
       \end{subfigure}
     \end{figure}
-    Here we see the case for a fan-in node $f_i$ and some arbitrary node $a$. Both nodes get duplicated, however the number of free ports is preserved, as each node that is created is internally connected to the duplicated nodes. Additionally the four external ports are preserved among the four duplicated nodes.
+    Here we see the case for a fan-in node $f_i$ and some arbitrary node $a$. Both nodes get duplicated,
+    however the number of free ports is preserved, as each node that is created is internally connected to the duplicated nodes.
+    Additionally the four external ports are preserved among the four duplicated nodes.
   \end{tcolorbox}
   $\therefore$ since all cases are covered, $Eval(A)$ has only one free port.
+\end{Theorem}
+
+We now shall define one more definition before getting to our main theorem.
+
+
+\begin{Definition}{Valid EAL-Net}{Valid EAL-Net}
+  A \textcolor{definitions}{\textbf{Valid EAL-Net}} is a net translated from the EAL subset subset of BOHM and has undergone zero or more reduction steps.
+\end{Definition}
+
+\begin{Theorem}{Read back from a Valid EAL-Net gives is $α$ equivalent to the normal evaluation of the original EAL-term}{readback}
+  Let $A$ be the Valid EAL-Net.
 \end{Theorem}
 
 ## Evaluator cost model

@@ -44,9 +44,11 @@ header-includes:
     - \newtheorem{theorem}{Theorem}
     - \usepackage[many]{tcolorbox}
     - \tcbuselibrary{theorems}
+    - \input{src/definitions}
 ---
 
 \pagebreak
+
 
 # Motivation
 
