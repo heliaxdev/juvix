@@ -1,19 +1,19 @@
 {-# LANGUAGE ApplicativeDo #-}
 module Juvix.Bohm.Parser where
 
-import           Juvix.Library hiding ((<|>), many)
 import           Juvix.Bohm.Default
-import           Juvix.Bohm.Shared hiding (symbol)
-import           Prelude (String)
+import           Juvix.Bohm.Shared                      hiding (symbol)
+import           Juvix.Library                          hiding (many, (<|>))
+import           Prelude                                (String)
 
+import           Control.Monad.Fail                     (fail)
 import           Text.Parsec
-import           Text.ParserCombinators.Parsec.Language
+import           Text.Parsec.Expr                       as E
 import           Text.Parsec.String
-import qualified Text.ParserCombinators.Parsec.Token as T
-import           Text.Parsec.Expr                    as E
-import           Control.Monad.Fail (fail)
+import           Text.ParserCombinators.Parsec.Language
+import qualified Text.ParserCombinators.Parsec.Token    as T
 
-import            Juvix.Bohm.Type
+import           Juvix.Bohm.Type
 
 -- Types------------------------------------------------------------------------
 
@@ -21,7 +21,7 @@ import            Juvix.Bohm.Type
 -- TODO :: Figure how to not make this dependent on itself
 type Ops m = [[Operator String () m Bohm]]
 -- Lexer------------------------------------------------------------------------
-langaugeDef :: Stream s m Char ⇒ GenLanguageDef s u m
+langaugeDef ∷ Stream s m Char ⇒ GenLanguageDef s u m
 langaugeDef = LanguageDef
               { T.reservedNames   = ["if", "then", "else", "let"
                                     , "letrec", "cons", "head", "tail", "nil"
@@ -42,23 +42,23 @@ langaugeDef = LanguageDef
               , commentLine       = ""
               }
 
-lexer :: Stream s m Char ⇒ T.GenTokenParser s u m
+lexer ∷ Stream s m Char ⇒ T.GenTokenParser s u m
 lexer = T.makeTokenParser langaugeDef
 
 
-identifier :: Stream s m Char ⇒ ParsecT s u m String
-natural    :: Stream s m Char ⇒ ParsecT s u m Integer
-reserved   :: Stream s m Char ⇒ String → ParsecT s u m ()
-reservedOp :: Stream s m Char ⇒ String → ParsecT s u m ()
-semi       :: Stream s m Char ⇒ ParsecT s u m String
-integer    :: Stream s m Char ⇒ ParsecT s u m Integer
-whiteSpace :: Stream s m Char ⇒ ParsecT s u m ()
-comma      :: Stream s m Char ⇒ ParsecT s u m String
-brackets   :: Stream s m Char ⇒ ParsecT s u m a → ParsecT s u m a
-parens     :: Stream s m Char ⇒ ParsecT s u m a → ParsecT s u m a
-semiSep    :: Stream s m Char ⇒ ParsecT s u m a → ParsecT s u m [a]
-braces     :: Stream s m Char ⇒ ParsecT s u m a → ParsecT s u m a
-operator'  :: Stream s m Char ⇒ ParsecT s u m String
+identifier ∷ Stream s m Char ⇒ ParsecT s u m String
+natural    ∷ Stream s m Char ⇒ ParsecT s u m Integer
+reserved   ∷ Stream s m Char ⇒ String → ParsecT s u m ()
+reservedOp ∷ Stream s m Char ⇒ String → ParsecT s u m ()
+semi       ∷ Stream s m Char ⇒ ParsecT s u m String
+integer    ∷ Stream s m Char ⇒ ParsecT s u m Integer
+whiteSpace ∷ Stream s m Char ⇒ ParsecT s u m ()
+comma      ∷ Stream s m Char ⇒ ParsecT s u m String
+brackets   ∷ Stream s m Char ⇒ ParsecT s u m a → ParsecT s u m a
+parens     ∷ Stream s m Char ⇒ ParsecT s u m a → ParsecT s u m a
+semiSep    ∷ Stream s m Char ⇒ ParsecT s u m a → ParsecT s u m [a]
+braces     ∷ Stream s m Char ⇒ ParsecT s u m a → ParsecT s u m a
+operator'  ∷ Stream s m Char ⇒ ParsecT s u m String
 
 identifier = T.identifier lexer
 reserved   = T.reserved   lexer
@@ -74,21 +74,21 @@ brackets   = T.brackets   lexer
 natural    = T.natural    lexer
 operator'  = T.operator   lexer
 
-operator :: Stream s m Char ⇒ ParsecT s u m SomeSymbol
+operator ∷ Stream s m Char ⇒ ParsecT s u m SomeSymbol
 operator = someSymbolVal <$> operator'
 
-symbol :: Stream s m Char ⇒ ParsecT s u m SomeSymbol
+symbol ∷ Stream s m Char ⇒ ParsecT s u m SomeSymbol
 symbol = someSymbolVal <$> identifier
 
 -- Grammar ---------------------------------------------------------------------
 
-parseBohm :: String → Either ParseError Bohm
+parseBohm ∷ String → Either ParseError Bohm
 parseBohm = parseBohm' ""
 
-parseBohm' :: SourceName → String → Either ParseError Bohm
+parseBohm' ∷ SourceName → String → Either ParseError Bohm
 parseBohm' = runParser (whiteSpace *> expression' <* eof) ()
 
-parseBohmFile :: FilePath → IO (Either ParseError Bohm)
+parseBohmFile ∷ FilePath → IO (Either ParseError Bohm)
 parseBohmFile fname = do
   input ← readFile fname
   pure $ parseBohm' fname (show input)
@@ -96,7 +96,7 @@ parseBohmFile fname = do
 -- poor type signatures can't find the monadic version of parsec outside of stream
 -- TODO :: rewrite this later
 
-expression' :: ParsecT String () Identity Bohm
+expression' ∷ ParsecT String () Identity Bohm
 expression' =  ifThenElse
            <|> (application <?> "help")
            <|> cons
@@ -115,11 +115,11 @@ expression' =  ifThenElse
 
 -- Infix Parser ----------------------------------------------------------------
 
-createInfixUnkown :: SomeSymbol → Bohm → Bohm → Bohm
+createInfixUnkown ∷ SomeSymbol → Bohm → Bohm → Bohm
 createInfixUnkown sym arg1 arg2 = Application (Application (Symbol' sym) arg1) arg2
 
 -- special cased and and or!
-precedenceToOps :: Stream s m Char ⇒ OperatorTable s u m Bohm
+precedenceToOps ∷ Stream s m Char ⇒ OperatorTable s u m Bohm
 precedenceToOps =
   (\(Precedence _ s a) →
      if | s == "or"  → E.Infix (Or  <$ reservedOp s) a
@@ -129,14 +129,14 @@ precedenceToOps =
     groupBy (\x y -> level x == level y)
             (reverse (sortOn level defaultSymbols))
 
-expression :: Parser Bohm
+expression ∷ Parser Bohm
 expression = buildExpressionParser precedenceToOps expression'
 
-listExpression :: ParsecT String () Identity Bohm
+listExpression ∷ ParsecT String () Identity Bohm
 listExpression = nil <|> listCase
 
 -- Expression Parser------------------------------------------------------------
-ifThenElse :: ParsecT String () Identity Bohm
+ifThenElse ∷ ParsecT String () Identity Bohm
 ifThenElse = do
   reserved "if"
   pred ← expression
@@ -146,37 +146,37 @@ ifThenElse = do
   else' ← expression
   pure $ If pred then' else'
 
-cons :: ParsecT String () Identity Bohm
+cons ∷ ParsecT String () Identity Bohm
 cons = do
   reserved "cons"
   (arg1,arg2) ← parens ((,) <$> expression <*> (reservedOp "," *> expression))
   pure $ Cons arg1 arg2
 
-car :: ParsecT String () Identity Bohm
+car ∷ ParsecT String () Identity Bohm
 car = do
   reserved "head"
   arg1 ← parens expression
   pure $ Car arg1
 
-cdr :: ParsecT String () Identity Bohm
+cdr ∷ ParsecT String () Identity Bohm
 cdr = do
   reserved "tail"
   arg1 ← parens expression
   pure $ Cdr arg1
 
-isNil :: ParsecT String () Identity Bohm
+isNil ∷ ParsecT String () Identity Bohm
 isNil = do
   reserved "isnil"
   arg1 ← parens expression
   pure $ IsNil arg1
 
-intLit :: ParsecT String () Identity Bohm
+intLit ∷ ParsecT String () Identity Bohm
 intLit = do
   int ← integer
   pure $ IntLit (fromInteger int)
 
 
-lambda :: ParsecT String () Identity Bohm
+lambda ∷ ParsecT String () Identity Bohm
 lambda = do
   reserved "lambda"
   sym ← symbol
@@ -184,7 +184,7 @@ lambda = do
   exp ← expression
   pure $ Lambda sym exp
 
-letExp :: ParsecT String () Identity Bohm
+letExp ∷ ParsecT String () Identity Bohm
 letExp = do
   reserved "let"
   toBind ← symbol
@@ -194,7 +194,7 @@ letExp = do
   body ← expression
   pure $ Let toBind binding body
 
-letRecExp :: ParsecT String () Identity Bohm
+letRecExp ∷ ParsecT String () Identity Bohm
 letRecExp = do
   reserved "letrec"
   toBind ← symbol
@@ -202,34 +202,34 @@ letRecExp = do
   exp ← expression
   pure $ Letrec toBind exp
 
-trueLit :: ParsecT String () Identity Bohm
+trueLit ∷ ParsecT String () Identity Bohm
 trueLit = True' <$ reserved "true"
 
-falseLit :: ParsecT String () Identity Bohm
+falseLit ∷ ParsecT String () Identity Bohm
 falseLit = False' <$ reserved "true"
 
-notExp :: ParsecT String () Identity Bohm
+notExp ∷ ParsecT String () Identity Bohm
 notExp = do
   reserved "not"
   exp ← expression
   pure $ Not exp
 
-application :: ParsecT String () Identity Bohm
+application ∷ ParsecT String () Identity Bohm
 application = do
   app ← parens (many expression)
   case app of
     []     → fail "empty list"
     (x:xs) → pure $ foldl' Application x xs
 
-symbol' :: ParsecT String () Identity Bohm
+symbol' ∷ ParsecT String () Identity Bohm
 symbol' = Symbol' <$> symbol
 
 -- List Parser------------------------------------------------------------------
 
-nil :: ParsecT String () Identity Bohm
+nil ∷ ParsecT String () Identity Bohm
 nil = Nil <$ reserved "nil"
 
-listCase :: ParsecT String () Identity Bohm
+listCase ∷ ParsecT String () Identity Bohm
 listCase = do
   exprs ← brackets (expression `sepBy` comma)
   pure $ foldr Cons Nil exprs

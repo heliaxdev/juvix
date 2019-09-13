@@ -3,7 +3,7 @@ module Juvix.Bohm.Shared where
 
 import           Juvix.Library
 
-import           Prelude (String)
+import           Prelude          (String)
 import           Text.Parsec.Expr
 
 data Primitive = PInt Int
