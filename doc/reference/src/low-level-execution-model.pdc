@@ -85,18 +85,18 @@ For each free variable $x$ in $(t_1 t_2)$ occurring more than once, all occurren
 
 \begin{tikzpicture}
 
-\inetbigcell[rotate = 180, above = 40 pt]{f}{\rotatebox[origin=c]{180}{$f_i$}}[3]
-\inetbigcell[right = -25 pt]{g}{$\phi(t_1)$}[3]
-\inetbigcell[right = 25 pt]{h}{$\phi(t_2)$}[3]
-\inetbigcell[below = 40 pt]{a}{$@$}[3]
+  \inetbigcell[rotate = 180, above = 40 pt]{f}{\rotatebox[origin=c]{180}{$f_i$}}[3]
+  \inetbigcell[right = -25 pt]{g}{$\phi(t_1)$}[3]
+  \inetbigcell[right = 25 pt]{h}{$\phi(t_2)$}[3]
+  \inetbigcell[below = 40 pt]{a}{$@$}[3]
 
-\cutWire{g.out}{a/1}{}{}
-\cutWire{h.out}{a/2}{}{}
-\outwire[]{a.out}{$C$}
-\inwire[]{f.out}{$x$}
+  \cutWire{g.out}{a/1}{}{}
+  \cutWire{h.out}{a/2}{}{}
+  \outwire[]{a.out}{$C$}
+  \inwire[]{f.out}{$x$}
 
-\axWire{g/1}{f/1}{}{}
-\axWire{h/1}{f/2}{}{}
+  \axWire{g/1}{f/1}{}{}
+  \axWire{h/1}{f/2}{}{}
 \end{tikzpicture}
 
 That ends the encoding rules.
@@ -396,8 +396,9 @@ The first lemma we wish to prove is the following
 
 \definecolor{palered-violet}{rgb}{0.86, 0.44, 0.58}
 \definecolor{bondiblue}{rgb}{0.0, 0.58, 0.71}
+\definecolor{antiquefuchsia}{rgb}{0.57, 0.36, 0.51}
 
-\newtcbtheorem[number within=section]{Lemma}{Lemma}{colframe=mediumpersianblue}{Lm}
+\newtcbtheorem[number within=section]{Lemma}{Lemma}{colframe=mediumpersianblue, breakable}{Lm}
 \begin{Lemma}{AST→Net has one free port}{AST->Net}
   Let $A$ = be a valid BOHM ADT.
   \\ \\
@@ -422,23 +423,23 @@ The first lemma we wish to prove is the following
 
 Now we need to prove that evaluating this net does not change this fact
 
-\newtcbtheorem[number within=section]{Theorem}{Theorem}{colframe=blue!45!gray}{Th}
+
+\newtcbtheorem[number within=section]{Theorem}{Theorem}{colframe=mediumpersianblue, breakable}{Th}
 \begin{Theorem}{AST→Net→Eval has one free port}{AST->Net->Eval}
-  Let $A = Net AST$.
+  Let $A = Net(AST)$.
   \\ \\
   By lemma \ref{Lm:AST->Net} $A$ has one free port.
   \\ \\
-  We must now show $Eval A$ does not change the number of free ports.
+  We must now show $Eval(A)$ does not change the number of free ports.
   \\ \\
-  We can show this by simply considering how every reduction rule works. For the sake of brevity, we will 
+  We can show this by simply considering how every reduction rule works. For the sake of brevity, we will only consider the three variations of rewrite rules present in the BOHM system WLOG.
 
-  \begin{tcolorbox}[title=Case 1 - Rewrire, colframe=palered-violet]
+  \begin{tcolorbox}[title=Case 1 - Rewire, colframe=antiquefuchsia]
     \begin{figure}[H]
-      \caption{Lambda-application annihilation (beta reduction)}
       \begin{subfigure}[c]{0.1\textwidth}
         \begin{tikzpicture}
-          \inetcell[]{a}{$@$}[5]
-          \inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$λ$}}[5]
+          \inetcell[]{a}{$g$}[5]
+          \inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$f$}}[5]
           \inwire[]{a/1}{a}
           \inwire[]{a/4}{d}
           \outwire[]{l/1}{c}
@@ -458,21 +459,22 @@ Now we need to prove that evaluating this net does not change this fact
       \end{subfigure}
     \end{figure}
 
-    We can see, there are no changes in the number of free ports
+    We can see that there is only one wire eliminated, the one connecting the main ports of node $f$ and node $g$.
+    \\ \\
+    The rest of the wires are simply rewired to each other, thus not effecting the total number of free ports
   \end{tcolorbox}
 
-  \begin{tcolorbox}[title=Case 2 - Isolation, colframe=palered-violet]
+  \begin{tcolorbox}[title=Case 2 - Isolation, colframe=antiquefuchsia]
     \begin{figure}[H]
-      \caption{Lambda-application annihilation (beta reduction)}
+      \caption{Eraser-application commutation}
       \begin{subfigure}[c]{0.1\textwidth}
         \begin{tikzpicture}
-          \inetcell[]{a}{$@$}[5]
-          \inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$λ$}}[5]
+          \inetcell[]{a}{$f$}[6]
+          \inode[below = 40 pt]{b}{$g$}
           \inwire[]{a/1}{a}
-          \inwire[]{a/4}{d}
-          \outwire[]{l/1}{c}
-          \outwire[]{l/4}{b}
-          \cutWire{a.out}{l.out}{}{}
+          \inwire[]{a/3}{b}
+          \inwire[]{a/5}{c}
+          \cutWire{a.out}{b.north}{}{}
         \end{tikzpicture}
       \end{subfigure}
       ~
@@ -482,26 +484,29 @@ Now we need to prove that evaluating this net does not change this fact
       ~
       \begin{subfigure}[c]{0.1\textwidth}
         \begin{tikzpicture}
-          \wirecross[]{a}{c}{b}{d}
+          \inode[right = 20 pt]{b}{$⊗$}
+          \inwire[]{b}{b}
+          \draw (-1.5,-1.5) node{a}  .. controls (-1.5,1) and (0,-1.5) .. (0,1) node{c};
         \end{tikzpicture}
       \end{subfigure}
     \end{figure}
 
-    We can see, there are no changes in the number of free ports
+    Here we can see that like the first case the wire that connects the main ports are eliminated, and that $a$ and $c$ are rewired.
+    \\ \\
+    Additionally an eraser node is connected to the $b$, since the eraser node only has a main port, the number of free ports is not affected.
   \end{tcolorbox}
 
-  \begin{tcolorbox}[title=Case 3 - Duplication, colframe=palered-violet]
+  \begin{tcolorbox}[title=Case 3 - Duplication, colframe=antiquefuchsia]
     \begin{figure}[H]
-      \caption{Lambda-application annihilation (beta reduction)}
       \begin{subfigure}[c]{0.1\textwidth}
         \begin{tikzpicture}
-          \inetcell[]{a}{$@$}[5]
-          \inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$λ$}}[5]
+          \inetcell[]{a}{$f_i$}[5]
+          \inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$a$}}[5]
           \inwire[]{a/1}{a}
           \inwire[]{a/4}{d}
-          \outwire[]{l/1}{c}
-          \outwire[]{l/4}{b}
-          \cutWire{a.out}{l.out}{}{}
+          \outwire[]{b/1}{c}
+          \outwire[]{b/4}{b}
+          \cutWire{a.out}{b.out}{}{}
         \end{tikzpicture}
       \end{subfigure}
       ~
@@ -511,13 +516,24 @@ Now we need to prove that evaluating this net does not change this fact
       ~
       \begin{subfigure}[c]{0.1\textwidth}
         \begin{tikzpicture}
-          \wirecross[]{a}{c}{b}{d}
+          \inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$a$}}[5]
+          \inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$a$}}[5]
+          \inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+          \inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+          \inwire[]{a.out}{a}
+          \inwire[]{b.out}{d}
+          \outwire[]{c.out}{b}
+          \outwire[]{d.out}{c}
+          \swire[0]{a/4}{c/1}{}{}
+          \swire[0]{b/1}{d/4}{}{}
+          \swire[0]{a/1}{d/1}{}{}
+          \swire[0]{b/4}{c/4}{}{}
         \end{tikzpicture}
       \end{subfigure}
     \end{figure}
-
-    We can see, there are no changes in the number of free ports
+    Here we see the case for a fan-in node $f_i$ and some arbitrary node $a$. Both nodes get duplicated, however the number of free ports is preserved, as each node that is created is internally connected to the duplicated nodes. Additionally the four external ports are preserved among the four duplicated nodes.
   \end{tcolorbox}
+  $\therefore$ since all cases are covered, $Eval(A)$ has only one free port.
 \end{Theorem}
 
 ## Evaluator cost model

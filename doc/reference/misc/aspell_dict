@@ -1,4 +1,4 @@
-personal_ws-1.1 en 285 
+personal_ws-1.1 en 287 
 succ
 textwidth
 AST
@@ -215,6 +215,7 @@ th
 usepackage
 usaging
 imprecisions
+antiquefuchsia
 logicproof
 tt
 nilX
@@ -247,6 +248,7 @@ composable
 bottomline
 stateful
 pred
+WLOG
 alg
 theoexample
 Typeclasses

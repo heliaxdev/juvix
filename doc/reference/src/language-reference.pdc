@@ -42,7 +42,7 @@ header-includes:
     - \usepackage{tikz}
     - \usetikzlibrary{arrows,automata}
     - \newtheorem{theorem}{Theorem}
-    - \usepackage{tcolorbox}
+    - \usepackage[many]{tcolorbox}
     - \tcbuselibrary{theorems}
 ---
 
