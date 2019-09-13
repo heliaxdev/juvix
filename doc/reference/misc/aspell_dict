@@ -1,4 +1,4 @@
-personal_ws-1.1 en 299 
+personal_ws-1.1 en 308 
 succ
 textwidth
 AST
@@ -20,6 +20,7 @@ colback
 QTT
 booleans
 polymorphism
+FanIn's
 snd
 Superoptimal
 parallelise
@@ -80,6 +81,7 @@ typecheck
 bussproofs
 renewenvironment
 textcolor
+circ
 forall
 EVM
 von
@@ -95,6 +97,7 @@ Prerelease
 affine
 quadratically
 iff
+bigstar
 Terraform
 colored
 Agda
@@ -156,7 +159,9 @@ destructors
 precontext
 typechecker
 bytestrings
+centering
 ABSALG
+FanOut
 cutWire
 Asperti
 outwire
@@ -219,6 +224,7 @@ verifiers
 prover
 LaTeX
 Damiano
+FanIn
 axWire
 subterms
 th
@@ -242,6 +248,7 @@ UX
 textit
 palered
 ADT
+qed
 inetcell
 TrinaryInfC
 xs
@@ -260,6 +267,7 @@ bottomline
 stateful
 pred
 WLOG
+scalebox
 alg
 theoexample
 Typeclasses
@@ -268,6 +276,7 @@ rgb
 combinators
 concat
 deconstructors
+FanPort
 floatstyle
 Cedille
 ruleset

@@ -408,6 +408,8 @@ The first lemma we wish to prove is the following
   For an ADT to be realized, we must have all arguments, so all these ports must be connected.
   Now, if $L$ is $A$, then we have one free port, however if it is not, then this free port must not be free but instead be connected to the ADT above it.
   \\ \\
+  For free variables which have no $\lambda$ to connect to, a symbol node is created, maintaining the invariant.
+  \\ \\
   $\therefore$ AST→Net has one free port
 \end{Lemma}
 
@@ -456,7 +458,6 @@ Now we need to prove that evaluating this net does not change this fact
 
   \begin{tcolorbox}[title=Case 2 - Isolation, colframe=inner-box-1]
     \begin{figure}[H]
-      \caption{Eraser-application commutation}
       \begin{subfigure}[c]{0.1\textwidth}
         \begin{tikzpicture}
           \inetcell[]{a}{$f$}[6]
@@ -537,6 +538,113 @@ We now shall define one more definition before getting to our main theorem.
 
 \begin{Theorem}{Read back from a Valid EAL-Net gives is $α$ equivalent to the normal evaluation of the original EAL-term}{readback}
   Let $A$ be the Valid EAL-Net.
+  \\ \\
+  By Definition \ref{De:Valid EAL-Net} this net originated from a valid EAL-AST which is a subset of BOHM.
+  \\ \\
+  Thus by Theorem \ref{Th:AST->Net->Eval} $A$ must only have one free port.
+  \\ \\
+  Furthermore this free port must be the root of the graph/old AST.
+  \\ \\
+  Now to show this evaluates to the same answer, we must reconstruct the ADT considering all cases.
+  \\ \\
+  For this we must keep two maps as we do this algorithm.
+  \\ \\
+  The first being the variable name from a specific lambda.
+  \\ \\
+  The second map is a map from the fan in number to the current status of our traversal of said fan-in.
+  \\ \\
+  We can now a proof by induction, specifically, we shall consider three cases:
+
+  1. $\lambda$ /\ $\mu$
+
+  2. $FanIn$
+
+  3. The rest.
+
+  We will also consider the inductive case first for the following proof.
+  \\ \\
+  Let $rec$ be this recursive algorithm.
+  \begin{tcolorbox}[title= Case 1 - rest, colframe=inner-box-1]
+    The logic for all other cases is simple. Consider some node $P$ with ports $1 \cdots n$.
+    \\ \\
+    Let port n be the parent ADT port.
+    \\ \\
+    By induction we run this algorithm and ports $1 \cdots n-1$ are $α$ equivalent to normal evaluation.
+    \\ \\
+    Thus we can construct ADT $P$ by $P(rec(n_1) \cdots rec(n_{n-1}))$.
+    \\ \\
+    $\therefore$ $P$ is well formed and we get an $α$ equivalent answer.
+  \end{tcolorbox}
+
+  \begin{tcolorbox}[title= Case 2 - $\lambda$ /\ $\mu$, colframe=inner-box-1]
+    The $\lambda$ /\ $\mu$ case is special in that in a Valid EAL-Net the node will be traversed via the primary port via the parent AST and then by the second auxiliary port.
+    \\ \\
+    The second auxiliary port refers to the variable binding.
+    \\ \\
+    When we traverse the $\lambda$ node by the primary port first (this must be the case), we add a new var into the first map.
+    \\ \\
+    Then we run the recursive algorithm on Auxiliary 1, this subterm will only access the second Auxiliary port of this $\lambda$ node.
+    \\ \\
+    If the term is unused, then we will connect an eraser node to the second Auxiliary port.
+    \\ \\
+    This thus preserves the number of free ports.
+    \\ \\
+    By induction the subterms on Auxiliary one are also well formed
+    \\ \\
+    $\therefore$ the Lambda term is $α$ equivalent to the normal evaluation answer.
+  \end{tcolorbox}
+
+  \begin{tcolorbox}[title= Case 3 - FanIn, colframe=inner-box-1]
+    FanIn's are another interesting case, for this case we allocate a map from each FanIn to the traversal status.
+    \\ \\
+    For this, we keep a list of the following types
+    \begin{verbatim}
+     type Status = In FanPort
+                 | Complete FanPort
+     type FanPort = Circle | Star
+    \end{verbatim}
+    Where circle is the first auxiliary port and star is the second.
+
+    \begin{figure}[H]
+        \begin{tikzpicture}
+          \inetcell[]{a}{$f_i$}[5]
+          \draw (-0.29, 0.23) node {$\scalebox{1.9}{$\circ$}$};
+          \draw ( 0.29, 0.29) node {$\scalebox{1.7}{$\star$}$};
+          \cutWire{a.out}{b.north}{}{}
+        \end{tikzpicture}
+    \end{figure}
+
+
+    For this analysis we must consider what port we can enter from, however first we should note that before entering the primary port of a FanIn, that we must have first traversed through either $\star$ or $\circ$ first.
+    \\ \\
+    This is the case because entering a FanIn in this way is known as a FanOut, and denotes the end of sharing.
+    And since ending sharing before starting is not possible from a valid EAL-Net, these cases never happen.
+    \\ \\
+    \begin{tcolorbox}[title= Enter from Prim, colframe=inner-box-2]
+      As shown above, we must have already traversed a FanIn node, namely $\star$ or $\circ$.
+      \\ \\
+      This means the map from the FanIn number $i$ is not empty, and thus we have a history of completing nodes or being in nodes.
+      \\ \\
+      If we have an unfinished $In$, then we pick the most recent $In$ port left to traverse.
+      This is forced as this node is considered a FanOut and thus closes sharing.
+      \\ \\
+      We then mark the node as complete. If we have completed a single node, then we simply choose to leave through the other port.
+      \\ \\
+      Since we are working over valid EAL-Net's which require no oracle, there is no ambiguity in this mechanism. Furthermore, this fact also excludes any other configurations from happening.
+      \\ \\
+    \end{tcolorbox}
+    \begin{tcolorbox}[title= Enter from Aux, colframe=inner-box-2]
+      We entered the FanIn through an auxiliary port, so we mark in the second map that we are $In$ this port at FanIn node $i$.
+      \\ \\
+      We then leave through the principle port, denoting the beginning of sharing.
+    \end{tcolorbox}
+    These cases handle all possible configurations in which we can enter and the validity of the expressions are handled by induction.
+  \end{tcolorbox}
+  Now, the base case is quite simple, consider a node, say with zero parameters by itself.
+  \\ \\
+  This node is trivially readback as is, being $α$ equivalent to the evaluated term.
+  \\ \\
+  $\therefore$ by induction read-back from a valid EAL-Net will give us the same expression up to $α$ equivalence as evaluating the node via a more traditional evaluation methods
 \end{Theorem}
 
 ## Evaluator cost model
