@@ -1,4 +1,4 @@
-personal_ws-1.1 en 241 
+personal_ws-1.1 en 262 
 succ
 textwidth
 AST
@@ -15,23 +15,27 @@ Pxs
 graphicx
 QTT
 booleans
+bijective
 polymorphism
 snd
 Superoptimal
 parallelise
 monoid
 Mazza's
+Asher
 Coq
 subcaption
 subterm
 GPUs
 callees
 src
+subgraphs
 typechecking
 toc
 mainfont
 cybercoin
 Juvix
+STG
 AlgebraM
 frontend
 boolean
@@ -63,6 +67,7 @@ typecheck
 bussproofs
 forall
 EVM
+Ackermann
 von
 typ
 textbackslash
@@ -84,15 +89,19 @@ interoperation
 fontsize
 FixM
 inetbigcell
+GHC's
 semiring
+SIMD
 TinyRAM
 nonfungible
 titlepage
 runtime
+ADTs
 overset
 color
 inequation
 Tezos
+typeability
 inet
 INet
 prooftree
@@ -121,9 +130,11 @@ optimality
 Conor
 Stumpf
 destructors
+al
 precontext
 typechecker
 bytestrings
+typeclass
 ABSALG
 cutWire
 Asperti
@@ -133,6 +144,8 @@ FPGA
 disjunction
 xxs
 ax
+satisfiability
+eval
 AxiomC
 catamorphism
 const
@@ -145,6 +158,7 @@ pseudoterms
 pagebreak
 semithick
 Fn
+et
 whnf
 newtheorem
 RightLabel
@@ -157,7 +171,9 @@ amsmath
 parallelises
 hyperref
 le
+redex
 conv
+underspecified
 Blockchains
 pluggable
 Neumann
@@ -198,11 +214,14 @@ TrinaryInfC
 xs
 REPL
 ZK
+destructor
 ys
+redexes
 monadic
 DejaVuSerifCondensed
 wirecross
 restylefloat
+zs
 CUDA
 composable
 stateful
@@ -218,6 +237,7 @@ floatstyle
 Cedille
 ruleset
 verifiability
+haskell
 dataflow
 QuaternaryInfC
 precontexts
@@ -228,6 +248,7 @@ typecheckers
 DTEAL
 mathbb
 arg
+subgraph
 param
 TBD
 memoisation

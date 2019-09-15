@@ -99,9 +99,96 @@ For each free variable $x$ in $(t_1 t_2)$ occurring more than once, all occurren
 \axWire{h/1}{f/2}{}{}
 \end{tikzpicture}
 
-That ends the encoding rules.
+That ends the encoding rules for basic lambda terms.
 
-Example from chat & paper (of derivation).
+Interaction net encoding of $a \& b$:
+
+1. Primary port as pair, to be connected to destructor ($fst$ / $snd$)
+1. $3n + 2$ auxiliary ports where:
+    1. Two are for the subterms $a$ and $b$
+    1. $n$ are for the terms bound to free variables (resources) both subterms use
+    1. $n$ are connected to the binding sites in a
+    1. $n$ are connected to the binding sites in b
+1. Rewrite rule
+    1. If the destructor is $fst$ (vice versa if the destructor is $snd$):
+        1. Connects the wires between the $n$ free variables and the $n$ binding sites in $a$
+        1. Attaches erasers to the $n$ binding sites in $b$ and to $b$ itself
+        1. Erases $\&$ node
+        1. Attaches whatever destructor was connected to to $a$
+
+That way no duplication of resources need occur, matching the linear logic semantics.
+
+Note that this means reduction within $a$ and $b$, insofar as it depends on the values of the free variables, will not take place until the caller chooses which variant ($a$ or $b$) they want.
+
+Interaction net encoding of $a ⊗ b$:
+
+1. Primary port as pair, to be connected to destructor ("join")
+1. $2$ auxiliary ports, where:
+    1. Two are for the subterms $a$ and $b$
+1. Rewrite rule
+    1. Erases the ⊗ node
+    1. Creates a new ⊗ node, attaches its 2 auxiliary ports to a and b
+    1. Attaches whatever the destructor was attached to to the new ⊗ node's primary port
+
+This is structurally identical to the ⊗ encoding (perhaps we can simply erase the "join" destructor prior to runtime), but we should be able to place directives that inform the evaluator to evaluate the two subterms in parallel, as they are guaranteed not to share resources (no duplication required) and be completely disjoint subgraphs.
+
+> TODO: Example term encoding.
+
+### Bespoke function encoding
+
+#### Basics
+
+Consider a Core term $f$ of type $A ⊸ B$.
+
+In the interaction net encoding compiler path, assuming EAL-typeability, we would encode this (if of form $λx.t$, for example) as:
+
+\begin{tikzpicture}
+\inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
+\inetbigcell[below = 30pt]{l}{$λ$}[3]
+
+\axWire{g/1}{l/1}{}{}
+\cutWire{g.out}{l/2}{}{}
+\outwire[]{l.out}{$A ⊸ B$}
+\end{tikzpicture}
+
+where $φ$ is the recursive interaction net translation function.
+
+In the bespoke encoding path, we instead create a new node type $T$ and rewrite rule $R$ such that when the primary port of $T$ is connected to an application node to an argument $A$, we erase $T$, connect an eraser to $A$, and connect whatever the application node's primary port was connected to to a new subgraph which is equal to the encoding of $eval (f A)$.
+
+$eval (f A)$ can then be implemented by native evaluation semantics which do not utilise interaction nets. For example, if the Core term in question is a tail-recursive numerical computation, it can be compiled to a native loop (possibly using SIMD).
+
+Furthermore, we can safely encode non-EAL-typable terms this way, such as the Ackermann function, and they can safely interact with the rest of the interaction net (which must have been an EAL-typable term, treating the bespoke-encoded subterm as opaque).
+
+The decision of whether or not to take the bespoke path can be made for all subterms of this form according to some heuristic (or possibly exact cost calculation) in the compiler.
+
+#### Dealing with various types
+
+Where $A$ and $B$ are both types which are encoded as primitive nodes (e.g. integers), this is trivial.
+
+Where $A$ is a primitive type and $B$ is a function of some arity, of only primitive-typed arguments, which then returns a primitive type, this can be implemented as a sequence of node types $T, T', T''$, etc. which keep the curried arguments and eventually evaluate when all arguments are provided (or even when some are provided, there is a continuum of options here).
+
+Where $A$ and/or arguments of $B$ are non-primitive types (e.g. functions), this becomes more complex, since we must convert between AST and interaction-net form during reduction.
+
+More generally, with our Core term $f$ of type $A ⊸ B$, encoding $f$ through the bespoke path would result in a set of new node types $T_i$ with possible curried internal data, and a set of rewrite rules $R_i$, the first $i - 1$ of which just deal with currying (although again, there is a continuum of options, but let's leave that out for now), and the last one of which is interesting, let it be $R$.
+
+$R$ must then cause, when connected to a primary port of an argument $A$:
+
+- Erasure of $R_i$ (the prior node).
+- Connection of an eraser to $A$.
+- Creation of a new subgraph $φ (eval (f (read-back A))$, where $φ$ is the recursive interaction net encoding function (which might itself perform bespoke encoding, although we need to be concerned about runtime costs here), and $read-back$ is the read-back function from nets to Core terms, run starting at $A$ as the root node.
+- Connection of the primary port of this subgraph to whatever $R_i$ was previously connected to.
+
+This follows all the interaction net laws and should preserve semantics - but there are oddities:
+
+- Read-back and (complex) encoding algorithms must be executed at runtime
+- Read-back must happen over a term A which may be in the progress of parallel reduction
+
+In general, we have no idea of the size (and corresponding read-back cost) of $A$, and it might be dependent on the order of reduction.
+
+### Bespoke datatype encoding
+
+- Primitive types (integer, string, bytes) ~> node types w/data
+- User-defined ADTs can be turned into custom nodes
 
 ## Oracle-free optimal reduction
 
@@ -369,17 +456,32 @@ The oracle-free abstract algorithm for optimal reduction operates on four node t
 
 ### Argument for correctness
 
-## Bespoke term encoding
+1. Define the level of a subterm
+    1. level a a = 0
+    1. level lam x . a b = level a b
+    1. level a b c = level a c or level b c as appropriate
+    1. level !a b = 1 + level a b
+    1. level $\bar{!}a$ b = -1 + level a b
+1. The level of a subterm is constant through beta reduction
+    1. lam x . t -> lam x . t (trivial)
+    1. x -> x (trivial)
+    1. !x -> !x (trivial)
+    1. ! $\bar{!}$ x -> x (trivial) (defined-ness guaranteed by well-bracketed property)
+    1. (lam x . a) b -> a [ x := b ]
+        1. If t was in a - trivial
+        1. If t was in b - level a x = 0 by well-bracketed property, so level b t = level (a [ x := b ]) t
+1. Map this level to nodes in the interaction net translation
+    1. Think concentric boxes with natural number levels
+1. Level of node does not change during reduction
+    1. Beta reduction only connects nodes on same level
+1. Levels can be chosen from contraction nodes of EAL type derivation
+    1. Contraction nodes do not change level during proof-net reduction
+    1. Also do not change level during abstract algorithm reduction
+    1. If fans match label, must have originated from that level
+    1. Algorithm is correct with EAL term subset since label indicates level of fan and level does not change according to EAL rules
+    1. No loops in reduction of EAL-typable terms that would render labels underspecified
 
-- Primitive types (integer, string, bytes) ~> node types w/data
-- n-arity primitive functions (+, -, *, concat, index) ~> rewrite rules
-- alt-term encoding: $lam x. x + x + x$ ~> $3 * x$ rewrite rule instead of multi-node graph
-
-- Over set of underlying opcodes & von-Neumann-ish VM (e.g. x86, LLVM, EVM).
-- Use linear types (e.g. rewrite memory locations in place)
-- Must be semantically equivalent to interaction system encoding after read-back
-- Must preserve any-order reduction (exists some maximum `n` rewrite steps after which graph read-back must have final form regardless of order)
-- Can relax diamond property (strong confluence)? unclear if necessary
+(needs pretty pictures)
 
 ## Evaluator cost model
 
