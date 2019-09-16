@@ -382,7 +382,7 @@ The oracle-free abstract algorithm for optimal reduction operates on four node t
 - Must preserve any-order reduction (exists some maximum `n` rewrite steps after which graph read-back must have final form regardless of order)
 - Can relax diamond property (strong confluence)? unclear if necessary
 
-### Argument for Correct read-back
+### Argument for correctness of read-back
 
 We wish to show that a read-back of an EAL-expression that has undergone zero or more reductions gives back the same result as normal evaluation up to alpha equality.
 
@@ -391,7 +391,7 @@ Before we can prove this result, we must first prove a few lemmas and theorems f
 The first lemma we wish to prove is the following
 
 \begin{Lemma}{AST→Net has one free port}{AST->Net}
-  Let $A$ = be a valid BOHM ADT.
+  Let $A$ be a valid BOHM term.
   \\ \\
   Now Consider the net over $A$, let $N_a$ be this net.
   \\ \\
@@ -451,9 +451,9 @@ Now we need to prove that evaluating this net does not change this fact
       \end{subfigure}
     \end{figure}
 
-    We can see that there is only one wire eliminated, the one connecting the main ports of node $f$ and node $g$.
+    The wire connecting the main ports of node $f$ and node $g$ is eliminated.
     \\ \\
-    The rest of the wires are simply rewired to each other, thus not effecting the total number of free ports
+    The rest of the wires are simply rewired to each other, thus not altering the total number of free ports.
   \end{tcolorbox}
 
   \begin{tcolorbox}[title=Case 2 - Isolation, colframe=inner-box-1]
@@ -533,7 +533,7 @@ We now shall define one more definition before getting to our main theorem.
 
 
 \begin{Definition}{Valid EAL-Net}{Valid EAL-Net}
-  A \textcolor{definitions}{\textbf{Valid EAL-Net}} is a net translated from the EAL subset subset of BOHM and has undergone zero or more reduction steps.
+  A \textcolor{definitions}{\textbf{Valid EAL-Net}} is a net translated from the EAL subset of BOHM that has undergone zero or more reduction steps.
 \end{Definition}
 
 \begin{Theorem}{Read back from a Valid EAL-Net gives is $α$ equivalent to the normal evaluation of the original EAL-term}{readback}
@@ -553,7 +553,7 @@ We now shall define one more definition before getting to our main theorem.
   \\ \\
   The second map is a map from the fan in number to the current status of our traversal of said fan-in.
   \\ \\
-  We can now a proof by induction, specifically, we shall consider three cases:
+  We can now write a proof by induction, specifically, we shall consider three cases:
 
   1. $\lambda$ /\ $\mu$
 
