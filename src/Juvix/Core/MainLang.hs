@@ -213,10 +213,20 @@ usageCompare Omega pi    = True --actual usage can be any when required usage is
 --checker for checkable terms checks the term against an annotation and returns ().
 cType ∷ Natural → Context → CTerm → Annotation → Result ()
 -- *
-cType ii _g (Star n) ann =
-  unless -- TODO i only needs to be < j in typing rule?
-    (SNat 0 == fst ann && quote0 (snd ann) == Star (n + 1))
-    (throwError (errorMsg ii (Star n) (0, VStar (n + 1)) ann))
+cType ii _g (Star n) ann = do
+  unless (SNat 0 == fst ann) (throwError "Sigma has to be 0.") -- checks sigma = 0.
+  let ty = snd ann
+  case ty of
+    VStar j ->
+      unless
+        (n < j)
+        (throwError $
+         show (Star n) ++
+         " is of type * m where m > n. But the input type" ++
+         showVal (snd ann) ++ " is of type * of a lower universe.")
+    _ ->
+      throwError $
+      "* n is of type * but " ++ showVal (snd ann) ++ " is not of type *."
 cType ii _g Nats ann =
   unless
     (SNat 0 == fst ann && quote0 (snd ann) == Star 0)
