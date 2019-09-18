@@ -223,7 +223,7 @@ cType ii _g (Star n) ann = do
         (throwError $
          show (Star n) ++
          " is of type * of a higher universe. But the input type " ++
-         showVal (snd ann) ++ " is of type * of a equal or lower universe.")
+         showVal (snd ann) ++ " is * of a equal or lower universe.")
     _ ->
       throwError $ "* n is of type * but " ++ showVal (snd ann) ++ " is not *."
 cType ii _g Nats ann =
