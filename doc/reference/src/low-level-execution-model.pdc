@@ -393,16 +393,17 @@ The first lemma we wish to prove is the following
 \begin{Lemma}{AST→Net has one free port}{AST->Net}
   Let $A$ be a valid BOHM term.
   \\ \\
-  Now Consider the net over $A$, let $N_a$ be this net.
+  Now Consider the net encoding of $A$, let $N_a$ be this net.
   \\ \\
   Now let us consider any sub case of $A$, $L = P(n_1 \star \cdots \star n_k)$.
   \\ \\
   The node corresponding to $L$ looks.
-
+  \\ \\
+  TODO :: put ports on this images
   \begin{tikzpicture}
     \draw (0,0) circle (.8cm);
   \end{tikzpicture}
-
+  \\ \\
   Where the labels in $N_a$ are the same as in $L$, with $n_{k+1}$ being an extra port which connects to the ADT above it.
   \\ \\
   For an ADT to be realized, we must have all arguments, so all these ports must be connected.
@@ -425,8 +426,19 @@ Now we need to prove that evaluating this net does not change this fact
   We must now show $Eval(A)$ does not change the number of free ports.
   \\ \\
   We can show this by simply considering how every reduction rule works. For the sake of brevity, we will only consider the three variations of rewrite rules present in the BOHM system WLOG.
-
+  \\ \\
+  TODO :: Make the ports vary for all example with $\cdots$ drawn on the images
   \begin{tcolorbox}[title=Case 1 - Rewire, colframe=inner-box-1]
+    Nodes that fall under this case:
+
+    1. And↔T
+
+    2. And↔F
+
+    3. Or↔T
+
+    4. Or↔F
+
     \begin{figure}[H]
       \begin{subfigure}[c]{0.1\textwidth}
         \begin{tikzpicture}
@@ -457,6 +469,18 @@ Now we need to prove that evaluating this net does not change this fact
   \end{tcolorbox}
 
   \begin{tcolorbox}[title=Case 2 - Isolation, colframe=inner-box-1]
+    Nodes that fall under this case:
+
+    1. Cdr↔Cons
+
+    2. Car↔Cons
+
+    3. TestNil↔Cons
+
+    4. IfThenElse↔T
+
+    5. IfThenElse↔F
+
     \begin{figure}[H]
       \begin{subfigure}[c]{0.1\textwidth}
         \begin{tikzpicture}
@@ -487,7 +511,50 @@ Now we need to prove that evaluating this net does not change this fact
     Additionally an eraser node is connected to the $b$, since the eraser node only has a main port, the number of free ports is not affected.
   \end{tcolorbox}
 
-  \begin{tcolorbox}[title=Case 3 - Duplication, colframe=inner-box-1]
+  \begin{tcolorbox}[title=Case 3 - Creation, colframe=inner-box-1]
+    Nodes that fall under this case:
+
+    1. TestNil↔Nil
+
+    2. All nodes which ''curry'' and eventually become an Int node or T/F
+
+    \qquad - add, not, mod, div, sub, more, noteq, eq, meq, less, leq. ↔ intlit
+
+    3. Not↔T
+
+    4. Not↔F
+
+    5. Cdr↔Nil
+
+    \begin{figure}[H]
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \inetcell[]{a}{$f$}[6]
+          \inode[below = 40 pt]{b}{$g$}
+          \inwire[]{a/1}{a}
+          \inwire[]{a/5}{c}
+          \cutWire{a.out}{b.north}{}{}
+        \end{tikzpicture}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.05\textwidth}
+        \huge{→}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \inetcell[]{a}{$g$}[6]
+          \inwire[]{a/3}{a}
+          \cutWire{a.out}{b.north}{}{}{}
+        \end{tikzpicture}
+      \end{subfigure}
+    \end{figure}
+
+    In this case, we take a node with $n$ ports and construct a node with $n-1$ ports. since the remaining ports are still wired to the same locations,
+    the number of free ports does not change
+  \end{tcolorbox}
+
+  \begin{tcolorbox}[title=Case 4 - Duplication, colframe=inner-box-1]
     \begin{figure}[H]
       \begin{subfigure}[c]{0.1\textwidth}
         \begin{tikzpicture}
@@ -567,7 +634,7 @@ We now shall define one more definition before getting to our main theorem.
   \begin{tcolorbox}[title= Case 1 - rest, colframe=inner-box-1]
     The logic for all other cases is simple. Consider some node $P$ with ports $1 \cdots n$.
     \\ \\
-    Let port n be the parent ADT port.
+    Let port n be the inhabitant of the BOHM ADT.
     \\ \\
     By induction we run this algorithm and ports $1 \cdots n-1$ are $α$ equivalent to normal evaluation.
     \\ \\
@@ -581,7 +648,7 @@ We now shall define one more definition before getting to our main theorem.
     \\ \\
     The second auxiliary port refers to the variable binding.
     \\ \\
-    When we traverse the $\lambda$ node by the primary port first (this must be the case), we add a new var into the first map.
+    When the algorithm traverse the $\lambda$ node by the primary port first (this must be the case), we add a new var into the first map.
     \\ \\
     Then we run the recursive algorithm on Auxiliary 1, this subterm will only access the second Auxiliary port of this $\lambda$ node.
     \\ \\
@@ -594,17 +661,19 @@ We now shall define one more definition before getting to our main theorem.
     $\therefore$ the Lambda term is $α$ equivalent to the normal evaluation answer.
   \end{tcolorbox}
 
-  \begin{tcolorbox}[title= Case 3 - FanIn, colframe=inner-box-1]
+  \begin{tcolorbox}[breakable, break at=8cm, title= Case 3 - FanIn, colframe=inner-box-1]
     FanIn's are another interesting case, for this case we allocate a map from each FanIn to the traversal status.
     \\ \\
-    For this, we keep a list of the following types
+    For this, we keep a first-in-last-out stack of the following types.
     \begin{verbatim}
-     type Status = In FanPort
-                 | Complete FanPort
+     type Status = In FanPort | Complete FanPort
      type FanPort = Circle | Star
     \end{verbatim}
     Where circle is the first auxiliary port and star is the second.
-
+    \\ \\
+    The Status type deserves some explanations. So $In$ means that we have visited either circle or star of a FanIn node without visiting the corresponding port on the FanOut.
+    \\ \\
+    The $Complete$ case means that we have visited the corresponding FanOut port, and have thus completed the traversal of the specific node. Much like how a ) closes a (. This is also why it is first-in-last-out, as we must close the most recent $In$ (parenthesis) before we can close the previous one.
     \begin{figure}[H]
         \begin{tikzpicture}
           \inetcell[]{a}{$f_i$}[5]
@@ -619,8 +688,7 @@ We now shall define one more definition before getting to our main theorem.
     \\ \\
     This is the case because entering a FanIn in this way is known as a FanOut, and denotes the end of sharing.
     And since ending sharing before starting is not possible from a valid EAL-Net, these cases never happen.
-    \\ \\
-    \begin{tcolorbox}[title= Enter from Prim, colframe=inner-box-2]
+    \begin{tcolorbox}[title= Enter from Prim, colframe=inner-box-2, breakable]
       As shown above, we must have already traversed a FanIn node, namely $\star$ or $\circ$.
       \\ \\
       This means the map from the FanIn number $i$ is not empty, and thus we have a history of completing nodes or being in nodes.
@@ -631,9 +699,8 @@ We now shall define one more definition before getting to our main theorem.
       We then mark the node as complete. If we have completed a single node, then we simply choose to leave through the other port.
       \\ \\
       Since we are working over valid EAL-Net's which require no oracle, there is no ambiguity in this mechanism. Furthermore, this fact also excludes any other configurations from happening.
-      \\ \\
     \end{tcolorbox}
-    \begin{tcolorbox}[title= Enter from Aux, colframe=inner-box-2]
+    \begin{tcolorbox}[title= Enter from Aux, colframe=inner-box-2, breakable]
       We entered the FanIn through an auxiliary port, so we mark in the second map that we are $In$ this port at FanIn node $i$.
       \\ \\
       We then leave through the principle port, denoting the beginning of sharing.

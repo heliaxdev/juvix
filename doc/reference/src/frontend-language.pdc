@@ -175,7 +175,7 @@ let rec pred =
             (\n. n)
             (\x. \y. D (pred x) (pred y))
 ```
-Another important aspect to Scott encodings is that they can not be typed in `System-F` alone, but instead `System-F` extended with covariant recursive types[@Scott]. Due to this, Scott encodings can be typed safely in Juvix Core.
+Another important aspect to Scott encodings is that they can not be typed in `System-F` alone, but instead `System-F` extended with covariant recursive types[@scott]. Due to this, Scott encodings can be typed safely in Juvix Core.
 
 ## Desugaring
 

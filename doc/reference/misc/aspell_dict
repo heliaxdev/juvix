@@ -1,4 +1,4 @@
-personal_ws-1.1 en 308 
+personal_ws-1.1 en 319 
 succ
 textwidth
 AST
@@ -34,6 +34,8 @@ definecolorseries
 subterm
 GPUs
 callees
+intlit
+IntLit
 src
 cdots
 framemethod
@@ -131,6 +133,7 @@ Ethereum
 inl
 LLVM
 rotatebox
+noteq
 setcounter
 spatiotemporal
 tcolorbox
@@ -148,6 +151,7 @@ cmll
 typable
 notin
 ish
+TestNil
 microtype
 equalities
 eWASM
@@ -157,6 +161,7 @@ Conor
 Stumpf
 destructors
 precontext
+leq
 typechecker
 bytestrings
 centering
@@ -180,8 +185,10 @@ contr
 Desugaring
 ge
 consX
+eq
 pseudoterms
 mytheo
+meq
 pagebreak
 semithick
 Fn
@@ -225,9 +232,11 @@ prover
 LaTeX
 Damiano
 FanIn
+IfThenElse
 axWire
 subterms
 th
+newpage
 brickred
 usepackage
 usaging
@@ -269,6 +278,7 @@ pred
 WLOG
 scalebox
 alg
+qquad
 theoexample
 Typeclasses
 isEven
@@ -284,6 +294,7 @@ verifiability
 dataflow
 QuaternaryInfC
 ceil
+Cdr
 precontexts
 tcbcounter
 sequent
