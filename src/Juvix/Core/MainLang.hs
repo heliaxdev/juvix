@@ -225,8 +225,7 @@ cType ii _g (Star n) ann = do
          " is of type * of a higher universe. But the input type " ++
          showVal (snd ann) ++ " is of type * of a equal or lower universe.")
     _ ->
-      throwError $
-      "* n is of type * but " ++ showVal (snd ann) ++ " is not of type *."
+      throwError $ "* n is of type * but " ++ showVal (snd ann) ++ " is not *."
 cType ii _g Nats ann =
   unless
     (SNat 0 == fst ann && quote0 (snd ann) == Star 0)
