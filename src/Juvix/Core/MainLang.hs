@@ -44,7 +44,19 @@ data CTerm
                         -- The abstracted variable's usage is tracked with the Usage(π).
   | Conv ITerm --(CONV) conversion rule. TODO make sure 0Γ ⊢ S≡T
               -- Conv is the constructor that embeds ITerm to CTerm
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show CTerm where
+  show (Star n) = "*" ++ show n
+  show Nats = "Nat"
+  show (Pi _usage varTy resultTy) = "[Π]" ++ show varTy ++ "->" ++ show resultTy
+  show (Pm _usage first second) =
+    "([π]" ++ show first ++ "," ++ show second ++ ")"
+  show (Pa _usage first second) = "/\\" ++ show first ++ show second
+  show (NPm first second) = "\\/" ++ show first ++ show second
+  show (Lam var) = "\\" ++ show var
+  show (Conv term) --Conv should be invisible to users.
+   = show term
 
 -- inferable terms
 data ITerm
@@ -208,12 +220,12 @@ type Result a = Either String a --when type checking fails, it throws an error.
 usageCompare ∷ Usage → Usage → Bool
 usageCompare (SNat 0) pi = pi == SNat 0 || pi == Omega
 usageCompare (SNat i) pi = pi == SNat i || pi == Omega
-usageCompare Omega pi    = True --actual usage can be any when required usage is unspecified.
+usageCompare Omega _pi   = True --actual usage can be any when required usage is unspecified.
 
 --checker for checkable terms checks the term against an annotation and returns ().
 cType ∷ Natural → Context → CTerm → Annotation → Result ()
 -- *
-cType ii _g (Star n) ann = do
+cType _ii _g (Star n) ann = do
   unless (SNat 0 == fst ann) (throwError "Sigma has to be 0.") -- checks sigma = 0.
   let ty = snd ann
   case ty of
