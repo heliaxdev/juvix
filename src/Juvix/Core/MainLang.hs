@@ -100,7 +100,7 @@ showVal (VNeutral _n) = "neutral "
 showVal (VNat i) = show i
 
 showFun ∷ (Value → Value) → String
-showFun _f = "\\x.t"
+showFun _f = "\\x.t "
 
 --A neutral term is either a variable or an application of a neutral term to a value
 data Neutral
@@ -265,7 +265,8 @@ cType ii g (NPm first second) ann = undefined
 -- (Lam) introduction rule of dependent function type
 cType ii g (Lam s) ann =
   case ann of
-    (sig, VPi pi ty ty') -> do
+    (sig, VPi pi ty ty') --Lam s should be of dependent function type (Pi pi ty ty').
+     -> do
       let sVal = cEval s []
       cType
         (ii + 1)
