@@ -47,14 +47,15 @@ data CTerm
   deriving (Eq)
 
 instance Show CTerm where
-  show (Star n) = "*" ++ show n
-  show Nats = "Nat"
-  show (Pi _usage varTy resultTy) = "[Π]" ++ show varTy ++ "->" ++ show resultTy
+  show (Star n) = "* " ++ show n
+  show Nats = "Nat "
+  show (Pi _usage varTy resultTy) =
+    "[Π] " ++ show varTy ++ "-> " ++ show resultTy
   show (Pm _usage first second) =
-    "([π]" ++ show first ++ "," ++ show second ++ ")"
-  show (Pa _usage first second) = "/\\" ++ show first ++ show second
-  show (NPm first second) = "\\/" ++ show first ++ show second
-  show (Lam var) = "\\" ++ show var
+    "([π] " ++ show first ++ "," ++ show second ++ ") "
+  show (Pa _usage first second) = "/\\ " ++ show first ++ show second
+  show (NPm first second) = "\\/ " ++ show first ++ show second
+  show (Lam var) = "\\ " ++ show var
   show (Conv term) --Conv should be invisible to users.
    = show term
 
