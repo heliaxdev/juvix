@@ -199,9 +199,9 @@ boundfree _ii x        = Free x
 
 --error message for inferring/checking types
 errorMsg ∷ Natural → CTerm → Annotation → Annotation → String
-errorMsg binder iterm expectedT gotT =
+errorMsg binder cterm expectedT gotT =
   "Type mismatched. \n" ++
-  show iterm ++
+  show cterm ++
   " \n (binder number " ++
   show binder ++
   ") is of type \n" ++
@@ -263,14 +263,17 @@ cType ii g (Pm pi varType resultType) ann = undefined
 cType ii g (Pa pi varType resultType) ann = undefined
 cType ii g (NPm first second) ann = undefined
 -- (Lam) introduction rule of dependent function type
--- Does Lam need NatAndw as input? The type checker doesn't seem to check that.
-cType ii g (Lam s) (sig, VPi pi ty ty') = do
-  let sVal = cEval s []
-  cType
-    (ii + 1)
-    ((Local ii, (sig * pi, sVal)) : g) --put s in the context with usage sig*pi
-    (cSubst 0 (Free (Local ii)) s) --x (varType) in context S with sigma*pi usage.
-    (sig, ty' (vfree (Local ii))) --is of type M (usage sigma) in context T
+cType ii g (Lam s) ann =
+  case ann of
+    (sig, VPi pi ty ty') -> do
+      let sVal = cEval s []
+      cType
+        (ii + 1)
+        ((Local ii, (sig * pi, sVal)) : g) --put s in the context with usage sig*pi
+        (cSubst 0 (Free (Local ii)) s) --x (varType) in context S with sigma*pi usage.
+        (sig, ty' (vfree (Local ii))) --is of type M (usage sigma) in context T
+    _ ->
+      throwError $ showVal (snd ann) ++ " is not a function type but should be."
 cType ii g (Conv e) ann = do
   ann' <- iType ii g e
   unless
