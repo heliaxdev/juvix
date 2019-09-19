@@ -52,7 +52,7 @@ instance Show CTerm where
   show (Pi _usage varTy resultTy) =
     "[Π] " ++ show varTy ++ "-> " ++ show resultTy
   show (Pm _usage first second) =
-    "([π] " ++ show first ++ "," ++ show second ++ ") "
+    "([π] " ++ show first ++ ", " ++ show second ++ ") "
   show (Pa _usage first second) = "/\\ " ++ show first ++ show second
   show (NPm first second) = "\\/ " ++ show first ++ show second
   show (Lam var) = "\\ " ++ show var
@@ -89,13 +89,13 @@ data Value
 
 showVal ∷ Value → String
 showVal (VLam f) = showFun f
-showVal (VStar i) = "*" ++ show i
-showVal VNats = "Nats"
-showVal (VPi n v f) = "[" ++ show n ++ "]" ++ showVal v ++ " -> " ++ showFun f
+showVal (VStar i) = "* " ++ show i
+showVal VNats = "Nats "
+showVal (VPi n v f) = "[" ++ show n ++ "] " ++ showVal v ++ " -> " ++ showFun f
 showVal (VPm n v f) =
-  "([" ++ show n ++ "]" ++ showVal v ++ ", " ++ showFun f ++ ")"
-showVal (VPa _ _ _) = "/\\"
-showVal (VNPm _ _) = "\\/"
+  "([" ++ show n ++ "] " ++ showVal v ++ ", " ++ showFun f ++ ") "
+showVal (VPa _ _ _) = "/\\ "
+showVal (VNPm _ _) = "\\/ "
 showVal (VNeutral _n) = "neutral "
 showVal (VNat i) = show i
 
