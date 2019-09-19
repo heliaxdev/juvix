@@ -42,19 +42,19 @@ data Nat = Z
 
 Now, let us strip the recursive nature of this data type using pseudo-Haskell syntax
 ```
-data ℕ r = Z
+data N r = Z
          | S r
 
-let in = λr. λf. f (λd. d f) r
+let in = \r. \f. f (\d. d f) r
 
 type AlgebraM (f :: * → *) (x :: *) = forall (r :: *). (r → x) → (f r) → x
 
 type FixM f = forall x. AlgebraM f x → x
 
-type Nat = FixM ℕ
+type Nat = FixM N
 
 let zero = in Z : Nat
-let succ = λn. in (S n) : Nat → Nat
+let succ = \n. in (S n) : Nat → Nat
 ```
 
 The definitions above that are in need of serious attention are `AlgebraM` and `in`.
@@ -85,7 +85,7 @@ two isEven
 = not ((in S (in Z)) isEven)              — (5) by case expansion
 ```
 
-In the above example, we can see that `two` inhibits the type FixM ℕ, meaning that the F-Algebra we are working over is `ℕ r` for some `r`. So the algebra must take a function `r → x` and the `f r` itself. this corresponds to the `rec` and `n` in `isEven` respectively. We can see that `rec` only works with the `r` parameter which in the case of `two` is the Mendler encoded `succ zero`. By step `5` of the expansion the definition of `in` finally becomes clear in that $(λd. d f)$ shows itself to satisfy the inner recursive form.
+In the above example, we can see that `two` inhibits the type FixM ℕ, meaning that the F-Algebra we are working over is `N r` for some `r`. So the algebra must take a function `r → x` and the `f r` itself. this corresponds to the `rec` and `n` in `isEven` respectively. We can see that `rec` only works with the `r` parameter which in the case of `two` is the Mendler encoded `succ zero`. By step `5` of the expansion the definition of `in` finally becomes clear in that $(λd. d f)$ shows itself to satisfy the inner recursive form.
 
 However there is one small problem. In untyped lambda calculus we could define pred as follows:
 
@@ -175,7 +175,7 @@ let rec pred =
             (\n. n)
             (\x. \y. D (pred x) (pred y))
 ```
-Another important aspect to Scott encodings is that they can not be typed in `System-F` alone, but instead `System-F` extended with covariant recursive types[@Scott]. Due to this, Scott encodings can be typed safely in Juvix Core.
+Another important aspect to Scott encodings is that they can not be typed in `System-F` alone, but instead `System-F` extended with covariant recursive types[@scott]. Due to this, Scott encodings can be typed safely in Juvix Core.
 
 ## Desugaring
 

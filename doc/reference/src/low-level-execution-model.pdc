@@ -34,12 +34,12 @@ The EAL term is first erased to a simply-typed term, with EAL types and levels o
 **Abstraction** is applied to terms of the form $λx.t$ and type $A ⊸ B$.
 
 \begin{tikzpicture}
-\inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
-\inetbigcell[below = 30pt]{l}{$λ$}[3]
+  \inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
+  \inetbigcell[below = 30pt]{l}{$λ$}[3]
 
-\axWire{g/1}{l/1}{$(arg)$}{}
-\cutWire{g.out}{l/2}{}{}
-\outwire[]{l.out}{$A ⊸ B$}
+  \axWire{g/1}{l/1}{$(arg)$}{}
+  \cutWire{g.out}{l/2}{}{}
+  \outwire[]{l.out}{$A ⊸ B$}
 \end{tikzpicture}
 
 Wiring of the argument $x$ varies depending on variable usage linearity:
@@ -47,37 +47,37 @@ Wiring of the argument $x$ varies depending on variable usage linearity:
 **Weakening**: If $x$ does not appear in the body $t$, the $λ$ argument port is connected to an eraser.
 
 \begin{tikzpicture}
-\inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
-\inode[]{e}{$⊗$}
-\inetbigcell[below = 30pt]{l}{$λ$}[3]
+  \inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
+  \inode[]{e}{$⊗$}
+  \inetbigcell[below = 30pt]{l}{$λ$}[3]
 
-\cutWire{e}{l/1}{$$}{}
-\cutWire{g.out}{l/2}{$$}{}
-\outwire[]{l.out}{$A ⊸ B$}
+  \cutWire{e}{l/1}{$$}{}
+  \cutWire{g.out}{l/2}{$$}{}
+  \outwire[]{l.out}{$A ⊸ B$}
 \end{tikzpicture}
 
 **Linear / contraction**: If *x* appears once or more in the body $t$, the $λ$ argument port is connected to the occurrence(s). If there is more than one occurrence, usages will be shared by a set of fan nodes constructed by the application encoding.
 
 \begin{tikzpicture}
-\inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
-\inetbigcell[below = 30pt]{l}{$λ$}[3]
+  \inetbigcell[right = 30pt]{g}{$\phi (t)$}[4]
+  \inetbigcell[below = 30pt]{l}{$λ$}[3]
 
-\axWire{g/1}{l/1}{}{}
-\cutWire{g.out}{l/2}{}{}
-\outwire[]{l.out}{$A ⊸ B$}
+  \axWire{g/1}{l/1}{}{}
+  \cutWire{g.out}{l/2}{}{}
+  \outwire[]{l.out}{$A ⊸ B$}
 \end{tikzpicture}
 
 **Application** is applied to terms of the form $(t_1 t_2)$ and type $C$.
 
 \begin{tikzpicture}
 
-\inetbigcell[right = -25 pt]{g}{$\phi(t_1)$}[3]
-\inetbigcell[right = 25 pt]{h}{$\phi(t_2)$}[3]
-\inetbigcell[below = 40 pt]{a}{$@$}[3]
+  \inetbigcell[right = -25 pt]{g}{$\phi(t_1)$}[3]
+  \inetbigcell[right = 25 pt]{h}{$\phi(t_2)$}[3]
+  \inetbigcell[below = 40 pt]{a}{$@$}[3]
 
-\cutWire{g.out}{a/1}{}{}
-\cutWire{h.out}{a/2}{}{}
-\outwire[]{a.out}{$C$}
+  \cutWire{g.out}{a/1}{}{}
+  \cutWire{h.out}{a/2}{}{}
+  \outwire[]{a.out}{$C$}
 
 \end{tikzpicture}
 
@@ -85,18 +85,18 @@ For each free variable $x$ in $(t_1 t_2)$ occurring more than once, all occurren
 
 \begin{tikzpicture}
 
-\inetbigcell[rotate = 180, above = 40 pt]{f}{\rotatebox[origin=c]{180}{$f_i$}}[3]
-\inetbigcell[right = -25 pt]{g}{$\phi(t_1)$}[3]
-\inetbigcell[right = 25 pt]{h}{$\phi(t_2)$}[3]
-\inetbigcell[below = 40 pt]{a}{$@$}[3]
+  \inetbigcell[rotate = 180, above = 40 pt]{f}{\rotatebox[origin=c]{180}{$f_i$}}[3]
+  \inetbigcell[right = -25 pt]{g}{$\phi(t_1)$}[3]
+  \inetbigcell[right = 25 pt]{h}{$\phi(t_2)$}[3]
+  \inetbigcell[below = 40 pt]{a}{$@$}[3]
 
-\cutWire{g.out}{a/1}{}{}
-\cutWire{h.out}{a/2}{}{}
-\outwire[]{a.out}{$C$}
-\inwire[]{f.out}{$x$}
+  \cutWire{g.out}{a/1}{}{}
+  \cutWire{h.out}{a/2}{}{}
+  \outwire[]{a.out}{$C$}
+  \inwire[]{f.out}{$x$}
 
-\axWire{g/1}{f/1}{}{}
-\axWire{h/1}{f/2}{}{}
+  \axWire{g/1}{f/1}{}{}
+  \axWire{h/1}{f/2}{}{}
 \end{tikzpicture}
 
 That ends the encoding rules for basic lambda terms.
@@ -198,257 +198,257 @@ The oracle-free abstract algorithm for optimal reduction operates on four node t
 \restylefloat{figure}
 
 \begin{figure}[H]
-\caption{Lambda-application annihilation (beta reduction)}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$@$}[5]
-\inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$λ$}}[5]
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\outwire[]{l/1}{c}
-\outwire[]{l/4}{b}
-\cutWire{a.out}{l.out}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\wirecross[]{a}{c}{b}{d}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Lambda-application annihilation (beta reduction)}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$@$}[5]
+      \inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$λ$}}[5]
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \outwire[]{l/1}{c}
+      \outwire[]{l/4}{b}
+      \cutWire{a.out}{l.out}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \wirecross[]{a}{c}{b}{d}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Fan-fan commutation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$f_i$}[5]
-\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$f_j$}}[5]
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\outwire[]{b/1}{c}
-\outwire[]{b/4}{b}
-\cutWire{a.out}{b.out}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$f_j$}}[5]
-\inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$f_j$}}[5]
-\inetcell[below = 40 pt of a]{c}{$f_i$}[5]
-\inetcell[below = 40 pt of b]{d}{$f_i$}[5]
-\inwire[]{a.out}{a}
-\inwire[]{b.out}{d}
-\outwire[]{c.out}{b}
-\outwire[]{d.out}{c}
-\swire[0]{a/4}{c/1}{}{}
-\swire[0]{b/1}{d/4}{}{}
-\swire[0]{a/1}{d/1}{}{}
-\swire[0]{b/4}{c/4}{}{}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Fan-fan commutation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$f_i$}[5]
+      \inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$f_j$}}[5]
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \outwire[]{b/1}{c}
+      \outwire[]{b/4}{b}
+      \cutWire{a.out}{b.out}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$f_j$}}[5]
+      \inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$f_j$}}[5]
+      \inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+      \inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+      \inwire[]{a.out}{a}
+      \inwire[]{b.out}{d}
+      \outwire[]{c.out}{b}
+      \outwire[]{d.out}{c}
+      \swire[0]{a/4}{c/1}{}{}
+      \swire[0]{b/1}{d/4}{}{}
+      \swire[0]{a/1}{d/1}{}{}
+      \swire[0]{b/4}{c/4}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Fan-application commutation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$f_i$}[5]
-\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$@$}}[5]
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\outwire[]{b/1}{c}
-\outwire[]{b/4}{b}
-\cutWire{a.out}{b.out}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$@$}}[5]
-\inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$@$}}[5]
-\inetcell[below = 40 pt of a]{c}{$f_i$}[5]
-\inetcell[below = 40 pt of b]{d}{$f_i$}[5]
-\inwire[]{a.out}{a}
-\inwire[]{b.out}{d}
-\outwire[]{c.out}{b}
-\outwire[]{d.out}{c}
-\swire[0]{a/4}{c/1}{}{}
-\swire[0]{b/1}{d/4}{}{}
-\swire[0]{a/1}{d/1}{}{}
-\swire[0]{b/4}{c/4}{}{}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Fan-application commutation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$f_i$}[5]
+      \inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$@$}}[5]
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \outwire[]{b/1}{c}
+      \outwire[]{b/4}{b}
+      \cutWire{a.out}{b.out}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$@$}}[5]
+      \inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$@$}}[5]
+      \inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+      \inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+      \inwire[]{a.out}{a}
+      \inwire[]{b.out}{d}
+      \outwire[]{c.out}{b}
+      \outwire[]{d.out}{c}
+      \swire[0]{a/4}{c/1}{}{}
+      \swire[0]{b/1}{d/4}{}{}
+      \swire[0]{a/1}{d/1}{}{}
+      \swire[0]{b/4}{c/4}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Fan-lambda commutation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$f_i$}[5]
-\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$λ$}}[5]
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\outwire[]{b/1}{c}
-\outwire[]{b/4}{b}
-\cutWire{a.out}{b.out}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$λ$}}[5]
-\inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$λ$}}[5]
-\inetcell[below = 40 pt of a]{c}{$f_i$}[5]
-\inetcell[below = 40 pt of b]{d}{$f_i$}[5]
-\inwire[]{a.out}{a}
-\inwire[]{b.out}{d}
-\outwire[]{c.out}{b}
-\outwire[]{d.out}{c}
-\swire[0]{a/4}{c/1}{}{}
-\swire[0]{b/1}{d/4}{}{}
-\swire[0]{a/1}{d/1}{}{}
-\swire[0]{b/4}{c/4}{}{}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Fan-lambda commutation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$f_i$}[5]
+      \inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$λ$}}[5]
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \outwire[]{b/1}{c}
+      \outwire[]{b/4}{b}
+      \cutWire{a.out}{b.out}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$λ$}}[5]
+      \inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$λ$}}[5]
+      \inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+      \inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+      \inwire[]{a.out}{a}
+      \inwire[]{b.out}{d}
+      \outwire[]{c.out}{b}
+      \outwire[]{d.out}{c}
+      \swire[0]{a/4}{c/1}{}{}
+      \swire[0]{b/1}{d/4}{}{}
+      \swire[0]{a/1}{d/1}{}{}
+      \swire[0]{b/4}{c/4}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Fan-fan annihilation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$f_i$}[5]
-\inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$f_i$}}[5]
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\outwire[]{b/1}{c}
-\outwire[]{b/4}{b}
-\cutWire{a.out}{b.out}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\wirestraight[]{a}{c}{b}{d}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Fan-fan annihilation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$f_i$}[5]
+      \inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$f_i$}}[5]
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \outwire[]{b/1}{c}
+      \outwire[]{b/4}{b}
+      \cutWire{a.out}{b.out}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \wirestraight[]{a}{c}{b}{d}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Eraser-lambda commutation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$λ$}[5]
-\inode[below = 40 pt]{b}{$⊗$}
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\cutWire{a.out}{b.north}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inode[]{a}{$⊗$}
-\inode[right = 20 pt]{b}{$⊗$}
-\inwire[]{a}{a}
-\inwire[]{b}{d}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Eraser-lambda commutation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$λ$}[5]
+      \inode[below = 40 pt]{b}{$⊗$}
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \cutWire{a.out}{b.north}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inode[]{a}{$⊗$}
+      \inode[right = 20 pt]{b}{$⊗$}
+      \inwire[]{a}{a}
+      \inwire[]{b}{d}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Eraser-application commutation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$@$}[5]
-\inode[below = 40 pt]{b}{$⊗$}
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\cutWire{a.out}{b.north}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inode[]{a}{$⊗$}
-\inode[right = 20 pt]{b}{$⊗$}
-\inwire[]{a}{a}
-\inwire[]{b}{d}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Eraser-application commutation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$@$}[5]
+      \inode[below = 40 pt]{b}{$⊗$}
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \cutWire{a.out}{b.north}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inode[]{a}{$⊗$}
+      \inode[right = 20 pt]{b}{$⊗$}
+      \inwire[]{a}{a}
+      \inwire[]{b}{d}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Eraser-fan commutation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inetcell[]{a}{$f_i$}[5]
-\inode[below = 40 pt]{b}{$⊗$}
-\inwire[]{a/1}{a}
-\inwire[]{a/4}{d}
-\cutWire{a.out}{b.north}{}{}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inode[]{a}{$⊗$}
-\inode[right = 20 pt]{b}{$⊗$}
-\inwire[]{a}{a}
-\inwire[]{b}{d}
-\end{tikzpicture}
-\end{subfigure}
+  \caption{Eraser-fan commutation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inetcell[]{a}{$f_i$}[5]
+      \inode[below = 40 pt]{b}{$⊗$}
+      \inwire[]{a/1}{a}
+      \inwire[]{a/4}{d}
+      \cutWire{a.out}{b.north}{}{}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inode[]{a}{$⊗$}
+      \inode[right = 20 pt]{b}{$⊗$}
+      \inwire[]{a}{a}
+      \inwire[]{b}{d}
+    \end{tikzpicture}
+  \end{subfigure}
 \end{figure}
 
 \begin{figure}[H]
-\caption{Eraser-eraser annihilation}
-\begin{subfigure}[c]{0.1\textwidth}
-\begin{tikzpicture}
-\inode[]{a}{$⊗$}
-\inode[below = 40 pt]{b}{$⊗$}
-\vwire{a}{b}
-\end{tikzpicture}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.05\textwidth}
-\huge{→}
-\end{subfigure}
-~
-\begin{subfigure}[c]{0.1\textwidth}
-\end{subfigure}
+  \caption{Eraser-eraser annihilation}
+  \begin{subfigure}[c]{0.1\textwidth}
+    \begin{tikzpicture}
+      \inode[]{a}{$⊗$}
+      \inode[below = 40 pt]{b}{$⊗$}
+      \vwire{a}{b}
+    \end{tikzpicture}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.05\textwidth}
+    \huge{→}
+  \end{subfigure}
+  ~
+  \begin{subfigure}[c]{0.1\textwidth}
+  \end{subfigure}
 \end{figure}
 
 \floatstyle{boxed}
@@ -463,11 +463,11 @@ The oracle-free abstract algorithm for optimal reduction operates on four node t
     1. level !a b = 1 + level a b
     1. level $\bar{!}a$ b = -1 + level a b
 1. The level of a subterm is constant through beta reduction
-    1. lam x . t -> lam x . t (trivial)
-    1. x -> x (trivial)
-    1. !x -> !x (trivial)
-    1. ! $\bar{!}$ x -> x (trivial) (defined-ness guaranteed by well-bracketed property)
-    1. (lam x . a) b -> a [ x := b ]
+    1. lam x . t $→$ lam x . t (trivial)
+    1. x $→$ x (trivial)
+    1. !x $→$ !x (trivial)
+    1. ! $\bar{!}$ x $→$ x (trivial) (defined-ness guaranteed by well-bracketed property)
+    1. (lam x . a) b $→$ a [ x := b ]
         1. If t was in a - trivial
         1. If t was in b - level a x = 0 by well-bracketed property, so level b t = level (a [ x := b ]) t
 1. Map this level to nodes in the interaction net translation
@@ -482,6 +482,338 @@ The oracle-free abstract algorithm for optimal reduction operates on four node t
     1. No loops in reduction of EAL-typable terms that would render labels underspecified
 
 (needs pretty pictures)
+
+### Argument for correctness of read-back
+
+We wish to show that a read-back of an EAL-expression that has undergone zero or more reductions gives back the same result as normal evaluation up to alpha equality.
+
+Before we can prove this result, we must first prove a few lemmas and theorems first as well talk about what fan in's with the same label imply.
+
+The first lemma we wish to prove is the following
+
+\begin{Lemma}{AST→Net has one free port}{AST->Net}
+  Let $A$ be a valid BOHM term.
+  \\ \\
+  Now Consider the net encoding of $A$, let $N_a$ be this net.
+  \\ \\
+  Now let us consider any sub case of $A$, $L = P(n_1 \star \cdots \star n_k)$.
+  \\ \\
+  The node corresponding to $L$ looks.
+  \\ \\
+  TODO :: put ports on this images
+  \begin{tikzpicture}
+    \draw (0,0) circle (.8cm);
+  \end{tikzpicture}
+  \\ \\
+  Where the labels in $N_a$ are the same as in $L$, with $n_{k+1}$ being an extra port which connects to the ADT above it.
+  \\ \\
+  For an ADT to be realized, we must have all arguments, so all these ports must be connected.
+  Now, if $L$ is $A$, then we have one free port, however if it is not, then this free port must not be free but instead be connected to the ADT above it.
+  \\ \\
+  For free variables which have no $\lambda$ to connect to, a symbol node is created, maintaining the invariant.
+  \\ \\
+  $\therefore$ AST→Net has one free port
+\end{Lemma}
+
+
+Now we need to prove that evaluating this net does not change this fact
+
+
+\begin{Theorem}{AST→Net→Eval has one free port}{AST->Net->Eval}
+  Let $A = Net(AST)$.
+  \\ \\
+  By lemma \ref{Lm:AST->Net} $A$ has one free port.
+  \\ \\
+  We must now show $Eval(A)$ does not change the number of free ports.
+  \\ \\
+  We can show this by simply considering how every reduction rule works. For the sake of brevity, we will only consider the three variations of rewrite rules present in the BOHM system WLOG.
+  \\ \\
+  TODO :: Make the ports vary for all example with $\cdots$ drawn on the images
+  \begin{tcolorbox}[title=Case 1 - Rewire, colframe=inner-box-1]
+    Nodes that fall under this case:
+
+    1. And↔T
+
+    2. And↔F
+
+    3. Or↔T
+
+    4. Or↔F
+
+    \begin{figure}[H]
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \inetcell[]{a}{$g$}[5]
+          \inetcell[rotate = 180, below = 50 pt]{l}{\rotatebox[origin=c]{180}{$f$}}[5]
+          \inwire[]{a/1}{a}
+          \inwire[]{a/4}{d}
+          \outwire[]{l/1}{c}
+          \outwire[]{l/4}{b}
+          \cutWire{a.out}{l.out}{}{}
+        \end{tikzpicture}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.05\textwidth}
+        \huge{→}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \wirecross[]{a}{c}{b}{d}
+        \end{tikzpicture}
+      \end{subfigure}
+    \end{figure}
+
+    The wire connecting the main ports of node $f$ and node $g$ is eliminated.
+    \\ \\
+    The rest of the wires are simply rewired to each other, thus not altering the total number of free ports.
+  \end{tcolorbox}
+
+  \begin{tcolorbox}[title=Case 2 - Isolation, colframe=inner-box-1]
+    Nodes that fall under this case:
+
+    1. Cdr↔Cons
+
+    2. Car↔Cons
+
+    3. TestNil↔Cons
+
+    4. IfThenElse↔T
+
+    5. IfThenElse↔F
+
+    \begin{figure}[H]
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \inetcell[]{a}{$f$}[6]
+          \inode[below = 40 pt]{b}{$g$}
+          \inwire[]{a/1}{a}
+          \inwire[]{a/3}{b}
+          \inwire[]{a/5}{c}
+          \cutWire{a.out}{b.north}{}{}
+        \end{tikzpicture}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.05\textwidth}
+        \huge{→}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \inode[right = 20 pt]{b}{$⊗$}
+          \inwire[]{b}{b}
+          \draw (-1.5,-1.5) node{a}  .. controls (-1.5,1) and (0,-1.5) .. (0,1) node{c};
+        \end{tikzpicture}
+      \end{subfigure}
+    \end{figure}
+
+    Here we can see that like the first case the wire that connects the main ports are eliminated, and that $a$ and $c$ are rewired.
+    \\ \\
+    Additionally an eraser node is connected to the $b$, since the eraser node only has a main port, the number of free ports is not affected.
+  \end{tcolorbox}
+
+  \begin{tcolorbox}[title=Case 3 - Creation, colframe=inner-box-1]
+    Nodes that fall under this case:
+
+    1. TestNil↔Nil
+
+    2. All nodes which ''curry'' and eventually become an Int node or T/F
+
+    \qquad - add, not, mod, div, sub, more, noteq, eq, meq, less, leq. ↔ intlit
+
+    3. Not↔T
+
+    4. Not↔F
+
+    5. Cdr↔Nil
+
+    \begin{figure}[H]
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \inetcell[]{a}{$f$}[6]
+          \inode[below = 40 pt]{b}{$g$}
+          \inwire[]{a/1}{a}
+          \inwire[]{a/5}{c}
+          \cutWire{a.out}{b.north}{}{}
+        \end{tikzpicture}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.05\textwidth}
+        \huge{→}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \inetcell[]{a}{$g$}[6]
+          \inwire[]{a/3}{a}
+          \cutWire{a.out}{b.north}{}{}{}
+        \end{tikzpicture}
+      \end{subfigure}
+    \end{figure}
+
+    In this case, we take a node with $n$ ports and construct a node with $n-1$ ports. since the remaining ports are still wired to the same locations,
+    the number of free ports does not change
+  \end{tcolorbox}
+
+  \begin{tcolorbox}[title=Case 4 - Duplication, colframe=inner-box-1]
+    \begin{figure}[H]
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \inetcell[]{a}{$f_i$}[5]
+          \inetcell[rotate = 180, below = 50 pt]{b}{\rotatebox[origin=c]{180}{$a$}}[5]
+          \inwire[]{a/1}{a}
+          \inwire[]{a/4}{d}
+          \outwire[]{b/1}{c}
+          \outwire[]{b/4}{b}
+          \cutWire{a.out}{b.out}{}{}
+        \end{tikzpicture}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.05\textwidth}
+        \huge{→}
+      \end{subfigure}
+      ~
+      \begin{subfigure}[c]{0.1\textwidth}
+        \begin{tikzpicture}
+          \inetcell[rotate = 180]{a}{\rotatebox[origin=c]{180}{$a$}}[5]
+          \inetcell[rotate = 180, right = 60 pt of a]{b}{\rotatebox[origin=c]{180}{$a$}}[5]
+          \inetcell[below = 40 pt of a]{c}{$f_i$}[5]
+          \inetcell[below = 40 pt of b]{d}{$f_i$}[5]
+          \inwire[]{a.out}{a}
+          \inwire[]{b.out}{d}
+          \outwire[]{c.out}{b}
+          \outwire[]{d.out}{c}
+          \swire[0]{a/4}{c/1}{}{}
+          \swire[0]{b/1}{d/4}{}{}
+          \swire[0]{a/1}{d/1}{}{}
+          \swire[0]{b/4}{c/4}{}{}
+        \end{tikzpicture}
+      \end{subfigure}
+    \end{figure}
+    Here we see the case for a fan-in node $f_i$ and some arbitrary node $a$. Both nodes get duplicated,
+    however the number of free ports is preserved, as each node that is created is internally connected to the duplicated nodes.
+    Additionally the four external ports are preserved among the four duplicated nodes.
+  \end{tcolorbox}
+  $\therefore$ since all cases are covered, $Eval(A)$ has only one free port.
+\end{Theorem}
+
+We now shall define one more definition before getting to our main theorem.
+
+
+\begin{Definition}{Valid EAL-Net}{Valid EAL-Net}
+  A \textcolor{definitions}{\textbf{Valid EAL-Net}} is a net translated from the EAL subset of BOHM that has undergone zero or more reduction steps.
+\end{Definition}
+
+\begin{Theorem}{Read back from a Valid EAL-Net gives is $α$ equivalent to the normal evaluation of the original EAL-term}{readback}
+  Let $A$ be the Valid EAL-Net.
+  \\ \\
+  By Definition \ref{De:Valid EAL-Net} this net originated from a valid EAL-AST which is a subset of BOHM.
+  \\ \\
+  Thus by Theorem \ref{Th:AST->Net->Eval} $A$ must only have one free port.
+  \\ \\
+  Furthermore this free port must be the root of the graph/old AST.
+  \\ \\
+  Now to show this evaluates to the same answer, we must reconstruct the ADT considering all cases.
+  \\ \\
+  For this we must keep two maps as we do this algorithm.
+  \\ \\
+  The first being the variable name from a specific lambda.
+  \\ \\
+  The second map is a map from the fan in number to the current status of our traversal of said fan-in.
+  \\ \\
+  We can now write a proof by induction, specifically, we shall consider three cases:
+
+  1. $\lambda$ /\ $\mu$
+
+  2. $FanIn$
+
+  3. The rest.
+
+  We will also consider the inductive case first for the following proof.
+  \\ \\
+  Let $rec$ be this recursive algorithm.
+  \begin{tcolorbox}[title= Case 1 - rest, colframe=inner-box-1]
+    The logic for all other cases is simple. Consider some node $P$ with ports $1 \cdots n$.
+    \\ \\
+    Let port n be the inhabitant of the BOHM ADT.
+    \\ \\
+    By induction we run this algorithm and ports $1 \cdots n-1$ are $α$ equivalent to normal evaluation.
+    \\ \\
+    Thus we can construct ADT $P$ by $P(rec(n_1) \cdots rec(n_{n-1}))$.
+    \\ \\
+    $\therefore$ $P$ is well formed and we get an $α$ equivalent answer.
+  \end{tcolorbox}
+
+  \begin{tcolorbox}[title= Case 2 - $\lambda$ /\ $\mu$, colframe=inner-box-1]
+    The $\lambda$ /\ $\mu$ case is special in that in a Valid EAL-Net the node will be traversed via the primary port via the parent AST and then by the second auxiliary port.
+    \\ \\
+    The second auxiliary port refers to the variable binding.
+    \\ \\
+    When the algorithm traverse the $\lambda$ node by the primary port first (this must be the case), we add a new var into the first map.
+    \\ \\
+    Then we run the recursive algorithm on Auxiliary 1, this subterm will only access the second Auxiliary port of this $\lambda$ node.
+    \\ \\
+    If the term is unused, then we will connect an eraser node to the second Auxiliary port.
+    \\ \\
+    This thus preserves the number of free ports.
+    \\ \\
+    By induction the subterms on Auxiliary one are also well formed
+    \\ \\
+    $\therefore$ the Lambda term is $α$ equivalent to the normal evaluation answer.
+  \end{tcolorbox}
+
+  \begin{tcolorbox}[breakable, break at=8cm, title= Case 3 - FanIn, colframe=inner-box-1]
+    FanIn's are another interesting case, for this case we allocate a map from each FanIn to the traversal status.
+    \\ \\
+    For this, we keep a first-in-last-out stack of the following types.
+    \begin{verbatim}
+     type Status = In FanPort | Complete FanPort
+     type FanPort = Circle | Star
+    \end{verbatim}
+    Where circle is the first auxiliary port and star is the second.
+    \\ \\
+    The Status type deserves some explanations. So $In$ means that we have visited either circle or star of a FanIn node without visiting the corresponding port on the FanOut.
+    \\ \\
+    The $Complete$ case means that we have visited the corresponding FanOut port, and have thus completed the traversal of the specific node. Much like how a ) closes a (. This is also why it is first-in-last-out, as we must close the most recent $In$ (parenthesis) before we can close the previous one.
+    \begin{figure}[H]
+        \begin{tikzpicture}
+          \inetcell[]{a}{$f_i$}[5]
+          \draw (-0.29, 0.23) node {$\scalebox{1.9}{$\circ$}$};
+          \draw ( 0.29, 0.29) node {$\scalebox{1.7}{$\star$}$};
+          \cutWire{a.out}{b.north}{}{}
+        \end{tikzpicture}
+    \end{figure}
+
+
+    For this analysis we must consider what port we can enter from, however first we should note that before entering the primary port of a FanIn, that we must have first traversed through either $\star$ or $\circ$ first.
+    \\ \\
+    This is the case because entering a FanIn in this way is known as a FanOut, and denotes the end of sharing.
+    And since ending sharing before starting is not possible from a valid EAL-Net, these cases never happen.
+    \begin{tcolorbox}[title= Enter from Prim, colframe=inner-box-2, breakable]
+      As shown above, we must have already traversed a FanIn node, namely $\star$ or $\circ$.
+      \\ \\
+      This means the map from the FanIn number $i$ is not empty, and thus we have a history of completing nodes or being in nodes.
+      \\ \\
+      If we have an unfinished $In$, then we pick the most recent $In$ port left to traverse.
+      This is forced as this node is considered a FanOut and thus closes sharing.
+      \\ \\
+      We then mark the node as complete. If we have completed a single node, then we simply choose to leave through the other port.
+      \\ \\
+      Since we are working over valid EAL-Net's which require no oracle, there is no ambiguity in this mechanism. Furthermore, this fact also excludes any other configurations from happening.
+    \end{tcolorbox}
+    \begin{tcolorbox}[title= Enter from Aux, colframe=inner-box-2, breakable]
+      We entered the FanIn through an auxiliary port, so we mark in the second map that we are $In$ this port at FanIn node $i$.
+      \\ \\
+      We then leave through the principle port, denoting the beginning of sharing.
+    \end{tcolorbox}
+    These cases handle all possible configurations in which we can enter and the validity of the expressions are handled by induction.
+  \end{tcolorbox}
+  Now, the base case is quite simple, consider a node, say with zero parameters by itself.
+  \\ \\
+  This node is trivially readback as is, being $α$ equivalent to the evaluated term.
+  \\ \\
+  $\therefore$ by induction read-back from a valid EAL-Net will give us the same expression up to $α$ equivalence as evaluating the node via a more traditional evaluation methods
+\end{Theorem}
 
 ## Evaluator cost model
 

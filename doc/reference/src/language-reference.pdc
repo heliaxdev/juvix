@@ -42,9 +42,13 @@ header-includes:
     - \usepackage{tikz}
     - \usetikzlibrary{arrows,automata}
     - \newtheorem{theorem}{Theorem}
+    - \usepackage[many]{tcolorbox}
+    - \tcbuselibrary{theorems}
+    - \input{src/definitions}
 ---
 
 \pagebreak
+
 
 # Motivation
 
