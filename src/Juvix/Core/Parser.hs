@@ -22,7 +22,7 @@ languageDef =
         , "[π]" --dependent multiplicative conjunction type
         , "/\\" --dependent additive conjunction type
         , "\\/" --non-dependent multiplicative disjunction type
-        , "Bound" --Bound var
+        , "\\" --Bound var
         , "Free"
         , "Local"
         , "Quote"
@@ -114,7 +114,7 @@ convTerm = do
 
 boundTerm ∷ Parser ITerm
 boundTerm = do
-  reserved "Bound"
+  reserved "\\"
   index <- natural
   return $ Bound (fromInteger index)
 
