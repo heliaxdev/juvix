@@ -1,4 +1,4 @@
-personal_ws-1.1 en 319 
+personal_ws-1.1 en 341 
 succ
 textwidth
 AST
@@ -19,6 +19,7 @@ graphicx
 colback
 QTT
 booleans
+bijective
 polymorphism
 FanIn's
 snd
@@ -27,6 +28,7 @@ parallelise
 ceruleanblue
 monoid
 Mazza's
+Asher
 mdframed
 Coq
 subcaption
@@ -39,12 +41,14 @@ IntLit
 src
 cdots
 framemethod
+subgraphs
 typechecking
 rightline
 toc
 mainfont
 cybercoin
 Juvix
+STG
 AlgebraM
 frontend
 boolean
@@ -86,6 +90,7 @@ textcolor
 circ
 forall
 EVM
+Ackermann
 von
 typ
 oceanboatblue
@@ -114,18 +119,22 @@ fontsize
 FixM
 inetbigcell
 mediumpersianblue
+GHC's
 semiring
+SIMD
 TinyRAM
 nonfungible
 titlepage
 runtime
+ADTs
 overset
 color
 inequation
 Tezos
 amsthm
-INet
+typeability
 inet
+INet
 prooftree
 backends
 Ethereum's
@@ -160,10 +169,12 @@ optimality
 Conor
 Stumpf
 destructors
+al
 precontext
 leq
 typechecker
 bytestrings
+typeclass
 centering
 ABSALG
 FanOut
@@ -175,7 +186,9 @@ FPGA
 disjunction
 xxs
 ax
+satisfiability
 Eval
+eval
 innerbottommargin
 AxiomC
 catamorphism
@@ -192,11 +205,13 @@ meq
 pagebreak
 semithick
 Fn
+et
 whnf
 newtheorem
 RightLabel
 LLL
 desugar
+ness
 nat
 FV
 lang
@@ -205,9 +220,11 @@ parallelises
 hyperref
 cmyk
 le
+redex
 conv
 skipbelow
 Lm
+underspecified
 Blockchains
 textbf
 pluggable
@@ -217,8 +234,8 @@ vdash
 lavenderpurple
 Milner
 unintuitive
-tikz
 TikZ
+tikz
 refl
 deconstructor
 tikzstyle
@@ -263,13 +280,16 @@ TrinaryInfC
 xs
 REPL
 ZK
+destructor
 newtcbtheorem
 ys
+redexes
 monadic
 DejaVuSerifCondensed
 wirecross
 tcbcolframe
 restylefloat
+zs
 CUDA
 composable
 bottomline
@@ -291,6 +311,7 @@ floatstyle
 Cedille
 ruleset
 verifiability
+haskell
 dataflow
 QuaternaryInfC
 ceil
@@ -305,6 +326,7 @@ DTEAL
 mathbb
 arg
 resetcolorseries
+subgraph
 param
 TBD
 memoisation

@@ -6,6 +6,53 @@ Juvix Core is primarily inspired by Quantitative Type Theory [@quantitative-type
 
 > Note: at present, the substructural typing in the core language is not required for optimal reduction — separate elementary affine logic assignments are inferred in the lower-level stage. Substructural typing is used in Juvix Core to provide additional precision to the programmer and enable optimisations in the bespoke compilation path to custom rewrite rules (such as avoiding garbage collection). In the future a closer fusion allowing the more precise usage information to inform interaction net construction is expected; this is an open research question.
 
+## Changes from QTT
+
+### Additional linear logic connectives
+
+#### Multiplicative disjunction
+
+- Explicit parallelism
+- Hints for interaction net runtime
+- Translated as multiplicative conjunction, but must be de-structured as a whole
+
+#### Dependent additive conjunction
+
+- Resourceful production
+- Translated as multiplicative conjunction, but only one of $fst$ or $snd$ can be used
+
+### Usage polymorphism
+
+An example, with Church-encoded naturals:
+
+```
+one :: 1 (1 (a -> a) -> 1 a -> a)
+
+two :: 1 (2 (a -> a) -> 1 a -> a)
+
+three :: 1 (3 (a -> a) -> 1 a -> a)
+```
+
+where, ideally, we have
+
+```
+succ :: 1 (1 (n (a -> a) -> 1 a -> a) -> ((n + 1) (a -> a) -> 1 a -> a)
+```
+
+Several options:
+
+1 - Typeclass-style usage polymorphism in the frontend language
+
+Frontend language level usage polymorphism, where succ must be instantiated for an n known at compile time at each call site (like a typeclass), and must be instantiated with w if n is unknown at the call site. This is easy, but probably not that useful, since often we won't know n for the argument at compile time.
+
+2 - Usage polymorphism in the type theory
+
+Add a $forall u . T$, where $u$ ranges over the semiring, to the core type theory, and can then appear as a variable for any usage in $T$. This then will require n-variable polynomial constraint satisfiability checks during typechecking, but should have zero runtime cost. It may impact the kinds of memory management we can automate, not sure yet, but we should still have more information than without quantisation at all (or, equivalently, with w).
+
+3 - Dependent usaging in the type theory
+
+Add a $↑u$ term to lift a term to a usage, such that usages in $T$ in a dependent function of type $(x \overset{π}{:} S) → T$ can depend on $x$ (we must then choose some canonical bijective mapping between semiring elements and terms), and some sort of beta-equivalence proofs of usage correctness will be required of programmers using this kind of lifting (in order for the term to typecheck). (possibly also add a usage-to-term $↓u$, not sure)
+
 ## Preliminaries
 
 A *semiring* $R$ is a set $R$ with binary operations $+$ (addition) and $⋅$ (multiplication), such that $(R, +)$ is a commutative monoid with identity $0$,
@@ -227,11 +274,10 @@ required for the argument, respectively:
 
 \begin{prooftree}
 \AxiomC{$Γ_1 ⊢ M \overset{σ}{:} (x \overset{π}{:} S) → T$}
-\AxiomC{$Γ_2 ⊢ N \overset{σ′}{:} S$}
+\AxiomC{$Γ_2 ⊢ N \overset{σ π}{:} S$}
 \AxiomC{$0Γ_1 = 0Γ_2$}
-\AxiomC{$σ′=0 ⇔ (π=0 ∨ σ=0)$}
 \RightLabel{App}
-\QuaternaryInfC{$Γ_1 + πΓ_2 ⊢ M N \overset{σ}{:} T[x := N]$}
+\TrinaryInfC{$Γ_1 + Γ_2 ⊢ M N \overset{σ}{:} T[x := N]$}
 \end{prooftree}
 
 - $0Γ_1 = 0Γ_2$ means that $Γ_1$ and $Γ_2$ have the same variables with the same types
@@ -261,11 +307,10 @@ Type formation does not require any resources.
 Introduction rule:
 
 \begin{prooftree}
-\AxiomC{$Γ_1 ⊢ M \overset{σ′}{:} S$}
-\AxiomC{$0Γ_1 = 0Γ_2$}
+\AxiomC{$Γ_1 ⊢ M \overset{σ π}{:} S$}
 \AxiomC{$Γ_2 ⊢ N \overset{σ}{:} T[x := M]$}
-\AxiomC{$σ′=0 ⇔ (π=0 ∨ σ=0)$}
-\QuaternaryInfC{$πΓ_1 + Γ_2 ⊢ (M,N) \overset{σ}{:} (x \overset{π}{:} S) ⊗ T$}
+\AxiomC{$0Γ_1 = 0Γ_2$}
+\TrinaryInfC{$Γ_1 + Γ_2 ⊢ (M,N) \overset{σ}{:} (x \overset{π}{:} S) ⊗ T$}
 \end{prooftree}
 
 \begin{prooftree}
@@ -281,10 +326,8 @@ Under the erased ($σ=0$) part of the theory, projection operators can be used a
 
 \begin{prooftree}
 \AxiomC{$Γ ⊢ M \overset{0}{:} (x \overset{π}{:} S) ⊗ T$}
-\UnaryInfC{$Γ ⊢ fst_⊗\ M \overset{0}{:} A$}
+\UnaryInfC{$Γ ⊢ fst_⊗\ M \overset{0}{:} S$}
 \end{prooftree}
-
-(should the last be $S$ ?)
 
 \begin{prooftree}
 \AxiomC{$Γ ⊢ M \overset{0}{:} (x \overset{π}{:} S) ⊗ T$}
@@ -397,28 +440,6 @@ Elimination rule:
 
 reformulate to be syntax-directed, we need some sort of "join"
 
-### Additive disjunction
-
-"Might be either"
-
-Presumably cannot be dependent.
-
-Formation rules:
-
-\begin{prooftree}
-\AxiomC{$Γ ⊢ A \overset{σ}{∶} S$}
-\RightLabel{$⊕_L$}
-\UnaryInfC{$Γ ⊢ (A \overset{σ}{∶} S) ⊕ (B \overset{σ'}{:} S)$}
-\end{prooftree}
-
-\begin{prooftree}
-\AxiomC{$Γ ⊢ B \overset{σ}{∶} S$}
-\RightLabel{$⊕_R$}
-\UnaryInfC{$Γ ⊢ (A \overset{σ'}{∶} S) ⊕ (B \overset{σ}{:} S)$}
-\end{prooftree}
-
-Do we get this for free with lambda-encoded datatypes?
-
 ### Self types
 
 \begin{prooftree}
@@ -487,7 +508,7 @@ Terms with the same type are judgementally equal under beta reduction:
 \TrinaryInfC{$Γ ⊢ M ≡ N \overset{σ}{:} S$}
 \end{prooftree}
 
-To-do: do we have / need a rule for term equality?
+To-do: do we need a rule for term equality?
 
 ### Sub-usaging
 
@@ -495,9 +516,11 @@ To-do: check if we can safely allow sub-usaging if the ring is the natural numbe
 
 ## Semantics
 
-Contraction is $(λx.t : (π x : S) → T) s ⇝_{β} (t:T)[x := s:S]$.
+Contraction is $(λx.t : (π x : S) → T)\ s ⇝_{β} (t:T)[x := s:S]$.
 
-The reflexive transitive closure of $⇝_{β}$ yields beta reduction $→_{β}$ as usual.
+De-annotation is $(t : T) ⇝_ν t$.
+
+The reflexive transitive closure of $⇝_{β}$ and $⇝_ν$ yields beta reduction $→_{β}$ as usual.
 
 ### Confluence
 
@@ -505,11 +528,58 @@ A binary relation $R$ has the diamond property iff. $∀ s p q . s R p ∧ s R q
 
 ### Parallel-step reduction
 
-Parallel-step evaluation semantics a la McBride.
+Let parallel reduction be $▷$, operating on usage-erased terms, by mutual induction.
 
-### Small-step reduction
+To-do: needs to consider cost accounting.
 
-Small-step evaluation semantics (so that one-step beta equality can be used in the theorem prover).
+> Note: The theorem prover will support a special one-step beta equality, which stops at the first application of contraction.
+
+\begin{prooftree}
+\AxiomC{$$}
+\UnaryInfC{$∗_i ▷ ∗_i$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$$}
+\UnaryInfC{$x ▷ x$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$S ▷ S'$}
+\AxiomC{$T ▷ T'$}
+\BinaryInfC{$(x : S) → T ▷ (x : S') → T'$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$t ▷ t'$}
+\UnaryInfC{$λx.t  ▷ λx.t'$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$t ▷ t'$}
+\AxiomC{$T ▷ T'$}
+\BinaryInfC{$t : T  ▷ t'$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$f ▷ f'$}
+\AxiomC{$s ▷ s'$}
+\BinaryInfC{$f s ▷ f' s'$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$t ▷ t'$}
+\AxiomC{$T ▷ T'$}
+\BinaryInfC{$t : T ▷ t' : T'$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$t ▷ t'$}
+\AxiomC{$S ▷ S'$}
+\AxiomC{$T ▷ T'$}
+\AxiomC{$s ▷ s'$}
+\QuaternaryInfC{$(λx.t : (x : S) → T) s ▷ (t' : T') [x := s' : S']$}
+\end{prooftree}
 
 ## Typechecking
 
@@ -585,23 +655,7 @@ Computationally relevant terms are preserved, while terms which are only contemp
 - Representation
 - Deriving induction for Church-encoded numerals using self-types
 
-The Church-encoded natural $n$ can be typed as $⊢ λs.z.s {...} s z \overset{n}{:} (s \overset{π}{:} a → a) → (z \overset{1}{:} a) → a$ where $s$ is applied $n$ times.
-
-### Linear lists
-
-Example from McBride's paper:
-
-$0List: (0X:∗)→∗$
-
-$ωnil: (0X:∗)→ListX$
-
-$ωcons: (0X:∗,1x:X,1xs:ListX)→ListX$
-
-$ωlit: (0X:∗,0P: (0x:ListX)→∗)→(1n:P(nilX))→(ωc: (1x:X,0xs:ListX,1p:Pxs)→P(consX xxs))→(1xs:ListX)→P xs$
-
-$ωappend:  (0X:∗,1xs:ListX,1ys:ListX)→ListX$
-
-$append=λX.λxs.λys.litX(λ.ListX)ys(λx.λ.λxs′.consX xxs′)xs$
+The Church-encoded natural $n$ can be typed as $⊢ λs.z.s {...} s z \overset{1}{:} (s \overset{n}{:} a → a) → (z \overset{1}{:} a) → a$ where $s$ is applied $n$ times.
 
 ### Linear logic connectives
 
