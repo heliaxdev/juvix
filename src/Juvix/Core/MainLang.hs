@@ -234,7 +234,7 @@ cType _ii _g (Star n) ann = do
         (n < j)
         (throwError $
          show (Star n) ++
-         " is of type * of a higher universe. But the input type " ++
+         " is of type * of a higher universe. But the expected type " ++
          showVal (snd ann) ++ " is * of a equal or lower universe.")
     _ ->
       throwError $ "* n is of type * but " ++ showVal (snd ann) ++ " is not *."
