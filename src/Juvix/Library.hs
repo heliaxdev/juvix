@@ -17,9 +17,9 @@ import qualified Data.Text         as T
 import           Prelude           (Show (..), String)
 import           Protolude         hiding ((:.:), Constraint, Fixity (..),
                                     MonadError (..), MonadReader (..),
-                                    MonadState (..), ask, asks, catch,
-                                    catchJust, get, gets, local, modify, pass,
-                                    put, reader, state, SomeSymbol, Symbol)
+                                    MonadState (..), SomeSymbol, Symbol, ask,
+                                    asks, catch, catchJust, get, gets, local,
+                                    modify, pass, put, reader, state)
 
 (∨) ∷ Bool → Bool → Bool
 (∨) = (||)

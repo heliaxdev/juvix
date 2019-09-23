@@ -4,6 +4,6 @@ module Juvix.Utility (
   module Juvix.Utility.HashMap
 ) where
 
+import           Juvix.Utility.HashMap     hiding (map)
 import           Juvix.Utility.Helper
 import           Juvix.Utility.PrettyPrint
-import           Juvix.Utility.HashMap     hiding (map)

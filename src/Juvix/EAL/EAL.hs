@@ -3,10 +3,10 @@ module Juvix.EAL.EAL where
 import           Control.Arrow         (left)
 import           Prelude               (error)
 
-import qualified Juvix.Utility.HashMap as Map
 import qualified Juvix.Bohm.Type       as BT
 import           Juvix.EAL.Types
 import           Juvix.Library         hiding (Type, link, reduce)
+import qualified Juvix.Utility.HashMap as Map
 
 
 {- Main functionality. -}

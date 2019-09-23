@@ -4,10 +4,10 @@ module Juvix.Encoding.Scott where
 
 import           Prelude                 (error)
 
-import qualified Juvix.Utility.HashMap   as Map
 import           Juvix.Encoding.Encoding
 import           Juvix.Encoding.Types
 import           Juvix.Library           hiding (Product, Sum)
+import qualified Juvix.Utility.HashMap   as Map
 
 
 adtToScott  ∷ ( HasState "constructors" (Map.Map Symbol Bound)    m

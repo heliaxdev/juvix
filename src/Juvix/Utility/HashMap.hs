@@ -4,8 +4,8 @@ module Juvix.Utility.HashMap
   , (!?)
   ) where
 
-import           Data.HashMap.Strict
 import           Data.Hashable       (Hashable)
+import           Data.HashMap.Strict
 import           Protolude           (Eq, Maybe)
 
 type Map = HashMap
