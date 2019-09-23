@@ -8,9 +8,15 @@ Juvix Core is primarily inspired by Quantitative Type Theory [@quantitative-type
 
 ## Changes from QTT
 
+### Primitive types, constants, and functions
+
+Nothing too exciting here. These will vary based on the machine target.
+
 ### Additional linear logic connectives
 
 #### Multiplicative disjunction
+
+Why?
 
 - Explicit parallelism
 - Hints for interaction net runtime
@@ -18,8 +24,19 @@ Juvix Core is primarily inspired by Quantitative Type Theory [@quantitative-type
 
 #### Dependent additive conjunction
 
+Why?
+
 - Resourceful production
 - Translated as multiplicative conjunction, but only one of $fst$ or $snd$ can be used
+- Avoids duplication of resources at runtime
+- Can be represented as a function, but wouldn't have the same evaluation semantics
+
+#### Self types
+
+Why?
+
+- Elegant induction for lambda-encoded data
+- No runtime presence
 
 ### Usage polymorphism
 
@@ -39,17 +56,15 @@ where, ideally, we have
 succ :: 1 (1 (n (a -> a) -> 1 a -> a) -> ((n + 1) (a -> a) -> 1 a -> a)
 ```
 
-Several options:
+#### Typeclass-style usage polymorphism in the frontend language
 
-1 - Typeclass-style usage polymorphism in the frontend language
+Frontend language level usage polymorphism, where $succ$ must be instantiated for an $n$ known at compile time at each call site (like a typeclass), and must be instantiated with $w$ if $n$ is unknown at the call site. This is easy, but probably not that useful, since often we won't know $n$ for the argument at compile time.
 
-Frontend language level usage polymorphism, where succ must be instantiated for an n known at compile time at each call site (like a typeclass), and must be instantiated with w if n is unknown at the call site. This is easy, but probably not that useful, since often we won't know n for the argument at compile time.
-
-2 - Usage polymorphism in the type theory
+#### Usage polymorphism in the type theory
 
 Add a $forall u . T$, where $u$ ranges over the semiring, to the core type theory, and can then appear as a variable for any usage in $T$. This then will require n-variable polynomial constraint satisfiability checks during typechecking, but should have zero runtime cost. It may impact the kinds of memory management we can automate, not sure yet, but we should still have more information than without quantisation at all (or, equivalently, with w).
 
-3 - Dependent usaging in the type theory
+#### Dependent usaging in the type theory
 
 Add a $↑u$ term to lift a term to a usage, such that usages in $T$ in a dependent function of type $(x \overset{π}{:} S) → T$ can depend on $x$ (we must then choose some canonical bijective mapping between semiring elements and terms), and some sort of beta-equivalence proofs of usage correctness will be required of programmers using this kind of lifting (in order for the term to typecheck). (possibly also add a usage-to-term $↓u$, not sure)
 
@@ -66,9 +81,9 @@ Let $S$ be a set of sorts $(i, j, k)$ with a total order.
 
 Let $K$ be the set of primitive types, $C$ be the set of primitive constants, and $⋮$ be the typing relation between primitive constants and primitive types, which must assign to each primitive constant a unique primitive type.
 
-Let $F$ be the set of primitive functions, where each $f_i$ is related to a function type by the $⋮$ relation and endowed with a reduction operation $→_{f_i}$, which provided an argument of the function input type computes an argument of the function output type.
+Let $F$ be the set of primitive functions, where each $f$ is related to a function type by the $⋮$ relation and endowed with a reduction operation $→_{f}$, which provided an argument of the function input type computes an argument of the function output type.
 
-Primitive types, primitive constants, and primitive functions are threaded-through to the untyped lambda calculus to which Juvix Core is erased, so they must be directly supported by the low-level execution model.
+Primitive types, primitive constants, and primitive functions are threaded-through to the untyped lambda calculus to which Core is erased, so they must be directly supported by the low-level execution model. The core type theory and subsequent compilation pathways are parameterised over $K$, $C$, $F$, $⋮$, and the reduction operations $→_{f}$, which are assumed to be available as implicit parameters.
 
 ## Syntax
 
@@ -98,13 +113,15 @@ R, S, T, s, t &::= ∗_i\ & \text{sort $i$} &\ &\ *i \\
 \begin{align*}
 d, e, f &::= x\ & \text{variable} &\ &\ &\ x\\
 &\ \ \ \ \ \ |\ c \in C & \text{primitive constant} &\ &\ &\ \text{(varies)}\\
+&\ \ \ \ \ \ |\ f \in F & \text{primitive function} &\ &\ &\ \text{(varies)}\\
 &\ \ \ \ \ \ |\ f s\ & \text{application} &\ &\ &\ f s \\
-&\ \ \ \ \ \ |\ (s, t)\ & \text{pair} &\ &\ &\ (s, t) \\
+&\ \ \ \ \ \ |\ (s, t)\ & \text{multiplicative conjunction} &\ &\ &\ (s, t) \\
 &\ \ \ \ \ \ |\ s\ \epsilon\ t\ & \text{additive conjunction} &\ &\ &\ TBD \\
 &\ \ \ \ \ \ |\ s\ \gamma\ t\ & \text{multiplicative disjunction} &\ &\ &\ TBD \\
 &\ \ \ \ \ \ |\ fst_{\&}\ M\ & \text{first projection for additive conjunction} &\ &\ &\ fst\ M \\
 &\ \ \ \ \ \ |\ snd_{\&}\ M\ & \text{second projection for additive conjunction} &\ &\ &\ snd\ M \\
-&\ \ \ \ \ \ |\ let\ (x, y) = d\ in\ e\ & \text{dependent pair pattern match} &\ &\ &\ let\ (x, y) = d\ in\ e \\
+&\ \ \ \ \ \ |\ let\ (x, y) = d\ in\ e\ & \text{dependent multiplicative conjunction pattern match} &\ &\ &\ let\ (x, y) = d\ in\ e \\
+&\ \ \ \ \ \ |\ ⊙ e & \text{multiplicative disjunction destructor} &\ &\ &\ join\ e \\
 &\ \ \ \ \ \ |\ s \overset{π}{:} S & \text{type \& usage annotation} &\ &\ &\ s : [π]\ S \\
 \end{align*}
 \end{subfigure}
@@ -199,7 +216,7 @@ In our language, $x$ can also be annotated as $ω$, indicating that it is used a
 
 Let $S$ be a set of sorts ${i, j, k}$ with a total order.
 
-Formation rule:
+#### Formation rule
 
 \begin{prooftree}
 \AxiomC{$0Γ ⊢$}
@@ -208,7 +225,7 @@ Formation rule:
 \BinaryInfC{$0Γ ⊢ ∗_i \overset{0}{:} ∗_j$}
 \end{prooftree}
 
-Introduction rule ($σ = 0$ fragment only):
+#### Introduction rule
 
 \begin{prooftree}
 \AxiomC{$0Γ ⊢ M \overset{0}{:} ∗_i$}
@@ -217,7 +234,13 @@ Introduction rule ($σ = 0$ fragment only):
 \BinaryInfC{$Γ ⊢ (x \overset{π}{:} M) → N \overset{0}{:} ∗_i$}
 \end{prooftree}
 
+$σ = 0$ fragment only.
+
 ### Primitive constants, functions & types
+
+#### Constants
+
+##### Formation & introduction rule
 
 \begin{prooftree}
 \AxiomC{$c \in C$}
@@ -227,7 +250,11 @@ Introduction rule ($σ = 0$ fragment only):
 \TrinaryInfC{$⊢ c \overset{σ}{:} \kappa$}
 \end{prooftree}
 
-Primitive constants are typed according to the primitive typing relation, and they can be produced in any computational quantity.
+Primitive constants are typed according to the primitive typing relation, and they can be produced in any computational quantity wherever desired.
+
+#### Functions
+
+##### Formation & introduction rule
 
 \begin{prooftree}
 \AxiomC{$f \in F$}
@@ -236,9 +263,11 @@ Primitive constants are typed according to the primitive typing relation, and th
 \BinaryInfC{$⊢ f \overset{σ}{:} (x \overset{π}{:} S) → T$}
 \end{prooftree}
 
-Primitive functions are typed according to the primitive typing relation, and they can be produced in any computational quantity.
+Primitive functions are typed according to the primitive typing relation, and they can be produced in any computational quantity wherever desired.
 
 Primitive functions can be dependently-typed.
+
+#### Elimination rule
 
 \begin{prooftree}
 \AxiomC{$f \in F$}
@@ -253,7 +282,9 @@ Applications of primitive functions impose the same usage constraints as regular
 
 ### Dependent function types
 
-Function types $(x \overset{π}{:} S) → T$ record usage of the argument. The formation rule is:
+Function types $(x \overset{π}{:} S) → T$ record usage of the argument.
+
+#### Formation rule
 
 \begin{prooftree}
 \AxiomC{$0Γ ⊢ S$}
@@ -262,15 +293,19 @@ Function types $(x \overset{π}{:} S) → T$ record usage of the argument. The f
 \BinaryInfC{$0Γ ⊢ (x \overset{π}{:} S) → T$}
 \end{prooftree}
 
-The usage annotation $π$ is not used in judgement of whether $T$ is a well-formed type. It is used
-in the introduction and elimination rules to track how $x$ is used, and how to multiply the resources
-required for the argument, respectively:
+#### Introduction rule
 
 \begin{prooftree}
 \AxiomC{$Γ,x \overset{σπ}{:} S ⊢ M \overset{σ}{:} T$}
 \RightLabel{Lam}
 \UnaryInfC{$Γ ⊢ λx.M \overset{σ}{:} (x \overset{π}{:} S) → T$}
 \end{prooftree}
+
+The usage annotation $π$ is not used in judgement of whether $T$ is a well-formed type. It is used
+in the introduction and elimination rules to track how $x$ is used, and how to multiply the resources
+required for the argument, respectively:
+
+#### Elimination rule
 
 \begin{prooftree}
 \AxiomC{$Γ_1 ⊢ M \overset{σ}{:} (x \overset{π}{:} S) → T$}
@@ -287,7 +322,9 @@ required for the argument, respectively:
 
 ### Dependent multiplicative conjunction (tensor product)
 
-Dependent tensor production formation rule:
+Colloquially, "pair". Can be dependent.
+
+#### Formation rule
 
 \begin{prooftree}
 \AxiomC{$0Γ ⊢ A$}
@@ -296,15 +333,9 @@ Dependent tensor production formation rule:
 \BinaryInfC{$0Γ ⊢ (x \overset{π}{:} S) ⊗ T$}
 \end{prooftree}
 
-\begin{prooftree}
-\AxiomC{$0Γ ⊢$}
-\RightLabel{I}
-\UnaryInfC{$0Γ ⊢ I$}
-\end{prooftree}
-
 Type formation does not require any resources.
 
-Introduction rule:
+#### Introduction rule
 
 \begin{prooftree}
 \AxiomC{$Γ_1 ⊢ M \overset{σ π}{:} S$}
@@ -313,16 +344,9 @@ Introduction rule:
 \TrinaryInfC{$Γ_1 + Γ_2 ⊢ (M,N) \overset{σ}{:} (x \overset{π}{:} S) ⊗ T$}
 \end{prooftree}
 
-\begin{prooftree}
-\AxiomC{$0Γ ⊢$}
-\UnaryInfC{$0Γ ⊢ ∗ \overset{σ}{:} I$}
-\end{prooftree}
-
 This is similar to the introduction rule for dependent function types above.
 
-Elimination rule:
-
-Under the erased ($σ=0$) part of the theory, projection operators can be used as normal:
+#### Elimination rules
 
 \begin{prooftree}
 \AxiomC{$Γ ⊢ M \overset{0}{:} (x \overset{π}{:} S) ⊗ T$}
@@ -334,7 +358,7 @@ Under the erased ($σ=0$) part of the theory, projection operators can be used a
 \UnaryInfC{$Γ ⊢ snd_⊗\ M \overset{0}{:} T[x := fst_⊗(M)]$}
 \end{prooftree}
 
-Under the resourceful part:
+Under the erased ($σ=0$) part of the theory, projection operators can be used as normal.
 
 \begin{prooftree}
 \AxiomC{$0Γ_1, z \overset{0}{:} (x \overset{π}{:} S) ⊗ T ⊢ U$}
@@ -345,29 +369,18 @@ Under the resourceful part:
 \QuaternaryInfC{$Γ_1+Γ_2 ⊢ let\ (x,y) = M\ in\ N \overset{σ}{:} U[z := M]$}
 \end{prooftree}
 
-- Must pattern match out to ensure both parts of the product are used.
+Under the resourceful part, both elements of the conjunction must be matched and consumed.
 
-\begin{prooftree}
-\AxiomC{$0Γ_1, x \overset{0}{:} I ⊢ U$}
-\AxiomC{$Γ_1 ⊢ M \overset{σ}{:} I$}
-\AxiomC{$Γ_2 ⊢ N \overset{σ}{:} U[x := *]$}
-\AxiomC{$0Γ_1 = 0Γ_2$}
-\RightLabel{$⊗$ Elim I}
-\QuaternaryInfC{$Γ_1 + Γ_2 ⊢ let\ ∗ = M\ in\ N \overset{σ}{:} U[x := M]$}
-\end{prooftree}
+To-do:
 
-- Must explicitly eliminate elements of the unit type in the resourceful fragment.
 - Simplifies to fst, snd in $σ=0$ fragment (should we combine the rules?)
-
 - If we lambda-encoded pairs, is that isomorphic?
 
 ### Additive conjunction
 
-"Choose either"
+Colloquially, "choose either". Can be dependent.
 
-Can be dependent.
-
-Formation rule:
+#### Formation rule
 
 \begin{prooftree}
 \AxiomC{$Γ ⊢ A \overset{σ}{∶} S$}
@@ -376,9 +389,9 @@ Formation rule:
 \BinaryInfC{$Γ ⊢ (A \overset{σ}{∶} S)\ \&\ (B \overset{σ'}{:} T)$}
 \end{prooftree}
 
-- Can we construct with $σ' /= σ$?
+To-do: can we construct with $σ' /= σ$?
 
-Introduction rule:
+#### Introduction rule
 
 \begin{prooftree}
 \AxiomC{$Γ_1 ⊢ M \overset{σ}{:} S$}
@@ -387,29 +400,25 @@ Introduction rule:
 \TrinaryInfC{$πΓ_1 + Γ_2 ⊢ M\ \epsilon\ N \overset{σ}{:} (x \overset{π}{:} S)\ \&\ T$}
 \end{prooftree}
 
-Elimination rules:
+#### Elimination rules
 
 \begin{prooftree}
 \AxiomC{$Γ ⊢ M\ \epsilon\ N \overset{σ}{:} (x \overset{π}{:} S)\ \&\ T$}
-\UnaryInfC{$Γ ⊢ M \overset{πσ}{:} S$}
+\UnaryInfC{$Γ ⊢ fst_{\&}\ (M \epsilon N) \overset{πσ}{:} S$}
 \end{prooftree}
 
 \begin{prooftree}
 \AxiomC{$Γ ⊢ M\ \epsilon\ N \overset{σ}{:} (x \overset{π}{:} S)\ \&\ T$}
-\UnaryInfC{$Γ ⊢ N \overset{σ}{:} T[x := M]$}
+\UnaryInfC{$Γ ⊢ snd_{\&}\ (M \epsilon N) \overset{σ}{:} T[x := M]$}
 \end{prooftree}
-
-To-do: terms for elimination rules.
 
 ### Multiplicative disjunction
 
-"Both separately in parallel"
-
-Presumably cannot be dependent.
+Colloquially, "both separately in parallel". Cannot be dependent.
 
 Should be able to provide guarantee of parallelism in low-level execution, both in bespoke & interaction net paths.
 
-Formation rule:
+#### Formation rule
 
 \begin{prooftree}
 \AxiomC{$Γ ⊢ (A \overset{σ}{:} S), (B \overset{σ'}{:} S')$}
@@ -417,7 +426,7 @@ Formation rule:
 \UnaryInfC{$Γ ⊢ (A \overset{σ}{:} S) \parr (B \overset{σ'}{:} S')$}
 \end{prooftree}
 
-Introduction rule:
+#### Introduction rule
 
 \begin{prooftree}
 \AxiomC{$Γ_1 ⊢ M \overset{σ}{:} S$}
@@ -427,26 +436,27 @@ Introduction rule:
 \TrinaryInfC{$Γ_1 + Γ_2 ⊢ M\ \gamma\ N \overset{σ}{:} S \parr T$}
 \end{prooftree}
 
-do we need equality of 0-fragment?
-
-Elimination rule:
+#### Elimination rule
 
 \begin{prooftree}
-\AxiomC{$Γ_1, M \overset{σ}{:} S ⊢ M' \overset{σ'}{:} S'$}
-\AxiomC{$Γ_2, N \overset{σ}{:} T ⊢ N' \overset{σ'}{:} T'$}
+\AxiomC{$Γ ⊢ M \gamma\ N \overset{σ}{:} S \parr T$}
 \RightLabel{$\parr$-Elim}
-\BinaryInfC{$Γ_1 + Γ_2 + M \gamma\ N \overset{σ}{:} S \parr T ⊢ (M', N') \overset{σ'}{:} (S ⊗ T)$}
+\UnaryInfC{$Γ ⊢ ⊙\ (M \gamma\ N) \overset{σ'}{:} (S ⊗ T)$}
 \end{prooftree}
 
-reformulate to be syntax-directed, we need some sort of "join"
+$⊙$ can be thought of as a syntax-directed "join" operator.
 
 ### Self types
+
+#### Formation rule
 
 \begin{prooftree}
 \AxiomC{$Γ, x: ιx.T ⊢ T : ∗_i$}
 \RightLabel{Self}
 \UnaryInfC{$Γ ⊢ ιx.T$}
 \end{prooftree}
+
+#### Introduction rule
 
 \begin{prooftree}
 \AxiomC{$Γ ⊢ t : [x := t]T$}
@@ -455,15 +465,15 @@ reformulate to be syntax-directed, we need some sort of "join"
 \BinaryInfC{$Γ ⊢ t : ιx.T$}
 \end{prooftree}
 
+#### Elimination rule
+
 \begin{prooftree}
 \AxiomC{$Γ ⊢ t : ιx.T$}
 \RightLabel{Self-Inst}
 \UnaryInfC{$Γ ⊢ t : [x := t]T$}
 \end{prooftree}
 
-To-do for self types
-
-- Syntax for self types?
+To-do: syntax for self types?
 
 ### Variable & conversion rules
 
@@ -514,7 +524,7 @@ To-do: do we need a rule for term equality?
 
 To-do: check if we can safely allow sub-usaging if the ring is the natural numbers, discuss here.
 
-## Semantics
+## Reduction semantics
 
 Contraction is $(λx.t : (π x : S) → T)\ s ⇝_{β} (t:T)[x := s:S]$.
 
@@ -530,9 +540,9 @@ A binary relation $R$ has the diamond property iff. $∀ s p q . s R p ∧ s R q
 
 Let parallel reduction be $▷$, operating on usage-erased terms, by mutual induction.
 
-To-do: needs to consider cost accounting.
+> Note: The theorem prover will support a special n-step beta equality, where the step count refers to contraction rule applications.
 
-> Note: The theorem prover will support a special one-step beta equality, which stops at the first application of contraction.
+#### Basic lambda calculus
 
 \begin{prooftree}
 \AxiomC{$$}
@@ -556,12 +566,6 @@ To-do: needs to consider cost accounting.
 \end{prooftree}
 
 \begin{prooftree}
-\AxiomC{$t ▷ t'$}
-\AxiomC{$T ▷ T'$}
-\BinaryInfC{$t : T  ▷ t'$}
-\end{prooftree}
-
-\begin{prooftree}
 \AxiomC{$f ▷ f'$}
 \AxiomC{$s ▷ s'$}
 \BinaryInfC{$f s ▷ f' s'$}
@@ -581,83 +585,117 @@ To-do: needs to consider cost accounting.
 \QuaternaryInfC{$(λx.t : (x : S) → T) s ▷ (t' : T') [x := s' : S']$}
 \end{prooftree}
 
+#### Linear connectives
+
+##### Multiplicative conjunction
+
+\begin{prooftree}
+\AxiomC{$S ▷ S'$}
+\AxiomC{$T ▷ T'$}
+\BinaryInfC{$(x : S) ⊗ T ▷ (x : S') ⊗ T'$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$s ▷ s'$}
+\AxiomC{$t ▷ t'$}
+\BinaryInfC{$(s, t) ▷ (s', t')$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$z ▷ (m, n)$}
+\AxiomC{$m ▷ m'$}
+\AxiomC{$n ▷ n'$}
+\AxiomC{$s ▷ s'$}
+\QuaternaryInfC{$let\ (x, y)\ =\ z\ in\ s ▷ s' [x := m', y := n']$}
+\end{prooftree}
+
+Reduction takes place inside a multiplicative conjunction.
+
+##### Multiplicative disjunction
+
+\begin{prooftree}
+\AxiomC{$S ▷ S'$}
+\AxiomC{$T ▷ T'$}
+\BinaryInfC{$S \parr T ▷ S' \parr T'$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$s ▷ s'$}
+\AxiomC{$t ▷ t'$}
+\BinaryInfC{$s\ \gamma\ t ▷ s'\ \gamma\ t'$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$t ▷ m\ \gamma\ n$}
+\AxiomC{$m ▷ m'$}
+\AxiomC{$n ▷ n'$}
+\TrinaryInfC{$⊙\ t ▷ (m', n')$}
+\end{prooftree}
+
+Reduction takes place inside a multiplicative disjunction.
+
+##### Additive disjunction
+
+\begin{prooftree}
+\AxiomC{$S ▷ S'$}
+\AxiomC{$T ▷ T'$}
+\BinaryInfC{$(x : S) \& T ▷ (x : S') ⊗ T'$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$t ▷ m\ \epsilon\ n$}
+\AxiomC{$m ▷ m'$}
+\BinaryInfC{$fst_{\&}\ t ▷ m'$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$t ▷ m\ \epsilon\ n$}
+\AxiomC{$n ▷ n'$}
+\BinaryInfC{$snd_{\&}\ t ▷ n'$}
+\end{prooftree}
+
+Reduction does not take place until a destructor has been applied.
+
+### Self types
+
+\begin{prooftree}
+\AxiomC{$T ▷ T'$}
+\UnaryInfC{$ιx.T ▷ ιx.T'$}
+\end{prooftree}
+
+### Primitives
+
+\begin{prooftree}
+\AxiomC{$\kappa \in K$}
+\UnaryInfC{$\kappa ▷ \kappa$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$c \in C$}
+\UnaryInfC{$c ▷ c$}
+\end{prooftree}
+
+Primitive types and primitive constants reduce to themselves.
+
+\begin{prooftree}
+\AxiomC{$f \in F$}
+\AxiomC{$x ▷ x'$}
+\AxiomC{$x' →_{f} y$}
+\TrinaryInfC{$f x ▷ y$}
+\end{prooftree}
+
+Primitive functions reduce according to the reduction operation defined for the function.
+
 ## Typechecking
 
-Lay out syntax-directed typechecker following McBride's paper.
-
-## Erasure
-
-- Define erasure to untyped lambda calculus following McBride's paper.
-- Define erasure to dependent elementary affine logic analogously (but not erasing the pi types).
-
-Let programs of the untyped lambda calculus be $p ::= x\ |\ λx.p\ |\ p\ p\ |\ c$ where $c \in C$ is a primitive constant.
-
-Define the erasure operator $▶$, such that erasure judgements take the form $Γ ⊢ t \overset{σ}{:} S \ ▶\  p$.
-
-\begin{prooftree}
-\AxiomC{$$}
-\RightLabel{Prim-Erase}
-\UnaryInfC{$c \ ▶\  c$}
-\end{prooftree}
-
-\begin{prooftree}
-\AxiomC{$⊢ 0Γ,x \overset{σ}{:} S, 0Γ′$}
-\RightLabel{Var-Erase-+}
-\UnaryInfC{$0Γ,x \overset{σ}{:} S, 0Γ′ ⊢ x \overset{σ}{:} S \ ▶\  x$}
-\end{prooftree}
-
-\begin{prooftree}
-\AxiomC{$t \overset{σ}{:} T \ ▶\  p$}
-\AxiomC{$σπ = 0$}
-\RightLabel{Lam-Erase-0}
-\BinaryInfC{$λx.t : (x \overset{π}{:} S) → T \ ▶\  p$}
-\end{prooftree}
-
-\begin{prooftree}
-\AxiomC{$t \overset{σ}{:} T \ ▶\  p$}
-\AxiomC{$σπ /= 0$}
-\RightLabel{Lam-Erase-+}
-\BinaryInfC{$λx.t : (x \overset{π}{:} S) → T \ ▶\  λx.p$}
-\end{prooftree}
-
-\begin{prooftree}
-\AxiomC{$Γ_1 ⊢ M \overset{σ}{:} (x \overset{π}{:} S) → T \ ▶\  p$}
-\AxiomC{$Γ_2 ⊢ N \overset{0}{:} S$}
-\AxiomC{$σπ = 0$}
-\RightLabel{App-Erase-0}
-\TrinaryInfC{$Γ_1 ⊢ M N \overset{σ}{:} T[x := N] \ ▶\  p$}
-\end{prooftree}
-
-\begin{prooftree}
-\AxiomC{$Γ_1 ⊢ M \overset{σ}{:} (x \overset{π}{:} S) → T \ ▶\  p$}
-\AxiomC{$Γ_2 ⊢ N \overset{σπ}{:} S \ ▶\  p'$}
-\AxiomC{$σπ /= 0$}
-\RightLabel{App-Erase-+}
-\TrinaryInfC{$Γ_1 + Γ_2 ⊢ M N \overset{σ}{:} T[x := N] \ ▶\  p\ p'$}
-\end{prooftree}
-
-In the *Lam-Erase-0* rule, the variable $x$ bound in $t$ will not occur in the corresponding $p$, since it is bound with usage $0$, with which it will remain regardless of how the context splits, so the rule *Var-Erase-+* cannot consume it, only contemplate it.
-
-Other terms erase as you would expect.
-
-To-do:
-
-- Constants $c \in C$ erase to themselves
-- Functions $f \in F$ erase to themselves
-- Function applications $f x$ of primitive $f \in F$ erase to $f (▶ x)$.
-
-Computationally relevant terms are preserved, while terms which are only contemplated are erased.
+To-do: Lay out syntax-directed typechecker following McBride's paper.
 
 ## Examples
 
 ### Church-encoded natural numbers
 
-- Representation
-- Deriving induction for Church-encoded numerals using self-types
-
 The Church-encoded natural $n$ can be typed as $⊢ λs.z.s {...} s z \overset{1}{:} (s \overset{n}{:} a → a) → (z \overset{1}{:} a) → a$ where $s$ is applied $n$ times.
 
-### Linear logic connectives
+### Linear induction
 
-- Linear logic disjunctions & conjunctions
-- Linear induction?
+To-do: Linear induction example.

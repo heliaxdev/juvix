@@ -116,25 +116,33 @@ header-includes:
 
 !include src/core-language.pdc
 
-# Whole-program optimisation
+# Core optimisation
 
-!include src/whole-program-optimisation.pdc
+!include src/core-optimisation.pdc
 
-# Dependent elementary affine logic
+# Erased core language
 
-!include src/dependent-elementary-affine-logic.pdc
+!include src/erased-core-language.pdc
+
+# Elementary affine core
+
+!include src/elementary-affine-core.pdc
 
 # Low-level execution model
 
 !include src/low-level-execution-model.pdc
 
-# Execution extensions
+# Cost accounting
 
-!include src/execution-extensions.pdc
+!include src/cost-accounting.pdc
 
 # Machine targets
 
 !include src/machine-targets.pdc
+
+# Distributed ledger integration
+
+!include src/distributed-ledger-integration.pdc
 
 # Future directions
 
