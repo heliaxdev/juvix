@@ -6,11 +6,8 @@ import           Juvix.Core.MainLang
 import           Prelude
 import           Test.Tasty
 import           Test.Tasty.HUnit
+import           Test.Tasty.QuickCheck
 
---import           Test.Tasty.QuickCheck
---import qualified Test.Tasty.SmallCheck as SC
---import           Test.HUnit          (Assertion, (@?=))
---import qualified Test.QuickCheck     as QC
 --property tests of type checker:
 --the term's inferred type equals to the input type
 --property test of evaluator:
@@ -26,8 +23,9 @@ natsTypeStar0 = cType 0 [] Nats (0, VStar 0) @?= Right ()
 nat1Inferred ∷ Assertion
 nat1Inferred = iType 0 [] (Nat 1) @?= Right (Omega, VNats)
 
-tests ∷ Test.Tasty.TestTree
-tests =
+--function has to be named test_ to be picked up by tasty.
+test_core ∷ Test.Tasty.TestTree
+test_core =
   testGroup
     "Core tests"
     [ testGroup
@@ -35,6 +33,5 @@ tests =
         [ testCase "Nats is of type * 0" natsTypeStar0
         , testCase "Inferred type of Nat 1 is (w, VNats)" nat1Inferred
         ]
-   -- , testGroup "Type-checker Properties" [testProperty "Quickcheck test" arith]
-   -- , testGroup "SmallCheck tests" [SC.testProperty "Negation" negation]
+    --, testGroup "Type-checker Properties" [testProperty "Quickcheck test" arith]
     ]

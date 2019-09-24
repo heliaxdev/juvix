@@ -126,6 +126,7 @@ tests:
       - juvix
       - tasty
       - tasty-hunit
+      - tasty-quickcheck
       - tasty-discover
       - temporary
       - raw-strings-qq

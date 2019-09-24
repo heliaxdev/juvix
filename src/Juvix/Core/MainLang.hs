@@ -87,10 +87,15 @@ data Value
   | VNeutral Neutral
   | VNat Natural
 
+--TODO, eq instance for value -> value
 instance Eq Value where
   VStar x == VStar y = x == y
+  VNats == VNats = True
+  --VPi pi1 x1 y1 == VPi pi2 x2 y2 = pi1 == pi2 && x1 == x2 && y1 == y2
+  VNPm x1 y1 == VNPm x2 y2 = x1 == x2 && y1 == y2
   VNeutral x == VNeutral y = x == y
   VNat x == VNat y = x == y
+  _ == _ = False
 
 instance Show Value where
   show (VLam f) = showFun f
