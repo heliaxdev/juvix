@@ -68,6 +68,7 @@ library:
   exposed-modules:
     - Juvix
     - Juvix.Core
+    - Juvix.Core.MainLang
     - Juvix.EAL
     - Juvix.EAL.Check
     - Juvix.EAL.EAL

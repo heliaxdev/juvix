@@ -20,52 +20,51 @@ import qualified Juvix.Nets.Bohm              as Bohm
 
 interactive ∷ Context → Config → IO ()
 interactive ctx _ = do
-  func ← return $ \str -> do
-    return str
+  func <- return $ \str -> do return str
   H.runInputT (settings ctx) (mainLoop func)
 
 settings ∷ Context → H.Settings IO
-settings ctx = H.Settings {
-  H.complete        = H.completeFilename,
-  H.historyFile     = Just (contextHomeDirectory ctx <> "/.jvxi_history"),
-  H.autoAddHistory  = True
-  }
+settings ctx =
+  H.Settings
+    { H.complete = H.completeFilename
+    , H.historyFile = Just (contextHomeDirectory ctx <> "/.jvxi_history")
+    , H.autoAddHistory = True
+    }
 
 mainLoop ∷ (String → IO String) → H.InputT IO ()
 mainLoop func = do
-  input ← H.getInputLine "jvxi >> "
+  input <- H.getInputLine "jvxi >> "
   case input of
-    Nothing → return ()
-    Just i  → do
+    Nothing -> return ()
+    Just i -> do
       case i of
-        (':' : special) →
-          handleSpecial special (mainLoop func)
-        inp → do
+        (':':special) -> handleSpecial special (mainLoop func)
+        inp -> do
           H.outputStrLn =<< liftIO (func inp)
           mainLoop func
 
 handleSpecial ∷ String → H.InputT IO () → H.InputT IO ()
 handleSpecial str cont = do
   case str of
-    "?"    → liftIO (putDoc specialsDoc) >> cont
-    "exit" → return ()
-    "tutorial" → do
+    "?" -> liftIO (putDoc specialsDoc) >> cont
+    "exit" -> return ()
+    "tutorial" -> do
       H.outputStrLn "Interactive tutorial coming soon!"
       cont
-    'c' : 'p' : ' ' : rest -> do
+    'c':'p':' ':rest -> do
       let parsed = Core.parseString Core.cterm rest
       H.outputStrLn $ show parsed
       cont
-    'c' : 't' : ' ' : rest -> do
+    'c':'t':' ':rest -> do
       let parsed = Core.parseString Core.cterm rest
       H.outputStrLn $ show parsed
       case parsed of
         Just cterm -> do
           let eval = Core.cEval cterm []
-          H.outputStrLn $ Core.showVal eval
+          H.outputStrLn $ show eval
         Nothing -> return ()
       cont
-    'c' : 'e' : ' ' : rest -> do
+    'c':'e':' ':rest -> do
       let parsed = Core.parseString Core.cterm rest
       H.outputStrLn $ show parsed
       case parsed of
@@ -77,28 +76,30 @@ handleSpecial str cont = do
             _ -> return ()
         Nothing -> return ()
       cont
-    'e' : 'p' : ' ' : rest -> do
+    'e':'p':' ':rest -> do
       let parsed = EAL.parseEal rest
       case parsed of
         Right r -> transformAndEvaluateEal True r
         _       -> return ()
       cont
-    'e' : 'q' : ' ' : rest -> do
+    'e':'q':' ':rest -> do
       let parsed = EAL.parseEal rest
       case parsed of
         Right r -> transformAndEvaluateEal False r
         _       -> return ()
       cont
-    'e' : 'e' : ' ' : rest -> do
+    'e':'e':' ':rest -> do
       let parsed = EAL.parseEal rest
       H.outputStrLn $ show parsed
       case parsed of
         Right r -> transformAndEvaluateEal True r
         _       -> return ()
       cont
-    _      → H.outputStrLn "Unknown special command" >> cont
+    _ -> H.outputStrLn "Unknown special command" >> cont
 
-eraseAndSolveCore ∷ Core.CTerm → H.InputT IO (Either EAL.Errors (EAL.RPT, EAL.ParamTypeAssignment))
+eraseAndSolveCore ∷
+     Core.CTerm
+  → H.InputT IO (Either EAL.Errors (EAL.RPT, EAL.ParamTypeAssignment))
 eraseAndSolveCore cterm = do
   let (term, typeAssignment) = Core.erase' cterm
   res <- liftIO (EAL.validEal term typeAssignment)
@@ -120,29 +121,30 @@ transformAndEvaluateEal debug term = do
   H.outputStrLn ("Read-back term: " <> show readback)
 
 specialsDoc ∷ Doc
-specialsDoc = mconcat [
-  line,
-  mconcat (fmap (flip (<>) line . specialDoc) specials),
-  line
-  ]
+specialsDoc =
+  mconcat [line, mconcat (fmap (flip (<>) line . specialDoc) specials), line]
 
 specialDoc ∷ Special → Doc
-specialDoc (Special command helpDesc) = text $ T.unpack $ mconcat [":", command, " - ", helpDesc]
+specialDoc (Special command helpDesc) =
+  text $ T.unpack $ mconcat [":", command, " - ", helpDesc]
 
 specials ∷ [Special]
-specials = [
-  Special "cp [term]"   "Parse a Juvix Core term",
-  Special "ct [term}"   "Parse, typecheck, & evaluate a Juvix Core term",
-  Special "ce [term"    "Parse a Juvix Core term, translate to EAL, solve constraints, evaluate & read-back",
-  Special "ep [term]"   "Parse an EAL term",
-  Special "ee [term]"   "Parse an EAL term, evaluate & read-back",
-  Special "eq [term]"   "Parse an EAL term, evaluate & read-back quietly",
-  Special "tutorial"    "Embark upon an interactive tutorial",
-  Special "?"           "Show this help message",
-  Special "exit"        "Quit interactive mode"
+specials =
+  [ Special "cp [term]" "Parse a Juvix Core term"
+  , Special "ct [term}" "Parse, typecheck, & evaluate a Juvix Core term"
+  , Special
+      "ce [term"
+      "Parse a Juvix Core term, translate to EAL, solve constraints, evaluate & read-back"
+  , Special "ep [term]" "Parse an EAL term"
+  , Special "ee [term]" "Parse an EAL term, evaluate & read-back"
+  , Special "eq [term]" "Parse an EAL term, evaluate & read-back quietly"
+  , Special "tutorial" "Embark upon an interactive tutorial"
+  , Special "?" "Show this help message"
+  , Special "exit" "Quit interactive mode"
   ]
 
-data Special = Special {
-  specialCommand  ∷ Text,
-  specialHelpDesc ∷ Text
-}
+data Special =
+  Special
+    { specialCommand  :: Text
+    , specialHelpDesc :: Text
+    }

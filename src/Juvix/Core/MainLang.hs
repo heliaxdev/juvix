@@ -87,17 +87,22 @@ data Value
   | VNeutral Neutral
   | VNat Natural
 
-showVal ∷ Value → String
-showVal (VLam f) = showFun f
-showVal (VStar i) = "* " ++ show i
-showVal VNats = "Nats "
-showVal (VPi n v f) = "[" ++ show n ++ "] " ++ showVal v ++ " -> " ++ showFun f
-showVal (VPm n v f) =
-  "([" ++ show n ++ "] " ++ showVal v ++ ", " ++ showFun f ++ ") "
-showVal (VPa _ _ _) = "/\\ "
-showVal (VNPm _ _) = "\\/ "
-showVal (VNeutral _n) = "neutral "
-showVal (VNat i) = show i
+instance Eq Value where
+  VStar x == VStar y = x == y
+  VNeutral x == VNeutral y = x == y
+  VNat x == VNat y = x == y
+
+instance Show Value where
+  show (VLam f) = showFun f
+  show (VStar i) = "* " ++ show i
+  show VNats = "Nats "
+  show (VPi n v f) = "[" ++ show n ++ "] " ++ show v ++ " -> " ++ showFun f
+  show (VPm n v f) =
+    "([" ++ show n ++ "] " ++ show v ++ ", " ++ showFun f ++ ") "
+  show (VPa _ _ _) = "/\\ "
+  show (VNPm _ _) = "\\/ "
+  show (VNeutral _n) = "neutral "
+  show (VNat i) = show i
 
 showFun ∷ (Value → Value) → String
 showFun _f = "\\x.t "
@@ -106,6 +111,7 @@ showFun _f = "\\x.t "
 data Neutral
   = NFree Name
   | NApp Neutral Value
+  deriving (Eq)
 
 --vfree creates the value corresponding to a free variable
 vfree ∷ Name → Value
@@ -146,7 +152,7 @@ vapp (VNeutral n) v = VNeutral (NApp n v)
 vapp x y =
   error
     ("Application (vapp) error. Cannot apply \n" ++
-     showVal y ++ "\n to \n" ++ showVal x)
+     show y ++ "\n to \n" ++ show x)
 
 --substitution function for checkable terms
 cSubst ∷ Natural → ITerm → CTerm → CTerm
@@ -205,12 +211,11 @@ errorMsg binder cterm expectedT gotT =
   " \n (binder number " ++
   show binder ++
   ") is of type \n" ++
-  show (showVal (snd gotT)) ++
+  show (show (snd gotT)) ++
   " , with " ++
   show (fst gotT) ++
   " usage.\n But the expected type is " ++
-  show (showVal (snd expectedT)) ++
-  " , with " ++ show (fst expectedT) ++ " usage."
+  show (show (snd expectedT)) ++ " , with " ++ show (fst expectedT) ++ " usage."
 
 --Type (and usage) checking
 type Result a = Either String a --when type checking fails, it throws an error.
@@ -236,9 +241,8 @@ cType _ii _g (Star n) ann = do
         (throwError $
          show (Star n) ++
          " is of type * of a higher universe. But the expected type " ++
-         showVal (snd ann) ++ " is * of a equal or lower universe.")
-    _ ->
-      throwError $ "* n is of type * but " ++ showVal (snd ann) ++ " is not *."
+         show (snd ann) ++ " is * of a equal or lower universe.")
+    _ -> throwError $ "* n is of type * but " ++ show (snd ann) ++ " is not *."
 cType ii _g Nats ann =
   unless
     (SNat 0 == fst ann && quote0 (snd ann) == Star 0)
@@ -273,8 +277,7 @@ cType ii g (Lam s) ann =
         ((Local ii, (sig * pi, sVal)) : g) --put s in the context with usage sig*pi
         (cSubst 0 (Free (Local ii)) s) --x (varType) in context S with sigma*pi usage.
         (sig, ty' (vfree (Local ii))) --is of type M (usage sigma) in context T
-    _ ->
-      throwError $ showVal (snd ann) ++ " is not a function type but should be."
+    _ -> throwError $ show (snd ann) ++ " is not a function type but should be."
 cType ii g (Conv e) ann = do
   ann' <- iType ii g e
   unless
@@ -287,7 +290,7 @@ cType ii _g cterm theType =
      "\n (binder number " ++
      show ii ++
      ") is not a checkable term. Cannot check that it is of type " ++
-     showVal (snd theType) ++ " with " ++ show (fst theType) ++ " usage.")
+     show (snd theType) ++ " with " ++ show (fst theType) ++ " usage.")
 
 --inferable terms have type as output.
 iType0 ∷ Context → ITerm → Result Annotation
