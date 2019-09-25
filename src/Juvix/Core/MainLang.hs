@@ -87,12 +87,22 @@ data Value
   | VNeutral Neutral
   | VNat Natural
 
---TODO, eq instance for value -> value
+--(Value -> Value) are equal when given an arbitrary value they return the same value.
+valueToValueEq ∷ (Value → Value) → (Value → Value) → Bool
+valueToValueEq y1 y2 =
+  y1 (VNeutral (NFree (Global "x"))) == y2 (VNeutral (NFree (Global "x")))
+
 instance Eq Value where
   VStar x == VStar y = x == y
   VNats == VNats = True
-  --VPi pi1 x1 y1 == VPi pi2 x2 y2 = pi1 == pi2 && x1 == x2 && y1 == y2
+  VPi pi1 x1 y1 == VPi pi2 x2 y2 =
+    pi1 == pi2 && x1 == x2 && valueToValueEq y1 y2
+  VPm pi1 x1 y1 == VPm pi2 x2 y2 =
+    pi1 == pi2 && x1 == x2 && valueToValueEq y1 y2
+  VPa pi1 x1 y1 == VPa pi2 x2 y2 =
+    pi1 == pi2 && x1 == x2 && valueToValueEq y1 y2
   VNPm x1 y1 == VNPm x2 y2 = x1 == x2 && y1 == y2
+  VLam x == VLam y = valueToValueEq x y
   VNeutral x == VNeutral y = x == y
   VNat x == VNat y = x == y
   _ == _ = False
