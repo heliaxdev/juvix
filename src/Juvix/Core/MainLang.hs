@@ -69,6 +69,27 @@ data ITerm
   | Ann Usage CTerm CTerm --Annotation with usage.
   deriving (Show, Eq)
 
+-- addition of nats
+natAdd ∷ ITerm → ITerm → ITerm
+natAdd (Nat x) (Nat y) = Nat (x + y)
+natAdd (Nat _x) y = error (show y ++ " is not a Nat.")
+natAdd x (Nat _y) = error (show x ++ " is not a Nat.")
+natAdd x y = error ("Neither " ++ show x ++ " nor " ++ show y ++ " is a Nat.")
+
+-- substraction of nats
+natSub ∷ ITerm → ITerm → ITerm
+natSub (Nat x) (Nat y) = Nat (x - y)
+natSub (Nat _x) y = error (show y ++ " is not a Nat.")
+natSub x (Nat _y) = error (show x ++ " is not a Nat.")
+natSub x y = error ("Neither " ++ show x ++ " nor " ++ show y ++ " is a Nat.")
+
+-- multiplication of nats
+natMult ∷ ITerm → ITerm → ITerm
+natMult (Nat x) (Nat y) = Nat (x * y)
+natMult (Nat _x) y = error (show y ++ " is not a Nat.")
+natMult x (Nat _y) = error (show x ++ " is not a Nat.")
+natMult x y = error ("Neither " ++ show x ++ " nor " ++ show y ++ " is a Nat.")
+
 data Name
   = Global String -- Global variables are represented by name thus type string
   | Local Natural -- to convert a bound variable into a free one
@@ -88,7 +109,7 @@ data Value
   | VNat Natural
 
 varX ∷ Value
-varX = (VNeutral (NFree (Global "x")))
+varX = VNeutral (NFree (Global "x"))
 
 --(Value -> Value) are equal when given an arbitrary value they return the same value.
 valueToValueEq ∷ (Value → Value) → (Value → Value) → Bool
@@ -125,7 +146,7 @@ instance Show Value where
 data Neutral
   = NFree Name
   | NApp Neutral Value
-  deriving (Eq)
+  deriving (Show, Eq)
 
 --vfree creates the value corresponding to a free variable
 vfree ∷ Name → Value
