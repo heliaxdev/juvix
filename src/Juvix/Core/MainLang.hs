@@ -87,10 +87,12 @@ data Value
   | VNeutral Neutral
   | VNat Natural
 
+varX ∷ Value
+varX = (VNeutral (NFree (Global "x")))
+
 --(Value -> Value) are equal when given an arbitrary value they return the same value.
 valueToValueEq ∷ (Value → Value) → (Value → Value) → Bool
-valueToValueEq y1 y2 =
-  y1 (VNeutral (NFree (Global "x"))) == y2 (VNeutral (NFree (Global "x")))
+valueToValueEq y1 y2 = y1 varX == y2 varX
 
 instance Eq Value where
   VStar x == VStar y = x == y
@@ -108,19 +110,16 @@ instance Eq Value where
   _ == _ = False
 
 instance Show Value where
-  show (VLam f) = showFun f
+  show (VLam f) = show (f varX)
   show (VStar i) = "* " ++ show i
   show VNats = "Nats "
-  show (VPi n v f) = "[" ++ show n ++ "] " ++ show v ++ " -> " ++ showFun f
+  show (VPi n v f) = "[" ++ show n ++ "] " ++ show v ++ " -> " ++ show (f varX)
   show (VPm n v f) =
-    "([" ++ show n ++ "] " ++ show v ++ ", " ++ showFun f ++ ") "
+    "([" ++ show n ++ "] " ++ show v ++ ", " ++ show (f varX) ++ ") "
   show (VPa _ _ _) = "/\\ "
   show (VNPm _ _) = "\\/ "
   show (VNeutral _n) = "neutral "
   show (VNat i) = show i
-
-showFun ∷ (Value → Value) → String
-showFun _f = "\\x.t "
 
 --A neutral term is either a variable or an application of a neutral term to a value
 data Neutral
