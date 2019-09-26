@@ -45,8 +45,7 @@ test_core =
         [ testCase "Nats is of type * 0" natsTypeStar0
         , testCase "Inferred type of Nat 1 is (w, VNats)" nat1Inferred
         ]
-    , testGroup
-        "Evaluator Properties"
-        [testProperty "Constant terms should evaluate to themselves" constProp]
+    --, testGroup "Evaluator Properties"
+    --   [testProperty "Constant terms should evaluate to themselves" constProp]
     --, testGroup "Type-checker Properties" [testProperty "Quickcheck test" arith]
     ]
