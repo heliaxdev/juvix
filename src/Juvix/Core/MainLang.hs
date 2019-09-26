@@ -55,7 +55,7 @@ instance Show CTerm where
     "([π] " ++ show first ++ ", " ++ show second ++ ") "
   show (Pa _usage first second) = "/\\ " ++ show first ++ show second
   show (NPm first second) = "\\/ " ++ show first ++ show second
-  show (Lam var) = "\\ " ++ show var
+  show (Lam var) = "\\x. " ++ show var
   show (Conv term) --Conv should be invisible to users.
    = show term
 

@@ -28,9 +28,9 @@ languageDef =
         , "Quote"
         , "Global" --Free var
         , "w" --Omega
-        , "App" --application
         ]
-    , Token.reservedOpNames = ["Conv", "\\", ":", "cType"]
+    , Token.reservedOpNames =
+        ["App", "Conv", "\\x.", ":", "cType", "+", "-", "*"]
     }
 
 lexer ∷ Token.GenTokenParser String u Data.Functor.Identity.Identity
@@ -59,9 +59,7 @@ natw ∷ Parser NatAndw
 natw =
   do reserved "w"
      return Omega
-     <|> do
-    n <- natural
-    return $ SNat (fromInteger n)
+     <|> do SNat . fromInteger <$> natural
 
 sortTerm ∷ Parser CTerm
 sortTerm = do
@@ -102,7 +100,7 @@ npmTerm = do
 
 lamTerm ∷ Parser CTerm
 lamTerm = do
-  reservedOp "\\"
+  reservedOp "\\x."
   func <- ctermOnly
   return $ Lam func
 
@@ -152,7 +150,7 @@ freeTerm = do
 
 appTerm ∷ Parser ITerm
 appTerm = do
-  reserved "App"
+  reservedOp "App"
   func <- iterm
   var <- ctermOnly
   eof
@@ -166,6 +164,33 @@ annTerm = do
   ann <- ctermOnly
   eof
   return $ Ann pi term ann
+
+natTerm ∷ Parser ITerm
+natTerm = Nat . fromInteger <$> natural
+
+natAddTerm ∷ Parser ITerm
+natAddTerm = do
+  reservedOp "+"
+  x <- natural
+  y <- natural
+  eof
+  return $ natAdd (Nat (fromInteger x)) (Nat (fromInteger y))
+
+natSubTerm ∷ Parser ITerm
+natSubTerm = do
+  reservedOp "-"
+  x <- natural
+  y <- natural
+  eof
+  return $ natSub (Nat (fromInteger x)) (Nat (fromInteger y))
+
+natMultTerm ∷ Parser ITerm
+natMultTerm = do
+  reservedOp "*"
+  x <- natural
+  y <- natural
+  eof
+  return $ natMult (Nat (fromInteger x)) (Nat (fromInteger y))
 
 parseWhole ∷ Parser a → Parser a
 parseWhole p = do
@@ -188,7 +213,12 @@ convITerm = do
   return $ Conv theTerm
 
 iterm ∷ Parser ITerm
-iterm = parens iterm <|> boundTerm <|> freeTerm <|> appTerm <|> annTerm
+iterm =
+  parens iterm <|> natTerm <|> natAddTerm <|> natSubTerm <|> natMultTerm <|>
+  boundTerm <|>
+  freeTerm <|>
+  appTerm <|>
+  annTerm
 
 cOriTerm ∷ Parser (Either ITerm CTerm)
 cOriTerm = Text.Parsec.try (Left <$> iterm) <|> (Right <$> cterm)
