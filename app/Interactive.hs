@@ -115,7 +115,8 @@ transformAndEvaluateEal debug term = do
   let reduced = Graph.runFlipNet (Bohm.reduceAll 1000000) net
       info = Env.info reduced
       res = Env.net reduced
-      readback = Bohm.netToAst res
+  when debug $ H.outputStrLn ("Reduced net: " <> show res)
+  let readback = Bohm.netToAst res
   when debug $ H.outputStrLn ("Reduction info: " <> show info)
   H.outputStrLn ("Read-back term: " <> show readback)
 
