@@ -55,11 +55,6 @@ eq = onIntB (==)
 neq ∷ Primitive → Primitive → Maybe Primitive
 neq = onIntB (/=)
 
-and' ∷ Primitive → Primitive → Maybe Primitive
-and' = onBool (&&)
-
-or' ∷ Primitive → Primitive → Maybe Primitive
-or' = onBool (||)
 
 defaultEnv ∷ Map.Map Symbol BT.Fn
 defaultEnv =
@@ -74,8 +69,6 @@ defaultEnv =
     , (intern "<=", BT.Arg2 le)
     , (intern ">=", BT.Arg2 ge)
     , (intern "==", BT.Arg2 eq)
-    , (intern "and", BT.Arg2 and')
-    , (intern "or", BT.Arg2 or')
     , (intern "mod", BT.Arg2 mod')
     ]
 
@@ -95,3 +88,13 @@ defaultSymbols =
   , Precedence {level = 2, symbol = "or", assoc = AssocRight}
   , Precedence {level = 2, symbol = "mod", assoc = AssocRight}
   ]
+
+-- | Serves as the default map for special cased functions
+-- And and Or are in here, as they can be done more efficiently than
+-- waiting for all the arguments before short circuiting, by compiling
+-- directly to Bohm instead
+defaultSpecial :: (Eq k, Hashable k, IsString k)
+               ⇒ Map.HashMap k (BT.Bohm → BT.Bohm → BT.Bohm)
+defaultSpecial = Map.fromList [ ("or" , BT.Or)
+                              , ("and", BT.And)
+                              ]

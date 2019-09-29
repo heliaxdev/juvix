@@ -4,8 +4,9 @@ module Juvix.Bohm.Parser where
 import           Juvix.Bohm.Default
 import           Juvix.Bohm.Shared                      hiding (symbol)
 import           Juvix.Library                          hiding (many, (<|>))
-import           Prelude                                (String)
+import qualified Juvix.Utility.HashMap as Map
 
+import           Prelude                                (String)
 import           Control.Monad.Fail                     (fail)
 import           Text.Parsec
 import           Text.Parsec.Expr                       as E
@@ -118,13 +119,17 @@ expression' =  ifThenElse
 createInfixUnkown ∷ Symbol → Bohm → Bohm → Bohm
 createInfixUnkown sym arg1 arg2 = Application (Application (Symbol' sym) arg1) arg2
 
--- special cased and and or!
+-- So far only the defaultSpecial is sent in, but in the future, pass in extensions
+-- to both defaultSpecial and defaultSymbols.
 precedenceToOps ∷ Stream s m Char ⇒ OperatorTable s u m Bohm
 precedenceToOps =
   (\(Precedence _ s a) →
-     if | s == "or"  → E.Infix (Or  <$ reservedOp s) a
-        | s == "and" → E.Infix (And <$ reservedOp s) a
-        | otherwise  → E.Infix (createInfixUnkown (intern s) <$ reservedOp s) a)
+     let ins = intern s in
+     E.Infix
+       (case defaultSpecial Map.!? ins of
+          Just f  → f <$ reservedOp s
+          Nothing → createInfixUnkown ins <$ reservedOp s)
+       a)
   <<$>>
     groupBy (\x y -> level x == level y)
             (reverse (sortOn level defaultSymbols))
