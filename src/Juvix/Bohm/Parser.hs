@@ -132,7 +132,7 @@ precedenceToOps =
           Nothing → createInfixUnkown ins <$ reservedOp s)
        a)
   <<$>>
-    groupBy (\x y -> level x == level y)
+    groupBy (\x y → level x == level y)
             (sortOnFlip level defaultSymbols)
 
 expression ∷ Parser Bohm
