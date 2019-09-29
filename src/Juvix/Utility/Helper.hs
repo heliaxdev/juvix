@@ -18,3 +18,10 @@ untilNothing ∷ (t → Maybe t) → t → t
 untilNothing f a = case f a of
   Nothing → a
   Just a  → untilNothing f a
+
+
+-- | like sortOn from the stdlib, is an optimized version of `sortBy (comparing f)`
+-- However instead of sorting from lowest to highest, this sorts from higher to lowest
+sortOnFlip :: Ord b => (a -> b) -> [a] -> [a]
+sortOnFlip f =
+  map snd . sortBy (flip (comparing fst)) . map (\x -> let y = f x in y `seq` (y, x))

@@ -4,7 +4,8 @@ module Juvix.Bohm.Parser where
 import           Juvix.Bohm.Default
 import           Juvix.Bohm.Shared                      hiding (symbol)
 import           Juvix.Library                          hiding (many, (<|>))
-import qualified Juvix.Utility.HashMap as Map
+import qualified Juvix.Utility.HashMap                  as Map
+import           Juvix.Utility.Helper
 
 import           Prelude                                (String)
 import           Control.Monad.Fail                     (fail)
@@ -132,7 +133,7 @@ precedenceToOps =
        a)
   <<$>>
     groupBy (\x y -> level x == level y)
-            (sortBy (flip (compare `on` level)) defaultSymbols)
+            (sortOnFlip level defaultSymbols)
 
 expression ∷ Parser Bohm
 expression = buildExpressionParser precedenceToOps expression'
