@@ -132,7 +132,7 @@ precedenceToOps =
        a)
   <<$>>
     groupBy (\x y -> level x == level y)
-            (reverse (sortOn level defaultSymbols))
+            (sortBy (flip (compare `on` level)) defaultSymbols)
 
 expression ∷ Parser Bohm
 expression = buildExpressionParser precedenceToOps expression'
