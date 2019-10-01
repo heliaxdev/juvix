@@ -22,6 +22,6 @@ untilNothing f a = case f a of
 
 -- | like sortOn from the stdlib, is an optimized version of `sortBy (comparing f)`
 -- However instead of sorting from lowest to highest, this sorts from higher to lowest
-sortOnFlip :: Ord b ⇒ (a → b) → [a] → [a]
+sortOnFlip ∷ Ord b ⇒ (a → b) → [a] → [a]
 sortOnFlip f =
   fmap snd . sortBy (flip (comparing fst)) . fmap (\x → let y = f x in y `seq` (y, x))

@@ -7,8 +7,8 @@ import           Juvix.Library                          hiding (many, (<|>))
 import qualified Juvix.Utility.HashMap                  as Map
 import           Juvix.Utility.Helper
 
-import           Prelude                                (String)
 import           Control.Monad.Fail                     (fail)
+import           Prelude                                (String)
 import           Text.Parsec
 import           Text.Parsec.Expr                       as E
 import           Text.Parsec.String
