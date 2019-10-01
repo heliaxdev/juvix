@@ -69,8 +69,8 @@ data ITerm
   deriving (Eq)
 
 instance Show ITerm where
-  show (Bound i) = "Bound " ++ show i
-  show (Free name) = show name
+  show (Bound i) = "Bound " ++ show i --to be improved
+  show (Free name) = show name --using derived show Name instance, to be improved
   show (Nat i) = show i
   show (App f x) = show f ++ show x
   show (Ann pi theTerm theType) =
