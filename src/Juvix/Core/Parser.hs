@@ -18,11 +18,12 @@ languageDef =
     , Token.identLetter = alphaNum
     , Token.reservedNames =
         [ "*" --sort
+        , "Nat" --primitive Nat type
         , "[Π]" --function type
         , "[π]" --dependent multiplicative conjunction type
         , "/\\" --dependent additive conjunction type
         , "\\/" --non-dependent multiplicative disjunction type
-        , "\\" --Bound var
+        , "Bound" --Bound var
         , "Free"
         , "Local"
         , "Quote"
@@ -66,6 +67,11 @@ sortTerm = do
   reserved "*"
   n <- natural
   return $ Star (fromInteger n)
+
+natTypeTerm ∷ Parser CTerm
+natTypeTerm = do
+  reserved "Nat"
+  return Nats
 
 piTerm ∷ Parser CTerm
 piTerm = do
@@ -112,7 +118,7 @@ convTerm = do
 
 boundTerm ∷ Parser ITerm
 boundTerm = do
-  reserved "\\"
+  reserved "Bound"
   index <- natural
   return $ Bound (fromInteger index)
 
@@ -161,36 +167,12 @@ annTerm = do
   pi <- natw
   term <- ctermOnly
   reservedOp ":"
-  ann <- ctermOnly
+  theType <- ctermOnly
   eof
-  return $ Ann pi term ann
+  return $ Ann pi term theType
 
 natTerm ∷ Parser ITerm
 natTerm = Nat . fromInteger <$> natural
-
-natAddTerm ∷ Parser ITerm
-natAddTerm = do
-  reservedOp "+"
-  x <- natural
-  y <- natural
-  eof
-  return $ natAdd (Nat (fromInteger x)) (Nat (fromInteger y))
-
-natSubTerm ∷ Parser ITerm
-natSubTerm = do
-  reservedOp "-"
-  x <- natural
-  y <- natural
-  eof
-  return $ natSub (Nat (fromInteger x)) (Nat (fromInteger y))
-
-natMultTerm ∷ Parser ITerm
-natMultTerm = do
-  reservedOp "*"
-  x <- natural
-  y <- natural
-  eof
-  return $ natMult (Nat (fromInteger x)) (Nat (fromInteger y))
 
 parseWhole ∷ Parser a → Parser a
 parseWhole p = do
@@ -202,7 +184,8 @@ parseWhole p = do
 
 cterm ∷ Parser CTerm
 cterm =
-  parens cterm <|> sortTerm <|> piTerm <|> pmTerm <|> paTerm <|> npmTerm <|>
+  parens cterm <|> sortTerm <|> natTypeTerm <|> piTerm <|> pmTerm <|> paTerm <|>
+  npmTerm <|>
   lamTerm <|>
   convTerm <|>
   convITerm
@@ -214,11 +197,7 @@ convITerm = do
 
 iterm ∷ Parser ITerm
 iterm =
-  parens iterm <|> natTerm <|> natAddTerm <|> natSubTerm <|> natMultTerm <|>
-  boundTerm <|>
-  freeTerm <|>
-  appTerm <|>
-  annTerm
+  parens iterm <|> natTerm <|> boundTerm <|> freeTerm <|> appTerm <|> annTerm
 
 cOriTerm ∷ Parser (Either ITerm CTerm)
 cOriTerm = Text.Parsec.try (Left <$> iterm) <|> (Right <$> cterm)
@@ -230,6 +209,34 @@ ctermOnly = do
     (case anyTerm of
        Left i  -> Conv i
        Right c -> c)
+
+natAddTerm ∷ Parser Value
+natAddTerm = do
+  reservedOp "+"
+  x <- natural
+  y <- natural
+  eof
+  return $ natOp (+) (Nat (fromInteger x)) (Nat (fromInteger y))
+
+natSubTerm ∷ Parser Value
+natSubTerm = do
+  reservedOp "-"
+  x <- natural
+  y <- natural
+  eof
+  return $ natOp (-) (Nat (fromInteger x)) (Nat (fromInteger y))
+
+natMultTerm ∷ Parser Value
+natMultTerm = do
+  reservedOp "*"
+  x <- natural
+  y <- natural
+  eof
+  return $ natOp (*) (Nat (fromInteger x)) (Nat (fromInteger y))
+
+--parser for values
+pValue ∷ Parser Value
+pValue = parens pValue <|> natAddTerm <|> natSubTerm <|> natMultTerm
 
 --the type checker takes in a term, its usage and type, and returns ...
 pCType ∷ Parser (Result ())
