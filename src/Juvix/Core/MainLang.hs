@@ -55,7 +55,7 @@ instance Show CTerm where
     "([π] " ++ show first ++ ", " ++ show second ++ ") "
   show (Pa _usage first second) = "/\\ " ++ show first ++ show second
   show (NPm first second) = "\\/ " ++ show first ++ show second
-  show (Lam var) = "\\ " ++ show var
+  show (Lam var) = "\\x. " ++ show var
   show (Conv term) --Conv should be invisible to users.
    = show term
 
@@ -65,9 +65,37 @@ data ITerm
   | Free Name -- Free variables of type name (see below)
   | Nat Natural -- primitive constant (naturals)
   | App ITerm CTerm -- elimination rule of PI (APP).
-                              -- the Usage(π) tracks how x is use.
   | Ann Usage CTerm CTerm --Annotation with usage.
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show ITerm where
+  show (Bound i) = "Bound " ++ show i --to be improved
+  show (Free name) = show name --using derived show Name instance, to be improved
+  show (Nat i) = show i
+  show (App f x) = show f ++ show x
+  show (Ann pi theTerm theType) =
+    show theTerm ++ " : [" ++ show pi ++ "] " ++ show theType
+
+-- addition of nats
+natAdd ∷ ITerm → ITerm → ITerm
+natAdd (Nat x) (Nat y) = Nat (x + y)
+natAdd (Nat _x) y = error (show y ++ " is not a Nat.")
+natAdd x (Nat _y) = error (show x ++ " is not a Nat.")
+natAdd x y = error ("Neither " ++ show x ++ " nor " ++ show y ++ " is a Nat.")
+
+-- substraction of nats
+natSub ∷ ITerm → ITerm → ITerm
+natSub (Nat x) (Nat y) = Nat (x - y)
+natSub (Nat _x) y = error (show y ++ " is not a Nat.")
+natSub x (Nat _y) = error (show x ++ " is not a Nat.")
+natSub x y = error ("Neither " ++ show x ++ " nor " ++ show y ++ " is a Nat.")
+
+-- multiplication of nats
+natMult ∷ ITerm → ITerm → ITerm
+natMult (Nat x) (Nat y) = Nat (x * y)
+natMult (Nat _x) y = error (show y ++ " is not a Nat.")
+natMult x (Nat _y) = error (show x ++ " is not a Nat.")
+natMult x y = error ("Neither " ++ show x ++ " nor " ++ show y ++ " is a Nat.")
 
 data Name
   = Global String -- Global variables are represented by name thus type string
@@ -87,25 +115,20 @@ data Value
   | VNeutral Neutral
   | VNat Natural
 
-showVal ∷ Value → String
-showVal (VLam f) = showFun f
-showVal (VStar i) = "* " ++ show i
-showVal VNats = "Nats "
-showVal (VPi n v f) = "[" ++ show n ++ "] " ++ showVal v ++ " -> " ++ showFun f
-showVal (VPm n v f) =
-  "([" ++ show n ++ "] " ++ showVal v ++ ", " ++ showFun f ++ ") "
-showVal (VPa _ _ _) = "/\\ "
-showVal (VNPm _ _) = "\\/ "
-showVal (VNeutral _n) = "neutral "
-showVal (VNat i) = show i
+instance Eq Value where
+  x == y = quote0 x == quote0 y
 
-showFun ∷ (Value → Value) → String
-showFun _f = "\\x.t "
+varX ∷ Value
+varX = VNeutral (NFree (Global "x"))
+
+instance Show Value where
+  show x = show (quote0 x)
 
 --A neutral term is either a variable or an application of a neutral term to a value
 data Neutral
   = NFree Name
   | NApp Neutral Value
+  deriving (Show, Eq)
 
 --vfree creates the value corresponding to a free variable
 vfree ∷ Name → Value
@@ -146,7 +169,7 @@ vapp (VNeutral n) v = VNeutral (NApp n v)
 vapp x y =
   error
     ("Application (vapp) error. Cannot apply \n" ++
-     showVal y ++ "\n to \n" ++ showVal x)
+     show y ++ "\n to \n" ++ show x)
 
 --substitution function for checkable terms
 cSubst ∷ Natural → ITerm → CTerm → CTerm
@@ -205,23 +228,14 @@ errorMsg binder cterm expectedT gotT =
   " \n (binder number " ++
   show binder ++
   ") is of type \n" ++
-  show (showVal (snd gotT)) ++
+  show (show (snd gotT)) ++
   " , with " ++
   show (fst gotT) ++
   " usage.\n But the expected type is " ++
-  show (showVal (snd expectedT)) ++
-  " , with " ++ show (fst expectedT) ++ " usage."
+  show (show (snd expectedT)) ++ " , with " ++ show (fst expectedT) ++ " usage."
 
 --Type (and usage) checking
 type Result a = Either String a --when type checking fails, it throws an error.
-
---Usage comparisions
---usageCompare required input
---returns True when the input usage is compatible the required usage
-usageCompare ∷ Usage → Usage → Bool
-usageCompare (SNat 0) pi = pi == SNat 0 || pi == Omega
-usageCompare (SNat i) pi = pi == SNat i || pi == Omega
-usageCompare Omega _pi   = True --actual usage can be any when required usage is unspecified.
 
 --checker for checkable terms checks the term against an annotation and returns ().
 cType ∷ Natural → Context → CTerm → Annotation → Result ()
@@ -236,9 +250,8 @@ cType _ii _g (Star n) ann = do
         (throwError $
          show (Star n) ++
          " is of type * of a higher universe. But the expected type " ++
-         showVal (snd ann) ++ " is * of a equal or lower universe.")
-    _ ->
-      throwError $ "* n is of type * but " ++ showVal (snd ann) ++ " is not *."
+         show (snd ann) ++ " is * of a equal or lower universe.")
+    _ -> throwError $ "* n is of type * but " ++ show (snd ann) ++ " is not *."
 cType ii _g Nats ann =
   unless
     (SNat 0 == fst ann && quote0 (snd ann) == Star 0)
@@ -273,8 +286,7 @@ cType ii g (Lam s) ann =
         ((Local ii, (sig * pi, sVal)) : g) --put s in the context with usage sig*pi
         (cSubst 0 (Free (Local ii)) s) --x (varType) in context S with sigma*pi usage.
         (sig, ty' (vfree (Local ii))) --is of type M (usage sigma) in context T
-    _ ->
-      throwError $ showVal (snd ann) ++ " is not a function type but should be."
+    _ -> throwError $ show (snd ann) ++ " is not a function type but should be."
 cType ii g (Conv e) ann = do
   ann' <- iType ii g e
   unless
@@ -287,7 +299,7 @@ cType ii _g cterm theType =
      "\n (binder number " ++
      show ii ++
      ") is not a checkable term. Cannot check that it is of type " ++
-     showVal (snd theType) ++ " with " ++ show (fst theType) ++ " usage.")
+     show (snd theType) ++ " with " ++ show (fst theType) ++ " usage.")
 
 --inferable terms have type as output.
 iType0 ∷ Context → ITerm → Result Annotation
