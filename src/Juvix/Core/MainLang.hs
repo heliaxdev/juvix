@@ -65,9 +65,16 @@ data ITerm
   | Free Name -- Free variables of type name (see below)
   | Nat Natural -- primitive constant (naturals)
   | App ITerm CTerm -- elimination rule of PI (APP).
-                              -- the Usage(π) tracks how x is use.
   | Ann Usage CTerm CTerm --Annotation with usage.
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show ITerm where
+  show (Bound i) = "Bound " ++ show i
+  show (Free name) = show name
+  show (Nat i) = show i
+  show (App f x) = show f ++ show x
+  show (Ann pi theTerm theType) =
+    show theTerm ++ " : [" ++ show pi ++ "] " ++ show theType
 
 -- addition of nats
 natAdd ∷ ITerm → ITerm → ITerm
@@ -108,39 +115,14 @@ data Value
   | VNeutral Neutral
   | VNat Natural
 
+instance Eq Value where
+  x == y = quote0 x == quote0 y
+
 varX ∷ Value
 varX = VNeutral (NFree (Global "x"))
 
---(Value -> Value) are equal when given an arbitrary value they return the same value.
-valueToValueEq ∷ (Value → Value) → (Value → Value) → Bool
-valueToValueEq y1 y2 = y1 varX == y2 varX
-
-instance Eq Value where
-  VStar x == VStar y = x == y
-  VNats == VNats = True
-  VPi pi1 x1 y1 == VPi pi2 x2 y2 =
-    pi1 == pi2 && x1 == x2 && valueToValueEq y1 y2
-  VPm pi1 x1 y1 == VPm pi2 x2 y2 =
-    pi1 == pi2 && x1 == x2 && valueToValueEq y1 y2
-  VPa pi1 x1 y1 == VPa pi2 x2 y2 =
-    pi1 == pi2 && x1 == x2 && valueToValueEq y1 y2
-  VNPm x1 y1 == VNPm x2 y2 = x1 == x2 && y1 == y2
-  VLam x == VLam y = valueToValueEq x y
-  VNeutral x == VNeutral y = x == y
-  VNat x == VNat y = x == y
-  _ == _ = False
-
 instance Show Value where
-  show (VLam f) = show (f varX)
-  show (VStar i) = "* " ++ show i
-  show VNats = "Nats "
-  show (VPi n v f) = "[" ++ show n ++ "] " ++ show v ++ " -> " ++ show (f varX)
-  show (VPm n v f) =
-    "([" ++ show n ++ "] " ++ show v ++ ", " ++ show (f varX) ++ ") "
-  show (VPa _ _ _) = "/\\ "
-  show (VNPm _ _) = "\\/ "
-  show (VNeutral _n) = "neutral "
-  show (VNat i) = show i
+  show x = show (quote0 x)
 
 --A neutral term is either a variable or an application of a neutral term to a value
 data Neutral
@@ -254,14 +236,6 @@ errorMsg binder cterm expectedT gotT =
 
 --Type (and usage) checking
 type Result a = Either String a --when type checking fails, it throws an error.
-
---Usage comparisions
---usageCompare required input
---returns True when the input usage is compatible the required usage
-usageCompare ∷ Usage → Usage → Bool
-usageCompare (SNat 0) pi = pi == SNat 0 || pi == Omega
-usageCompare (SNat i) pi = pi == SNat i || pi == Omega
-usageCompare Omega _pi   = True --actual usage can be any when required usage is unspecified.
 
 --checker for checkable terms checks the term against an annotation and returns ().
 cType ∷ Natural → Context → CTerm → Annotation → Result ()
