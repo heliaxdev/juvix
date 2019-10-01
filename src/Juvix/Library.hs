@@ -14,6 +14,7 @@ import           Capability.State
 import           Capability.Stream
 import           Capability.Writer
 import qualified Data.Text         as T
+import           Data.String       (fromString)
 import           Prelude           (Show (..), String)
 import           Protolude         hiding ((:.:), Constraint, Fixity (..),
                                     MonadError (..), MonadReader (..),
@@ -55,6 +56,9 @@ newtype Symbol = Sym Text deriving (Eq, Hashable)
 
 instance Show Symbol where
   show (Sym t) = T.unpack t
+
+instance IsString Symbol where
+  fromString = intern
 
 intern ∷ String → Symbol
 intern = Sym . T.pack
