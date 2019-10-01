@@ -69,6 +69,7 @@ library:
     - Juvix
     - Juvix.Core
     - Juvix.Core.MainLang
+    - Juvix.Core.Parser
     - Juvix.EAL
     - Juvix.EAL.Check
     - Juvix.EAL.EAL
