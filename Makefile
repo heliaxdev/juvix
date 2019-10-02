@@ -1,7 +1,16 @@
+PWD=$(CURDIR)
+PREFIX="$(PWD)/.stack-work/prefix"
+
 all: setup build
 
 setup:
 	stack build --only-dependencies
+
+build-z3:
+	mkdir -p $(PREFIX)
+	cd z3 && test -f build/Makefile || python scripts/mk_make.py -p $(PREFIX)
+	cd z3/build && make -j $(shell nproc)
+	cd z3/build && make install
 
 build:
 	stack build --copy-bins --fast
@@ -33,4 +42,4 @@ clean:
 clean-full:
 	stack clean --full
 
-.PHONY: all setup build build-watch build-opt lint format test repl-lib repl-exe clean clean-full
+.PHONY: all setup build build-z3 build-watch build-opt lint format test repl-lib repl-exe clean clean-full
