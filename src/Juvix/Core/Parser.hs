@@ -68,20 +68,12 @@ sortTerm = do
   n <- natural
   return $ Star (fromInteger n)
 
-<<<<<<< HEAD
 natTypeTerm :: Parser CTerm
-=======
-natTypeTerm ∷ Parser CTerm
->>>>>>> natOp now returns value. Add unit tests for parser.
 natTypeTerm = do
   reserved "Nat"
   return Nats
 
-<<<<<<< HEAD
 piTerm :: Parser CTerm
-=======
-piTerm ∷ Parser CTerm
->>>>>>> natOp now returns value. Add unit tests for parser.
 piTerm = do
   reserved "[Π]"
   pi <- natw
@@ -182,7 +174,14 @@ annTerm = do
 natTerm :: Parser ITerm
 natTerm = Nat . fromInteger <$> natural
 
-<<<<<<< HEAD
+parseWhole :: Parser a -> Parser a
+parseWhole p = do
+  whiteSpace
+  t <- p
+  whiteSpace
+  eof
+  return t
+
 cterm :: Parser CTerm
 cterm =
   parens cterm <|> sortTerm <|> natTypeTerm <|> piTerm <|> pmTerm <|> paTerm <|>
@@ -241,86 +240,6 @@ pValue = parens pValue <|> natAddTerm <|> natSubTerm <|> natMultTerm
 
 --the type checker takes in a term, its usage and type, and returns ...
 pCType :: Parser (Result ())
-pCType =
-  parens pCType <|> do
-    reservedOp "cType"
-    theTerm <- ctermOnly
-    usage <- natw
-    theType <- ctermOnly
-    return $ cType 0 [] theTerm (usage, cEval theType [])
-
-parseWhole :: Parser a -> Parser a
-=======
-parseWhole ∷ Parser a → Parser a
->>>>>>> natOp now returns value. Add unit tests for parser.
-parseWhole p = do
-  whiteSpace
-  t <- p
-  whiteSpace
-  eof
-  return t
-
-<<<<<<< HEAD
-parseString :: Parser a -> String -> Maybe a
-=======
-cterm ∷ Parser CTerm
-cterm =
-  parens cterm <|> sortTerm <|> natTypeTerm <|> piTerm <|> pmTerm <|> paTerm <|>
-  npmTerm <|>
-  lamTerm <|>
-  convTerm <|>
-  convITerm
-
-convITerm ∷ Parser CTerm
-convITerm = do
-  theTerm <- iterm
-  return $ Conv theTerm
-
-iterm ∷ Parser ITerm
-iterm =
-  parens iterm <|> natTerm <|> boundTerm <|> freeTerm <|> appTerm <|> annTerm
-
-cOriTerm ∷ Parser (Either ITerm CTerm)
-cOriTerm = Text.Parsec.try (Left <$> iterm) <|> (Right <$> cterm)
-
-ctermOnly ∷ Parser CTerm
-ctermOnly = do
-  anyTerm <- cOriTerm
-  return
-    (case anyTerm of
-       Left i  -> Conv i
-       Right c -> c)
-
-natAddTerm ∷ Parser Value
-natAddTerm = do
-  reservedOp "+"
-  x <- natural
-  y <- natural
-  eof
-  return $ natOp (+) (Nat (fromInteger x)) (Nat (fromInteger y))
-
-natSubTerm ∷ Parser Value
-natSubTerm = do
-  reservedOp "-"
-  x <- natural
-  y <- natural
-  eof
-  return $ natOp (-) (Nat (fromInteger x)) (Nat (fromInteger y))
-
-natMultTerm ∷ Parser Value
-natMultTerm = do
-  reservedOp "*"
-  x <- natural
-  y <- natural
-  eof
-  return $ natOp (*) (Nat (fromInteger x)) (Nat (fromInteger y))
-
---parser for values
-pValue ∷ Parser Value
-pValue = parens pValue <|> natAddTerm <|> natSubTerm <|> natMultTerm
-
---the type checker takes in a term, its usage and type, and returns ...
-pCType ∷ Parser (Result ())
 pCType = do
   reservedOp "cType"
   theTerm <- ctermOnly
@@ -328,8 +247,7 @@ pCType = do
   theType <- ctermOnly
   return $ cType 0 [] theTerm (usage, cEval theType [])
 
-parseString ∷ Parser a → String → Maybe a
->>>>>>> natOp now returns value. Add unit tests for parser.
+parseString :: Parser a -> String -> Maybe a
 parseString p str =
   case parse p "" str of
     Left _  -> Nothing
