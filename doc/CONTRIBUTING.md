@@ -18,10 +18,10 @@ Before 1.0.0, you may merge your own PRs, review is not required (but feel free 
 
 ## Pre-commit hooks
 
-Please put the following in `.git/hooks/pre-commit` and ensure it passes before you submit a pull request:
-
+Please put the following in `.git/hooks/pre-commit` and run `chmod +x .git/hooks/pre-commit`.
 ```bash
 #!/bin/sh
 
 ./scripts/precommit.sh
 ```
+Ensure that it passes before you submit a pull request.
