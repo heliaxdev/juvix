@@ -257,37 +257,6 @@ muExpand muNum = do
   traverse_ linkAll [nodeFanIn, nodeFanOut]
   deleteRewire [muNum] [fanIn, fanOut, newMu]
 
-fanInAux2 ∷ (InfoNetwork net Lang m)
-          ⇒ Node → (Node, Auxiliary2) → Int → m ()
-fanInAux2 numFan (numOther, otherLang) level = do
-  incGraphSizeStep 2
-  other1 ← newNode (Auxiliary2 otherLang)
-  other2 ← newNode (Auxiliary2 otherLang)
-  fanIn1 ← newNode (Auxiliary2 (FanIn level))
-  fanIn2 ← newNode (Auxiliary2 (FanIn level))
-  let nodeOther1 = RELAuxiliary2 { node       = other1
-                                 , primary    = ReLink numFan Aux1
-                                 , auxiliary1 = Link (Port Aux1 fanIn2)
-                                 , auxiliary2 = Link (Port Aux1 fanIn1)
-                                 }
-      nodeOther2 = RELAuxiliary2 { node       = other2
-                                 , primary    = ReLink numFan Aux2
-                                 , auxiliary1 = Link (Port Aux2 fanIn2)
-                                 , auxiliary2 = Link (Port Aux2 fanIn1)
-                                 }
-      nodeFan1   = RELAuxiliary2 { node       = fanIn1
-                                 , primary    = ReLink numOther Aux2
-                                 , auxiliary1 = Link (Port Aux2 other1)
-                                 , auxiliary2 = Link (Port Aux2 other2)
-                                 }
-      nodeFan2   = RELAuxiliary2 { node       = fanIn2
-                                 , primary    = ReLink numOther Aux1
-                                 , auxiliary1 = Link (Port Aux1 other1)
-                                 , auxiliary2 = Link (Port Aux1 other2)
-                                 }
-  traverse_ linkAll [nodeOther1, nodeOther2, nodeFan1, nodeFan2]
-  deleteRewire [numFan, numOther] [other1, other2, fanIn1, fanIn2]
-
 fanInAux0 ∷ (InfoNetwork net Lang m)
           ⇒ Node → (Node, Primar) → m ()
 fanInAux0 numFan (numOther, otherLang) = do
@@ -325,6 +294,80 @@ fanInAux1 numFan (numOther, otherLang) level = do
                                  }
   traverse_ linkAll [nodeOther1, nodeOther2, nodeFan1]
   deleteRewire [numFan, numOther] [other1, other2, fanIn1]
+
+fanInAux2 ∷ (InfoNetwork net Lang m)
+          ⇒ Node → (Node, Auxiliary2) → Int → m ()
+fanInAux2 numFan (numOther, otherLang) level = do
+  incGraphSizeStep 2
+  other1 ← newNode (Auxiliary2 otherLang)
+  other2 ← newNode (Auxiliary2 otherLang)
+  fanIn1 ← newNode (Auxiliary2 (FanIn level))
+  fanIn2 ← newNode (Auxiliary2 (FanIn level))
+  let nodeOther1 = RELAuxiliary2 { node       = other1
+                                 , primary    = ReLink numFan Aux1
+                                 , auxiliary1 = Link (Port Aux1 fanIn2)
+                                 , auxiliary2 = Link (Port Aux1 fanIn1)
+                                 }
+      nodeOther2 = RELAuxiliary2 { node       = other2
+                                 , primary    = ReLink numFan Aux2
+                                 , auxiliary1 = Link (Port Aux2 fanIn2)
+                                 , auxiliary2 = Link (Port Aux2 fanIn1)
+                                 }
+      nodeFan1   = RELAuxiliary2 { node       = fanIn1
+                                 , primary    = ReLink numOther Aux2
+                                 , auxiliary1 = Link (Port Aux2 other1)
+                                 , auxiliary2 = Link (Port Aux2 other2)
+                                 }
+      nodeFan2   = RELAuxiliary2 { node       = fanIn2
+                                 , primary    = ReLink numOther Aux1
+                                 , auxiliary1 = Link (Port Aux1 other1)
+                                 , auxiliary2 = Link (Port Aux1 other2)
+                                 }
+  traverse_ linkAll [nodeOther1, nodeOther2, nodeFan1, nodeFan2]
+  deleteRewire [numFan, numOther] [other1, other2, fanIn1, fanIn2]
+
+fanInAux3 ∷ (InfoNetwork net Lang m)
+          ⇒ Node → (Node, Auxiliary3) → Int → m ()
+fanInAux3 numFan (numOther, otherLang) level = do
+  incGraphSizeStep 3
+  other1 ← newNode (Auxiliary3 otherLang)
+  other2 ← newNode (Auxiliary3 otherLang)
+  other3 ← newNode (Auxiliary3 otherLang)
+  fanIn1 ← newNode (Auxiliary2 (FanIn level))
+  fanIn2 ← newNode (Auxiliary2 (FanIn level))
+  fanIn3 ← newNode (Auxiliary2 (FanIn level))
+  let nodeOther1 = RELAuxiliary3 { node       = other1
+                                 , primary    = ReLink numFan Aux1
+                                 , auxiliary1 = Link (Port Aux1 fanIn3)
+                                 , auxiliary2 = Link (Port Aux1 fanIn2)
+                                 , auxiliary3 = Link (Port Aux1 fanIn1)
+                                 }
+      nodeOther2 = RELAuxiliary3 { node       = other2
+                                 , primary    = ReLink numFan Aux2
+                                 , auxiliary1 = Link (Port Aux2 fanIn3)
+                                 , auxiliary2 = Link (Port Aux2 fanIn2)
+                                 , auxiliary3 = Link (Port Aux2 fanIn1)
+                                 }
+      nodeFan1   = RELAuxiliary3 { node       = fanIn1
+                                 , primary    = ReLink numOther Aux3
+                                 , auxiliary1 = Link (Port Aux3 other1)
+                                 , auxiliary2 = Link (Port Aux3 other2)
+                                 , auxiliary3 = Link (Port Aux3 other3)
+                                 }
+      nodeFan2   = RELAuxiliary3 { node       = fanIn2
+                                 , primary    = ReLink numOther Aux2
+                                 , auxiliary1 = Link (Port Aux2 other1)
+                                 , auxiliary2 = Link (Port Aux2 other2)
+                                 , auxiliary3 = Link (Port Aux2 other3)
+                                 }
+      nodeFan3   = RELAuxiliary3 { node       = fanIn3
+                                 , primary    = ReLink numOther Aux1
+                                 , auxiliary1 = Link (Port Aux1 other1)
+                                 , auxiliary2 = Link (Port Aux1 other2)
+                                 , auxiliary3 = Link (Port Aux1 other3)
+                                 }
+  traverse_ linkAll [nodeOther1, nodeOther2, nodeFan1, nodeFan2, nodeFan3]
+  deleteRewire [numFan, numOther] [other1, other2, fanIn1, fanIn2, fanIn3]
 
 -- TODO :: delete node coming in!
 notExpand ∷ (Aux2 s, InfoNetwork net Lang m)
