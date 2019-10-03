@@ -30,7 +30,7 @@ constProp Nats env     = cEval Nats env == VNats
 instance Arbitrary CTerm where
   arbitrary = CTerm -}
 natsTypeStar0 ∷ Assertion
-natsTypeStar0 = cType 0 [] Nats (0, VStar 0) @?= Right ()
+natsTypeStar0 = cType 0 [] Nats (numToNat 0, VStar 0) @?= Right ()
 
 nat1Inferred ∷ Assertion
 nat1Inferred = iType 0 [] (Nat 1) @?= Right (Omega, VNats)

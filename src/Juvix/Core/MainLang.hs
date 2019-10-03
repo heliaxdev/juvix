@@ -24,14 +24,25 @@ instance Eq NatAndw where
   SNat _ == Omega = True
   Omega == _ = True
 
-instance Num NatAndw where
-  SNat x + SNat y = SNat (x + y)
-  Omega + _ = Omega
-  _ + Omega = Omega
-  SNat j * SNat k = SNat (j * k)
-  Omega * _ = Omega
-  _ * Omega = Omega
-  fromInteger x = SNat (fromInteger x)
+-- Addition is the semi-Ring/Monoid instance
+instance Semigroup NatAndw where
+  SNat x <> SNat y = SNat (x + y)
+  Omega  <> _      = Omega
+  _      <> Omega  = Omega
+
+instance Monoid NatAndw where
+  mempty = SNat 0
+
+-- Semiring instance is thus multiplication
+instance Semiring NatAndw where
+  one = SNat 1
+
+  SNat x <.> SNat y = SNat (x * y)
+  Omega  <.> _      = Omega
+  _      <.> Omega  = Omega
+
+numToNat ∷ Integer → NatAndw
+numToNat = SNat . fromInteger
 
 -- checkable terms
 data CTerm
@@ -261,7 +272,7 @@ cType _ii _g (Star n) ann = do
 cType ii _g Nats ann =
   unless
     (SNat 0 == fst ann && quote0 (snd ann) == Star 0)
-    (throwError (errorMsg ii Nats (0, VStar 0) ann))
+    (throwError (errorMsg ii Nats (numToNat 0, VStar 0) ann))
 -- *-Pi.M and N are of type Star i with 0 usage.
 cType ii g (Pi pi varType resultType) ann = do
   unless (SNat 0 == fst ann) (throwError "Sigma has to be 0.") -- checks sigma = 0.
@@ -289,7 +300,7 @@ cType ii g (Lam s) ann =
       let sVal = cEval s []
       cType
         (ii + 1)
-        ((Local ii, (sig * pi, sVal)) : g) --put s in the context with usage sig*pi
+        ((Local ii, (sig <.> pi, sVal)) : g) --put s in the context with usage sig*pi
         (cSubst 0 (Free (Local ii)) s) --x (varType) in context S with sigma*pi usage.
         (sig, ty' (vfree (Local ii))) --is of type M (usage sigma) in context T
     _ -> throwError $ show (snd ann) ++ " is not a function type but should be."
