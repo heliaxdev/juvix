@@ -279,11 +279,10 @@ cType ii g (NPm first second) ann = undefined
 cType ii g (Lam s) ann =
   case ann of
     (sig, VPi pi ty ty') --Lam s should be of dependent function type (Pi pi ty ty').
-     -> do
-      let sVal = cEval s []
+     ->
       cType
         (ii + 1)
-        ((Local ii, (sig * pi, sVal)) : g) --put s in the context with usage sig*pi
+        ((Local ii, (sig * pi, ty)) : g) --put s in the context with usage sig*pi
         (cSubst 0 (Free (Local ii)) s) --x (varType) in context S with sigma*pi usage.
         (sig, ty' (vfree (Local ii))) --is of type M (usage sigma) in context T
     _ -> throwError $ show (snd ann) ++ " is not a function type but should be."

@@ -10,12 +10,12 @@ data Config = Config {
   configTezosNode ∷ Text
 } deriving (Generic)
 
-defaultConfig :: Config
+defaultConfig ∷ Config
 defaultConfig = Config {
   configTezosNode = "127.0.0.1"
 }
 
-loadConfig :: FilePath → IO (Maybe Config)
+loadConfig ∷ FilePath → IO (Maybe Config)
 loadConfig path = do
   config ← Y.decodeFileEither path
   return $ case config of
@@ -25,7 +25,7 @@ loadConfig path = do
 instance Y.FromJSON Config where
   parseJSON = customParseJSON
 
-jsonOptions :: A.Options
+jsonOptions ∷ A.Options
 jsonOptions = A.defaultOptions {
   A.fieldLabelModifier = (\(h:t) → toLower h : t) . dropWhile isLower,
   A.omitNothingFields  = True,
