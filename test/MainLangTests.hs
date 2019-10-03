@@ -5,7 +5,7 @@ import           Juvix.Core.MainLang
 
 import           Control.Monad.Except
 import           Numeric.Natural
-import           Prelude
+import           Juvix.Library
 
 import           Test.Tasty
 import           Test.Tasty.HUnit
