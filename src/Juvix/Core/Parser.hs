@@ -174,14 +174,6 @@ annTerm = do
 natTerm :: Parser ITerm
 natTerm = Nat . fromInteger <$> natural
 
-parseWhole :: Parser a -> Parser a
-parseWhole p = do
-  whiteSpace
-  t <- p
-  whiteSpace
-  eof
-  return t
-
 cterm :: Parser CTerm
 cterm =
   parens cterm <|> sortTerm <|> natTypeTerm <|> piTerm <|> pmTerm <|> paTerm <|>
@@ -240,12 +232,21 @@ pValue = parens pValue <|> natAddTerm <|> natSubTerm <|> natMultTerm
 
 --the type checker takes in a term, its usage and type, and returns ...
 pCType :: Parser (Result ())
-pCType = do
-  reservedOp "cType"
-  theTerm <- ctermOnly
-  usage <- natw
-  theType <- ctermOnly
-  return $ cType 0 [] theTerm (usage, cEval theType [])
+pCType =
+  parens pCType <|> do
+    reservedOp "cType"
+    theTerm <- ctermOnly
+    usage <- natw
+    theType <- ctermOnly
+    return $ cType 0 [] theTerm (usage, cEval theType [])
+
+parseWhole :: Parser a -> Parser a
+parseWhole p = do
+  whiteSpace
+  t <- p
+  whiteSpace
+  eof
+  return t
 
 parseString :: Parser a -> String -> Maybe a
 parseString p str =
