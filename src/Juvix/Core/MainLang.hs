@@ -5,7 +5,8 @@ module Juvix.Core.MainLang where
 import           Control.Monad.Except (throwError)
 import           Numeric.Natural
 import           Juvix.Library        hiding (show)
-import           Prelude              (Show (..), String, (!!), lookup, error)
+import           Prelude              (Show (..), String, lookup, error)
+import           Control.Lens         ((^?), ix)
 
 -- naming usage for easy change of semiring choice.
 type Usage = NatAndw
@@ -157,12 +158,16 @@ cEval (Conv ii) d      = iEval ii d
 toInt ∷ Natural → Int
 toInt = fromInteger . toInteger
 
+-- TODO :: Promote iEval and cEval into the maybe monad and all call sites
 iEval ∷ ITerm → Env → Value
 iEval (Free x) _d            = vfree x
-iEval (Bound ii) d           = d !! toInt ii --(!!) :: [a] -> Int -> a, the list lookup operator.
 iEval (Nat n) _d             = VNat n
 iEval (App iterm cterm) d    = vapp (iEval iterm d) (cEval cterm d)
 iEval (Ann _pi term _type) d = cEval term d
+iEval (Bound ii) d =
+  case d ^? ix (toInt ii) of
+  Just x  → x
+  Nothing → error "unbound index i"
 
 vapp ∷ Value → Value → Value
 vapp (VLam f) v = f v
