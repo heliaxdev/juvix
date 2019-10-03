@@ -2,9 +2,10 @@
 -- Atkey 2017 and McBride 2016.
 module Juvix.Core.MainLang where
 
-import           Control.Monad.Except
+import           Control.Monad.Except (throwError)
 import           Numeric.Natural
-import           Prelude
+import           Juvix.Library        hiding (show)
+import           Prelude              (Show (..), String, (!!), lookup, error)
 
 -- naming usage for easy change of semiring choice.
 type Usage = NatAndw

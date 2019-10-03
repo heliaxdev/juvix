@@ -1,8 +1,11 @@
 module Juvix.Core.Parser where
 
 import           Data.Functor.Identity
+
 import           Juvix.Core.MainLang
-import           Prelude
+import           Juvix.Library                          hiding ((<|>))
+
+import           Prelude                                (String)
 import           Text.Parsec
 import           Text.ParserCombinators.Parsec
 import           Text.ParserCombinators.Parsec.Language
