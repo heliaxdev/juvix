@@ -1,7 +1,7 @@
 --Tests for the type checker and evaluator in Core/MainLang.hs.
 module MainLangTests where
 
-import           Juvix.Core.MainLang
+import           Juvix.Core
 
 import           Control.Monad.Except
 import           Numeric.Natural

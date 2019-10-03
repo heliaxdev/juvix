@@ -4,46 +4,12 @@ module Juvix.Core.MainLang where
 
 import           Control.Monad.Except (throwError)
 import           Numeric.Natural
+
+import           Juvix.Core.SemiRing
 import           Juvix.Library        hiding (show)
+
 import           Prelude              (Show (..), String, lookup, error)
 import           Control.Lens         ((^?), ix)
-
--- naming usage for easy change of semiring choice.
-type Usage = NatAndw
-
-data NatAndw -- semiring of (Nat,w) for usage annotation
-  = SNat Natural -- 0, 1, or n usage
-  | Omega -- unspecified usage
-
-instance Show NatAndw where
-  show (SNat n) = show n
-  show Omega    = "w"
-
-instance Eq NatAndw where
-  SNat x == SNat y = x == y
-  SNat _ == Omega = True
-  Omega == _ = True
-
--- Addition is the semi-Ring/Monoid instance
-instance Semigroup NatAndw where
-  SNat x <> SNat y = SNat (x + y)
-  Omega  <> _      = Omega
-  _      <> Omega  = Omega
-
-instance Monoid NatAndw where
-  mempty = SNat 0
-
--- Semiring instance is thus multiplication
-instance Semiring NatAndw where
-  one = SNat 1
-
-  SNat x <.> SNat y = SNat (x * y)
-  Omega  <.> _      = Omega
-  _      <.> Omega  = Omega
-
--- | numToNat is a helper function that converts an integer to NatAndW
-numToNat ∷ Integer → NatAndw
-numToNat = SNat . fromInteger
 
 -- checkable terms
 data CTerm
