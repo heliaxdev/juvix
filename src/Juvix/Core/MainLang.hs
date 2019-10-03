@@ -167,7 +167,7 @@ iEval (Ann _pi term _type) d = cEval term d
 iEval (Bound ii) d =
   case d ^? ix (toInt ii) of
   Just x  → x
-  Nothing → error "unbound index i"
+  Nothing → error ("unbound index " <> show ii)
 
 vapp ∷ Value → Value → Value
 vapp (VLam f) v = f v
