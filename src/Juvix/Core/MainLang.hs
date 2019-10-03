@@ -41,6 +41,7 @@ instance Semiring NatAndw where
   Omega  <.> _      = Omega
   _      <.> Omega  = Omega
 
+-- | numToNat is a helper function that converts an integer to NatAndW
 numToNat ∷ Integer → NatAndw
 numToNat = SNat . fromInteger
 
@@ -272,7 +273,7 @@ cType _ii _g (Star n) ann = do
 cType ii _g Nats ann =
   unless
     (SNat 0 == fst ann && quote0 (snd ann) == Star 0)
-    (throwError (errorMsg ii Nats (numToNat 0, VStar 0) ann))
+    (throwError (errorMsg ii Nats (zero, VStar 0) ann))
 -- *-Pi.M and N are of type Star i with 0 usage.
 cType ii g (Pi pi varType resultType) ann = do
   unless (SNat 0 == fst ann) (throwError "Sigma has to be 0.") -- checks sigma = 0.
