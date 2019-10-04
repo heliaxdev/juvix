@@ -86,11 +86,11 @@ data Name
 data Value
   = VStar Natural
   | VNats
-  | VPi Usage Value (Value -> Value)
-  | VPm Usage Value (Value -> Value)
-  | VPa Usage Value (Value -> Value)
+  | VPi Usage Value (Value → Value)
+  | VPm Usage Value (Value → Value)
+  | VPa Usage Value (Value → Value)
   | VNPm Value Value
-  | VLam (Value -> Value)
+  | VLam (Value → Value)
   | VNeutral Neutral
   | VNat Natural
 
@@ -107,7 +107,7 @@ data Neutral
   deriving (Show, Eq)
 
 --vfree creates the value corresponding to a free variable
-vfree :: Name -> Value
+vfree ∷ Name → Value
 vfree n = VNeutral (NFree n)
 
 --Annotations include usage and type.
@@ -120,10 +120,10 @@ type Context = [(Name, Annotation)]
 type Env = [Value]
 
 --initial environment
-initEnv :: Env
+initEnv ∷ Env
 initEnv = []
 
-cEval :: CTerm -> Env -> Value
+cEval ∷ CTerm → Env → Value
 cEval (Star i) _d      = VStar i
 cEval Nats _d          = VNats
 cEval (Pi pi ty ty') d = VPi pi (cEval ty d) (\x -> cEval ty' (x : d))
@@ -133,17 +133,17 @@ cEval (NPm ty ty') d   = VNPm (cEval ty d) (cEval ty' d)
 cEval (Lam e) d        = VLam (\x -> cEval e (x : d))
 cEval (Conv ii) d      = iEval ii d
 
-toInt :: Natural -> Int
+toInt ∷ Natural → Int
 toInt = fromInteger . toInteger
 
-iEval :: ITerm -> Env -> Value
+iEval ∷ ITerm → Env → Value
 iEval (Free x) _d            = vfree x
 iEval (Bound ii) d           = d !! toInt ii --(!!) :: [a] -> Int -> a, the list lookup operator.
 iEval (Nat n) _d             = VNat n
 iEval (App iterm cterm) d    = vapp (iEval iterm d) (cEval cterm d)
 iEval (Ann _pi term _type) d = cEval term d
 
-vapp :: Value -> Value -> Value
+vapp ∷ Value → Value → Value
 vapp (VLam f) v = f v
 vapp (VNeutral n) v = VNeutral (NApp n v)
 vapp x y =
@@ -152,7 +152,7 @@ vapp x y =
      show y ++ "\n to \n" ++ show x)
 
 --substitution function for checkable terms
-cSubst :: Natural -> ITerm -> CTerm -> CTerm
+cSubst ∷ Natural → ITerm → CTerm → CTerm
 cSubst _ii _r (Star i)     = Star i
 cSubst _ii _r Nats         = Nats
 cSubst ii r (Pi pi ty ty') = Pi pi (cSubst ii r ty) (cSubst (ii + 1) r ty')
@@ -163,7 +163,7 @@ cSubst ii r (Lam f)        = Lam (cSubst (ii + 1) r f)
 cSubst ii r (Conv e)       = Conv (iSubst ii r e)
 
 --substitution function for inferable terms
-iSubst :: Natural -> ITerm -> ITerm -> ITerm
+iSubst ∷ Natural → ITerm → ITerm → ITerm
 iSubst ii r (Bound j)
   | ii == j = r
   | otherwise = Bound j
@@ -174,10 +174,10 @@ iSubst ii r (Ann pi term t) = Ann pi (cSubst ii r term) (cSubst ii r t)
 
 --iSubst ii r (App iterm cterm) =
 --Quotation: takes a value back to a term
-quote0 :: Value -> CTerm
+quote0 ∷ Value → CTerm
 quote0 = quote 0
 
-quote :: Natural -> Value -> CTerm
+quote ∷ Natural → Value → CTerm
 quote _ii (VStar n) = Star n
 quote _ii VNats = Nats
 quote ii (VPi pi v f) =
@@ -191,17 +191,17 @@ quote ii (VLam f) = Lam (quote (ii + 1) (f (vfree (Quote ii))))
 quote ii (VNeutral n) = Conv (neutralQuote ii n)
 quote _ii (VNat n) = Conv (Nat n)
 
-neutralQuote :: Natural -> Neutral -> ITerm
+neutralQuote ∷ Natural → Neutral → ITerm
 neutralQuote ii (NFree x)  = boundfree ii x
 neutralQuote ii (NApp n v) = App (neutralQuote ii n) (quote ii v)
 
 --checks if the variable occurring at the head of the application is a bound variable or a free name
-boundfree :: Natural -> Name -> ITerm
+boundfree ∷ Natural → Name → ITerm
 boundfree ii (Quote k) = Bound (ii - k - 1)
 boundfree _ii x        = Free x
 
 --error message for inferring/checking types
-errorMsg :: Natural -> CTerm -> Annotation -> Annotation -> String
+errorMsg ∷ Natural → CTerm → Annotation → Annotation → String
 errorMsg binder cterm expectedT gotT =
   "Type mismatched. \n" ++
   show cterm ++
@@ -218,7 +218,7 @@ errorMsg binder cterm expectedT gotT =
 type Result a = Either String a --when type checking fails, it throws an error.
 
 --checker for checkable terms checks the term against an annotation and returns ().
-cType :: Natural -> Context -> CTerm -> Annotation -> Result ()
+cType ∷ Natural → Context → CTerm → Annotation → Result ()
 -- *
 cType _ii _g (Star n) ann = do
   unless (SNat 0 == fst ann) (throwError "Sigma has to be 0.") -- checks sigma = 0.
@@ -281,15 +281,15 @@ cType ii _g cterm theType =
      show (snd theType) ++ " with " ++ show (fst theType) ++ " usage.")
 
 --inferable terms have type as output.
-iType0 :: Context -> ITerm -> Result Annotation
+iType0 ∷ Context → ITerm → Result Annotation
 iType0 = iType 0
 
-iTypeErrorMsg :: Natural -> Name -> String
+iTypeErrorMsg ∷ Natural → Name → String
 iTypeErrorMsg ii x =
   "Cannot find the type of \n" ++
   show x ++ "\n (binder number " ++ show ii ++ ") in the environment."
 
-iType :: Natural -> Context -> ITerm -> Result Annotation
+iType ∷ Natural → Context → ITerm → Result Annotation
 iType ii g (Free x) =
   case lookup x g of
     Just ann -> return ann
