@@ -29,6 +29,8 @@ dependencies:
   - enummapset
   - turtle
   - directory
+  - llvm-hs
+  - llvm-hs-pure
 
 default-extensions:
   - NoImplicitPrelude
