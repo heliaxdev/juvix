@@ -16,9 +16,9 @@ import qualified LLVM.AST.FloatingPointPredicate as FP
 
 
 
--------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------
 -- Types
--------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------
 
 double :: Type
 double = FloatingPointType DoubleFP
@@ -28,16 +28,25 @@ double = FloatingPointType DoubleFP
 int :: Type
 int = IntegerType 64
 
--- TODO :: increase 5 to whatever the maximum size an argument can be
+-- TODO :: increase 16 to whatever the maximum node size can be
 portLength :: Type
-portLength = IntegerType 5
+portLength = IntegerType 16
 
 
 -- | Construct a 16 bit port space so we can put many inside a node cheaply
-portType :: Type
-portType = PointerType {
+-- The pointer points to the beginning of a node and an offset
+portPointer :: Type
+portPointer = PointerType {
   pointerReferent  = int,
   pointerAddrSpace = AddrSpace 16
+}
+
+portType :: Type
+portType = StructureType {
+  isPacked     = True,
+  elementTypes = [ portPointer -- the pointer to the other port
+                 , portLength  -- the offset from the base of the node the port is
+                 ]
 }
 
 -- TODO :: Figure out how to have a union here for all baked in types
@@ -48,11 +57,11 @@ dataType = int
 nodeType :: Type
 nodeType = StructureType {
   isPacked     = True,
-  elementTypes = [ int                  -- length of this node
+  elementTypes = [ portLength           -- length of this node
                  , ArrayType 0 portType -- variable size array of ports
                  , ArrayType 0 dataType -- variable size array of data the node stores
                  ]
 }
--------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------
 -- INets
--------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------
