@@ -76,27 +76,6 @@ instance Show ITerm where
   show (Ann pi theTerm theType) =
     show theTerm ++ " : [" ++ show pi ++ "] " ++ show theType
 
--- addition of nats
-natAdd ∷ ITerm → ITerm → ITerm
-natAdd (Nat x) (Nat y) = Nat (x + y)
-natAdd (Nat _x) y = error (show y ++ " is not a Nat.")
-natAdd x (Nat _y) = error (show x ++ " is not a Nat.")
-natAdd x y = error ("Neither " ++ show x ++ " nor " ++ show y ++ " is a Nat.")
-
--- substraction of nats
-natSub ∷ ITerm → ITerm → ITerm
-natSub (Nat x) (Nat y) = Nat (x - y)
-natSub (Nat _x) y = error (show y ++ " is not a Nat.")
-natSub x (Nat _y) = error (show x ++ " is not a Nat.")
-natSub x y = error ("Neither " ++ show x ++ " nor " ++ show y ++ " is a Nat.")
-
--- multiplication of nats
-natMult ∷ ITerm → ITerm → ITerm
-natMult (Nat x) (Nat y) = Nat (x * y)
-natMult (Nat _x) y = error (show y ++ " is not a Nat.")
-natMult x (Nat _y) = error (show x ++ " is not a Nat.")
-natMult x y = error ("Neither " ++ show x ++ " nor " ++ show y ++ " is a Nat.")
-
 data Name
   = Global String -- Global variables are represented by name thus type string
   | Local Natural -- to convert a bound variable into a free one
@@ -117,9 +96,6 @@ data Value
 
 instance Eq Value where
   x == y = quote0 x == quote0 y
-
-varX ∷ Value
-varX = VNeutral (NFree (Global "x"))
 
 instance Show Value where
   show x = show (quote0 x)
@@ -142,6 +118,10 @@ type Context = [(Name, Annotation)]
 
 --Evaluation
 type Env = [Value]
+
+--initial environment
+initEnv ∷ Env
+initEnv = []
 
 cEval ∷ CTerm → Env → Value
 cEval (Star i) _d      = VStar i
