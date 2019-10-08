@@ -37,9 +37,7 @@ data CTerm
   | Nats -- (Prim) primitive type (naturals)
   | Pi Usage CTerm CTerm -- formation rule of the dependent function type (PI).
                               -- the Usage(π) tracks how many times x is used.
-  | Pm Usage CTerm CTerm -- dependent multiplicative conjunction (tensor product)
-  | Pa Usage CTerm CTerm -- dependent additive conjunction type
-  | NPm CTerm CTerm -- non-dependent multiplicative disjunction type
+
   | Lam CTerm --(LAM) Introduction rule of PI.
                         -- The abstracted variable's usage is tracked with the Usage(π).
   | Conv ITerm --(CONV) conversion rule. TODO make sure 0Γ ⊢ S≡T
@@ -47,15 +45,11 @@ data CTerm
   deriving (Eq)
 
 instance Show CTerm where
-  show (Star n) = "* " ++ show n
+  show (Star n) = "* " <> show n
   show Nats = "Nat "
   show (Pi _usage varTy resultTy) =
-    "[Π] " ++ show varTy ++ "-> " ++ show resultTy
-  show (Pm _usage first second) =
-    "([π] " ++ show first ++ ", " ++ show second ++ ") "
-  show (Pa _usage first second) = "/\\ " ++ show first ++ show second
-  show (NPm first second) = "\\/ " ++ show first ++ show second
-  show (Lam var) = "\\x. " ++ show var
+    "[Π] " <> show varTy <> "-> " <> show resultTy
+  show (Lam var) = "\\x. " <> show var
   show (Conv term) --Conv should be invisible to users.
    = show term
 
@@ -69,12 +63,12 @@ data ITerm
   deriving (Eq)
 
 instance Show ITerm where
-  show (Bound i) = "Bound " ++ show i --to be improved
+  show (Bound i) = "Bound " <> show i --to be improved
   show (Free name) = show name --using derived show Name instance, to be improved
   show (Nat i) = show i
-  show (App f x) = show f ++ show x
+  show (App f x) = show f <> show x
   show (Ann pi theTerm theType) =
-    show theTerm ++ " : [" ++ show pi ++ "] " ++ show theType
+    show theTerm <> " : [" <> show pi <> "] " <> show theType
 
 data Name
   = Global String -- Global variables are represented by name thus type string
@@ -87,9 +81,6 @@ data Value
   = VStar Natural
   | VNats
   | VPi Usage Value (Value → Value)
-  | VPm Usage Value (Value → Value)
-  | VPa Usage Value (Value → Value)
-  | VNPm Value Value
   | VLam (Value → Value)
   | VNeutral Neutral
   | VNat Natural
@@ -127,9 +118,6 @@ cEval ∷ CTerm → Env → Value
 cEval (Star i) _d      = VStar i
 cEval Nats _d          = VNats
 cEval (Pi pi ty ty') d = VPi pi (cEval ty d) (\x -> cEval ty' (x : d))
-cEval (Pm pi ty ty') d = VPm pi (cEval ty d) (\x -> cEval ty' (x : d))
-cEval (Pa pi ty ty') d = VPa pi (cEval ty d) (\x -> cEval ty' (x : d))
-cEval (NPm ty ty') d   = VNPm (cEval ty d) (cEval ty' d)
 cEval (Lam e) d        = VLam (\x -> cEval e (x : d))
 cEval (Conv ii) d      = iEval ii d
 
@@ -148,17 +136,14 @@ vapp (VLam f) v = f v
 vapp (VNeutral n) v = VNeutral (NApp n v)
 vapp x y =
   error
-    ("Application (vapp) error. Cannot apply \n" ++
-     show y ++ "\n to \n" ++ show x)
+    ("Application (vapp) error. Cannot apply \n" <>
+     show y <> "\n to \n" <> show x)
 
 --substitution function for checkable terms
 cSubst ∷ Natural → ITerm → CTerm → CTerm
 cSubst _ii _r (Star i)     = Star i
 cSubst _ii _r Nats         = Nats
 cSubst ii r (Pi pi ty ty') = Pi pi (cSubst ii r ty) (cSubst (ii + 1) r ty')
-cSubst ii r (Pm pi ty ty') = Pm pi (cSubst ii r ty) (cSubst (ii + 1) r ty')
-cSubst ii r (Pa pi ty ty') = Pa pi (cSubst ii r ty) (cSubst (ii + 1) r ty')
-cSubst ii r (NPm fst snd)  = NPm (cSubst ii r fst) (cSubst ii r snd)
 cSubst ii r (Lam f)        = Lam (cSubst (ii + 1) r f)
 cSubst ii r (Conv e)       = Conv (iSubst ii r e)
 
@@ -182,11 +167,6 @@ quote _ii (VStar n) = Star n
 quote _ii VNats = Nats
 quote ii (VPi pi v f) =
   Pi pi (quote ii v) (quote (ii + 1) (f (vfree (Quote ii))))
-quote ii (VPm pi fst snd) =
-  Pm pi (quote ii fst) (quote (ii + 1) (snd (vfree (Quote ii))))
-quote ii (VPa pi fst snd) =
-  Pa pi (quote ii fst) (quote (ii + 1) (snd (vfree (Quote ii))))
-quote ii (VNPm fst snd) = NPm (quote ii fst) (quote ii snd)
 quote ii (VLam f) = Lam (quote (ii + 1) (f (vfree (Quote ii))))
 quote ii (VNeutral n) = Conv (neutralQuote ii n)
 quote _ii (VNat n) = Conv (Nat n)
@@ -203,16 +183,16 @@ boundfree _ii x        = Free x
 --error message for inferring/checking types
 errorMsg ∷ Natural → CTerm → Annotation → Annotation → String
 errorMsg binder cterm expectedT gotT =
-  "Type mismatched. \n" ++
-  show cterm ++
-  " \n (binder number " ++
-  show binder ++
-  ") is of type \n" ++
-  show (show (snd gotT)) ++
-  " , with " ++
-  show (fst gotT) ++
-  " usage.\n But the expected type is " ++
-  show (show (snd expectedT)) ++ " , with " ++ show (fst expectedT) ++ " usage."
+  "Type mismatched. \n" <>
+  show cterm <>
+  " \n (binder number " <>
+  show binder <>
+  ") is of type \n" <>
+  show (show (snd gotT)) <>
+  " , with " <>
+  show (fst gotT) <>
+  " usage.\n But the expected type is " <>
+  show (show (snd expectedT)) <> " , with " <> show (fst expectedT) <> " usage."
 
 --Type (and usage) checking
 type Result a = Either String a --when type checking fails, it throws an error.
@@ -228,10 +208,10 @@ cType _ii _g (Star n) ann = do
       unless
         (n < j)
         (throwError $
-         show (Star n) ++
-         " is of type * of a higher universe. But the expected type " ++
-         show (snd ann) ++ " is * of a equal or lower universe.")
-    _ -> throwError $ "* n is of type * but " ++ show (snd ann) ++ " is not *."
+         show (Star n) <>
+         " is of type * of a higher universe. But the expected type " <>
+         show (snd ann) <> " is * of a equal or lower universe.")
+    _ -> throwError $ "* n is of type * but " <> show (snd ann) <> " is not *."
 cType ii _g Nats ann =
   unless
     (SNat 0 == fst ann && quote0 (snd ann) == Star 0)
@@ -252,9 +232,6 @@ cType ii g (Pi pi varType resultType) ann = do
     _ ->
       throwError
         "The variable type and the result type must be of type * at the same level."
-cType ii g (Pm pi varType resultType) ann = undefined
-cType ii g (Pa pi varType resultType) ann = undefined
-cType ii g (NPm first second) ann = undefined
 -- (Lam) introduction rule of dependent function type
 cType ii g (Lam s) ann =
   case ann of
@@ -265,20 +242,12 @@ cType ii g (Lam s) ann =
         ((Local ii, (sig * pi, ty)) : g) --put s in the context with usage sig*pi
         (cSubst 0 (Free (Local ii)) s) --x (varType) in context S with sigma*pi usage.
         (sig, ty' (vfree (Local ii))) --is of type M (usage sigma) in context T
-    _ -> throwError $ show (snd ann) ++ " is not a function type but should be."
+    _ -> throwError $ show (snd ann) <> " is not a function type but should be."
 cType ii g (Conv e) ann = do
   ann' <- iType ii g e
   unless
     (fst ann == fst ann' && quote0 (snd ann) == quote0 (snd ann'))
     (throwError (errorMsg ii (Conv e) ann ann'))
-cType ii _g cterm theType =
-  throwError
-    ("Type mismatch: \n" ++
-     show cterm ++
-     "\n (binder number " ++
-     show ii ++
-     ") is not a checkable term. Cannot check that it is of type " ++
-     show (snd theType) ++ " with " ++ show (fst theType) ++ " usage.")
 
 --inferable terms have type as output.
 iType0 ∷ Context → ITerm → Result Annotation
@@ -286,10 +255,11 @@ iType0 = iType 0
 
 iTypeErrorMsg ∷ Natural → Name → String
 iTypeErrorMsg ii x =
-  "Cannot find the type of \n" ++
-  show x ++ "\n (binder number " ++ show ii ++ ") in the environment."
+  "Cannot find the type of \n" <>
+  show x <> "\n (binder number " <> show ii <> ") in the environment."
 
 iType ∷ Natural → Context → ITerm → Result Annotation
+--the type checker will never encounter a bound variable.
 iType ii g (Free x) =
   case lookup x g of
     Just ann -> return ann
@@ -305,11 +275,11 @@ iType ii g (App m n) = do
       return (sig, resultTy (cEval n []))
     _ ->
       throwError
-        (show m ++
-         "\n (binder number " ++
-         show ii ++
-         ") is not a function type and thus \n" ++
-         show n ++ "\n cannot be applied to it.")
+        (show m <>
+         "\n (binder number " <>
+         show ii <>
+         ") is not a function type and thus \n" <>
+         show n <> "\n cannot be applied to it.")
 iType ii g (Ann pi theTerm theType)
   --TODO check theType is of type Star first? But we have stakable universes now.
   --cType ii g theType (0, VStar 0)
