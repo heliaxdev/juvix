@@ -3,10 +3,11 @@ module MainLangTests where
 
 import           Juvix.Core.MainLang
 import           Juvix.Core.Parser
+import           Juvix.Core.SemiRing
 
 import           Control.Monad.Except
 import           Numeric.Natural
-import           Prelude
+import           Juvix.Library
 
 import           Test.Tasty
 import           Test.Tasty.HUnit
@@ -31,7 +32,7 @@ constProp Nats env     = cEval Nats env == VNats
 instance Arbitrary CTerm where
   arbitrary = CTerm -}
 natsTypeStar0 ∷ Assertion
-natsTypeStar0 = cType 0 [] Nats (0, VStar 0) @?= Right ()
+natsTypeStar0 = cType 0 [] Nats (zero, VStar 0) @?= Right ()
 
 nat1Inferred ∷ Assertion
 nat1Inferred = iType 0 [] (Nat 1) @?= Right (Omega, VNats)
@@ -57,7 +58,7 @@ test_core =
         , testCase
             "dependent function"
             (parseString (parseWhole cterm) "[Π] 1 * 0 * 0" @?=
-             Just (Pi 1 (Star 0) (Star 0)))
+             Just (Pi (SNat 1) (Star 0) (Star 0)))
         , testCase
             "abstraction, the identity function"
             (parseString (parseWhole cterm) "\\x. Bound 0" @?=
