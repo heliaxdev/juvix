@@ -1,12 +1,12 @@
 module Juvix.LLVM.Codegen where
 
 import           Juvix.Library                   hiding(Type)
+import qualified Juvix.Utility.HashMap           as Map
 
 import           LLVM.AST
 import           LLVM.AST.AddrSpace
 import           LLVM.AST.Global                 as Global
 import qualified LLVM.AST                        as AST
-import qualified Data.Map.Strict                 as Map
 
 import qualified LLVM.AST.Linkage                as L
 import qualified LLVM.AST.Constant               as C
@@ -15,33 +15,32 @@ import qualified LLVM.AST.CallingConvention      as CC
 import qualified LLVM.AST.FloatingPointPredicate as FP
 
 
-
 -----------------------------------------------------------------------------------------
 -- Types
 -----------------------------------------------------------------------------------------
 
-double :: Type
+double ∷ Type
 double = FloatingPointType DoubleFP
 
--- TODO :: change this based on the machine, C++ pargma?
+-- TODO ∷ change this based on the machine, C++ pargma?
 -- | Use 64 bit ints
-int :: Type
+int ∷ Type
 int = IntegerType 64
 
--- TODO :: increase 16 to whatever the maximum node size can be
-portLength :: Type
+-- TODO ∷ increase 16 to whatever the maximum node size can be
+portLength ∷ Type
 portLength = IntegerType 16
 
 
 -- | Construct a 16 bit port space so we can put many inside a node cheaply
 -- The pointer points to the beginning of a node and an offset
-portPointer :: Type
+portPointer ∷ Type
 portPointer = PointerType {
-  pointerReferent  = int,
+  pointerReferent  = nodeType,
   pointerAddrSpace = AddrSpace 16
 }
 
-portType :: Type
+portType ∷ Type
 portType = StructureType {
   isPacked     = True,
   elementTypes = [ portPointer -- the pointer to the other port
@@ -49,12 +48,12 @@ portType = StructureType {
                  ]
 }
 
--- TODO :: Figure out how to have a union here for all baked in types
-dataType :: Type
+-- TODO ∷ Figure out how to have a union here for all baked in types
+dataType ∷ Type
 dataType = int
 
--- TODO :: Figure out how to get varying data in here
-nodeType :: Type
+-- TODO ∷ Figure out how to get varying data in here
+nodeType ∷ Type
 nodeType = StructureType {
   isPacked     = True,
   elementTypes = [ portLength           -- length of this node
@@ -62,6 +61,43 @@ nodeType = StructureType {
                  , ArrayType 0 dataType -- variable size array of data the node stores
                  ]
 }
+
+-------------------------------------------------------------------------------
+-- Codegen State
+-------------------------------------------------------------------------------
+
+type SymbolTable = Map.Map Symbol Operand
+
+data CodegenState
+  = CodegenState {
+    currentBlock ∷ Name                     -- Name of the active block to append to
+  , blocks       ∷ Map.Map Name BlockState  -- Blocks for function
+  , symtab       ∷ SymbolTable              -- Function scope symbol table
+  , blockCount   ∷ Int                      -- Count of basic blocks
+  , count        ∷ Word                     -- Count of unnamed instructions
+  , names        ∷ Names                    -- Name Supply
+  } deriving Show
+
+data BlockState
+  = BlockState {
+    idx   ∷ Int                            -- Block index
+  , stack ∷ [Named Instruction]            -- Stack of instructions
+  , term  ∷ Maybe (Named Terminator)       -- Block terminator
+  } deriving Show
+
+
+-------------------------------------------------------------------------------
+-- Names
+-------------------------------------------------------------------------------
+
+type Names = Map.Map Symbol Int
+
+uniqueName ∷ Symbol → Names → (Symbol, Names)
+uniqueName nm ns =
+  case Map.lookup nm ns of
+    Nothing → (nm,  Map.insert nm 1 ns)
+    Just ix → (intern (unintern nm <> show ix), Map.insert nm (succ ix) ns)
+
 -----------------------------------------------------------------------------------------
 -- INets
 -----------------------------------------------------------------------------------------
