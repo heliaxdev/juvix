@@ -93,7 +93,7 @@ defaultSymbols =
 -- And and Or are in here, as they can be done more efficiently than
 -- waiting for all the arguments before short circuiting, by compiling
 -- directly to Bohm instead
-defaultSpecial :: (Eq k, Hashable k, IsString k)
+defaultSpecial ∷ (Eq k, Hashable k, IsString k)
                ⇒ Map.HashMap k (BT.Bohm → BT.Bohm → BT.Bohm)
 defaultSpecial = Map.fromList [ ("or" , BT.Or)
                               , ("and", BT.And)

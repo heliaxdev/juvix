@@ -13,8 +13,8 @@ import           Capability.Reader
 import           Capability.State
 import           Capability.Stream
 import           Capability.Writer
-import qualified Data.Text         as T
 import           Data.String       (fromString)
+import qualified Data.Text         as T
 import           Prelude           (Show (..), String)
 import           Protolude         hiding ((:.:), Constraint, Fixity (..),
                                     MonadError (..), MonadReader (..),

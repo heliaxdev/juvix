@@ -1,7 +1,9 @@
 --Tests for the type checker and evaluator in Core/MainLang.hs.
 module MainLangTests where
 
-import           Juvix.Core
+import           Juvix.Core.MainLang
+import           Juvix.Core.Parser
+import           Juvix.Core.SemiRing
 
 import           Control.Monad.Except
 import           Numeric.Natural
@@ -41,9 +43,47 @@ test_core =
   testGroup
     "Core tests"
     [ testGroup
-        "Type-checker Units"
+        "Type-checker, Units"
         [ testCase "Nats is of type * 0" natsTypeStar0
         , testCase "Inferred type of Nat 1 is (w, VNats)" nat1Inferred
+        ]
+    , testGroup
+        "CTerms and ITerms Parser, Units"
+        [ testCase
+            "* n"
+            (parseString (parseWhole cterm) "* 0" @?= Just (Star 0))
+        , testCase
+            "primitive type Nats"
+            (parseString (parseWhole cterm) "Nat" @?= Just Nats)
+        , testCase
+            "dependent function"
+            (parseString (parseWhole cterm) "[Π] 1 * 0 * 0" @?=
+             Just (Pi (SNat 1) (Star 0) (Star 0)))
+        , testCase
+            "abstraction, the identity function"
+            (parseString (parseWhole cterm) "\\x. Bound 0" @?=
+             Just (Lam (Conv (Bound 0))))
+        , testCase
+            "conversion"
+            (parseString (parseWhole cterm) "Conv 0" @?= Just (Conv (Nat 0)))
+        , testCase
+            "silent convert: nat"
+            (parseString (parseWhole cterm) "0" @?= Just (Conv (Nat 0)))
+        , testCase
+            "silent convert: Bound var"
+            (parseString (parseWhole cterm) "Bound 0" @?= Just (Conv (Bound 0)))
+        , testCase
+            "silent convert: Free var"
+            (parseString (parseWhole cterm) "Free (Global aStringName)" @?=
+             Just (Conv (Free (Global "aStringName"))))
+        , testCase
+            "silent convert: App" --doesn't make sense now because there is no ITerm that is a function atm.
+            (parseString (parseWhole cterm) "App Bound 0 Nat" @?=
+             Just (Conv (App (Bound 0) Nats)))
+        , testCase
+            "silent convert: Ann"
+            (parseString (parseWhole cterm) "w Nat : * 0" @?=
+             Just (Conv (Ann Omega Nats (Star 0))))
         ]
     --, testGroup "Evaluator Properties"
     --   [testProperty "Constant terms should evaluate to themselves" constProp]
