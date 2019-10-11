@@ -27,9 +27,11 @@ double = FloatingPointType DoubleFP
 int ∷ Type
 int = IntegerType 64
 
--- TODO ∷ increase 16 to whatever the maximum node size can be
-portLength ∷ Type
-portLength = IntegerType 16
+-- number of ports on a node or the port offset
+-- TODO ∷ Have this union of a pointer of the same size
+-- so we can have fixed size offset of nodes
+numPorts ∷ Type
+numPorts = IntegerType 16
 
 
 -- | Construct a 16 bit port space so we can put many inside a node cheaply
@@ -44,7 +46,7 @@ portType ∷ Type
 portType = StructureType {
   isPacked     = True,
   elementTypes = [ portPointer -- the pointer to the other port
-                 , portLength  -- the offset from the base of the node the port is
+                 , numPorts    -- the offset from the base of the node the port is
                  ]
 }
 
@@ -56,7 +58,7 @@ dataType = int
 nodeType ∷ Type
 nodeType = StructureType {
   isPacked     = True,
-  elementTypes = [ portLength           -- length of this node
+  elementTypes = [ numPorts             -- length of this node
                  , ArrayType 0 portType -- variable size array of ports
                  , ArrayType 0 dataType -- variable size array of data the node stores
                  ]
@@ -101,3 +103,12 @@ uniqueName nm ns =
 -----------------------------------------------------------------------------------------
 -- INets
 -----------------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------------
+-- Constants
+-----------------------------------------------------------------------------------------
+
+portLength ∷ Num p ⇒ p
+portLength = 32
