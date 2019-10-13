@@ -71,20 +71,29 @@ type SymbolTable = Map.Map Symbol Operand
 
 data CodegenState
   = CodegenState
-      { currentBlock ∷ Name, -- Name of the active block to append to
-        blocks ∷ Map.Map Name BlockState, -- Blocks for function
-        symtab ∷ SymbolTable, -- Function scope symbol table
-        blockCount ∷ Int, -- Count of basic blocks
-        count ∷ Word, -- Count of unnamed instructions
-        names ∷ Names -- Name Supply
+      { -- | Name of the active block to append to
+        currentBlock ∷ Name,
+        -- | Blocks for function
+        blocks ∷ Map.Map Name BlockState,
+        -- | Function scope symbol table
+        symtab ∷ SymbolTable,
+        -- | Count of basic blocks
+        blockCount ∷ Int,
+        -- | Count of unnamed instructions
+        count ∷ Word,
+        -- | Name Supply
+        names ∷ Names
       }
   deriving (Show)
 
 data BlockState
   = BlockState
-      { idx ∷ Int, -- Block index
-        stack ∷ [Named Instruction], -- Stack of instructions
-        term ∷ Maybe (Named Terminator) -- Block terminator
+      { -- | Block index
+        idx ∷ Int,
+        -- | Stack of instructions
+        stack ∷ [Named Instruction],
+        -- | Block terminator
+        term ∷ Maybe (Named Terminator)
       }
   deriving (Show)
 
