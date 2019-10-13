@@ -1,41 +1,41 @@
 module Juvix.Core.Parser where
 
-import           Data.Functor.Identity
-import           Juvix.Core.MainLang
-import           Prelude
-import           Text.Parsec
-import           Text.ParserCombinators.Parsec
-import           Text.ParserCombinators.Parsec.Language
-import qualified Text.ParserCombinators.Parsec.Token    as Token
+import Data.Functor.Identity
+import Juvix.Core.MainLang
+import Juvix.Core.SemiRing
+import Juvix.Library hiding ((<|>))
+import Text.Parsec
+import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec.Language
+import qualified Text.ParserCombinators.Parsec.Token as Token
+import Prelude (String)
 
 languageDef ∷ GenLanguageDef String u Data.Functor.Identity.Identity
 languageDef =
   emptyDef
-    { Token.commentStart = "/*"
-    , Token.commentEnd = "*/"
-    , Token.commentLine = "//"
-    , Token.identStart = letter
-    , Token.identLetter = alphaNum
-    , Token.reservedNames =
-        [ "*" --sort
-        , "[Π]" --function type
-        , "[π]" --dependent multiplicative conjunction type
-        , "/\\" --dependent additive conjunction type
-        , "\\/" --non-dependent multiplicative disjunction type
-        , "\\" --Bound var
-        , "Free"
-        , "Local"
-        , "Quote"
-        , "Global" --Free var
-        , "w" --Omega
-        ]
-    , Token.reservedOpNames =
-        ["App", "Conv", "\\x.", ":", "cType", "+", "-", "*"]
+    { Token.commentStart = "/*",
+      Token.commentEnd = "*/",
+      Token.commentLine = "//",
+      Token.identStart = letter,
+      Token.identLetter = alphaNum,
+      Token.reservedNames =
+        [ "*", --sort
+          "Nat", --primitive Nat type
+          "[Π]", --function type
+          "Bound", --Bound var
+          "Free",
+          "Local",
+          "Quote",
+          "Global", --Free var
+          "w" --Omega
+        ],
+      Token.reservedOpNames = ["App", "Conv", "\\x.", ":", "cType"]
     }
 
 lexer ∷ Token.GenTokenParser String u Data.Functor.Identity.Identity
 lexer = Token.makeTokenParser languageDef
-     -- These are parsers for what their names signify
+
+-- These are parsers for what their names signify
 
 identifier ∷ Parser String
 identifier = Token.identifier lexer
@@ -57,63 +57,46 @@ whiteSpace = Token.whiteSpace lexer
 
 natw ∷ Parser NatAndw
 natw =
-  do reserved "w"
-     return Omega
-     <|> do SNat . fromInteger <$> natural
+  do
+    reserved "w"
+    return Omega
+    <|> do SNat . fromInteger <$> natural
 
 sortTerm ∷ Parser CTerm
 sortTerm = do
   reserved "*"
-  n <- natural
+  n ← natural
   return $ Star (fromInteger n)
+
+natTypeTerm ∷ Parser CTerm
+natTypeTerm = do
+  reserved "Nat"
+  return Nats
 
 piTerm ∷ Parser CTerm
 piTerm = do
   reserved "[Π]"
-  pi <- natw
-  input <- ctermOnly
-  func <- ctermOnly
+  pi ← natw
+  input ← ctermOnly
+  func ← ctermOnly
   return $ Pi pi input func
-
-pmTerm ∷ Parser CTerm
-pmTerm = do
-  reserved "[π]"
-  pm <- natw
-  input <- ctermOnly
-  func <- ctermOnly
-  return $ Pm pm input func
-
-paTerm ∷ Parser CTerm
-paTerm = do
-  reserved "/\\"
-  pa <- natw
-  input <- ctermOnly
-  func <- ctermOnly
-  return $ Pa pa input func
-
-npmTerm ∷ Parser CTerm
-npmTerm = do
-  reserved "\\/"
-  fst <- ctermOnly
-  snd <- ctermOnly
-  return $ NPm fst snd
 
 lamTerm ∷ Parser CTerm
 lamTerm = do
   reservedOp "\\x."
-  func <- ctermOnly
+  func ← ctermOnly
   return $ Lam func
 
 convTerm ∷ Parser CTerm
 convTerm = do
   reservedOp "Conv"
-  termToConvert <- iterm
+  termToConvert ← iterm
   return $ Conv termToConvert
 
 boundTerm ∷ Parser ITerm
 boundTerm = do
-  reserved "\\"
-  index <- natural
+  reserved "Bound"
+  index ← natural
   return $ Bound (fromInteger index)
 
 --Parser for the global free variable name
@@ -124,124 +107,127 @@ gName = parens gName <|> identifier
 localTerm ∷ Parser Name
 localTerm = do
   reserved "Local"
-  index <- natural
+  index ← natural
   return $ Local (fromInteger index)
 
 quoteTerm ∷ Parser Name
 quoteTerm = do
   reserved "Quote"
-  index <- natural
+  index ← natural
   return $ Quote (fromInteger index)
 
 globalTerm ∷ Parser Name
 globalTerm = do
   reserved "Global"
-  gname <- gName
+  gname ← gName
   return $ Global gname
 
 pName ∷ Parser Name
-pName = localTerm <|> quoteTerm <|> globalTerm
+pName = parens pName <|> localTerm <|> quoteTerm <|> globalTerm
 
 freeTerm ∷ Parser ITerm
 freeTerm = do
   reserved "Free"
-  fname <- pName
+  fname ← pName
   return $ Free fname
 
 appTerm ∷ Parser ITerm
 appTerm = do
   reservedOp "App"
-  func <- iterm
-  var <- ctermOnly
+  func ← iterm
+  var ← ctermOnly
   eof
   return $ App func var
 
 annTerm ∷ Parser ITerm
 annTerm = do
-  pi <- natw
-  term <- ctermOnly
+  pi ← natw
+  term ← ctermOnly
   reservedOp ":"
-  ann <- ctermOnly
+  theType ← ctermOnly
   eof
-  return $ Ann pi term ann
+  return $ Ann pi term theType
 
 natTerm ∷ Parser ITerm
 natTerm = Nat . fromInteger <$> natural
 
-natAddTerm ∷ Parser ITerm
-natAddTerm = do
-  reservedOp "+"
-  x <- natural
-  y <- natural
-  eof
-  return $ natAdd (Nat (fromInteger x)) (Nat (fromInteger y))
-
-natSubTerm ∷ Parser ITerm
-natSubTerm = do
-  reservedOp "-"
-  x <- natural
-  y <- natural
-  eof
-  return $ natSub (Nat (fromInteger x)) (Nat (fromInteger y))
-
-natMultTerm ∷ Parser ITerm
-natMultTerm = do
-  reservedOp "*"
-  x <- natural
-  y <- natural
-  eof
-  return $ natMult (Nat (fromInteger x)) (Nat (fromInteger y))
-
-parseWhole ∷ Parser a → Parser a
-parseWhole p = do
-  whiteSpace
-  t <- p
-  whiteSpace
-  eof
-  return t
-
 cterm ∷ Parser CTerm
 cterm =
-  parens cterm <|> sortTerm <|> piTerm <|> pmTerm <|> paTerm <|> npmTerm <|>
-  lamTerm <|>
-  convTerm <|>
-  convITerm
+  parens cterm <|> sortTerm <|> natTypeTerm <|> piTerm
+    <|> lamTerm
+    <|> convTerm
+    <|> convITerm
 
 convITerm ∷ Parser CTerm
 convITerm = do
-  theTerm <- iterm
+  theTerm ← iterm
   return $ Conv theTerm
 
 iterm ∷ Parser ITerm
 iterm =
-  parens iterm <|> natTerm <|> natAddTerm <|> natSubTerm <|> natMultTerm <|>
-  boundTerm <|>
-  freeTerm <|>
-  appTerm <|>
-  annTerm
+  parens iterm <|> natTerm <|> boundTerm <|> freeTerm <|> appTerm <|> annTerm
 
 cOriTerm ∷ Parser (Either ITerm CTerm)
 cOriTerm = Text.Parsec.try (Left <$> iterm) <|> (Right <$> cterm)
 
 ctermOnly ∷ Parser CTerm
 ctermOnly = do
-  anyTerm <- cOriTerm
+  anyTerm ← cOriTerm
   return
-    (case anyTerm of
-       Left i  -> Conv i
-       Right c -> c)
+    ( case anyTerm of
+        Left i → Conv i
+        Right c → c
+    )
 
+{--to be added in another PR
+natAddTerm ∷ Parser Value
+natAddTerm = do
+  reservedOp "+"
+  x <- natural
+  y <- natural
+  eof
+  return $ natOp (+) (Nat (fromInteger x)) (Nat (fromInteger y))
+
+natSubTerm ∷ Parser Value
+natSubTerm = do
+  reservedOp "-"
+  x <- natural
+  y <- natural
+  eof
+  return $ natOp (-) (Nat (fromInteger x)) (Nat (fromInteger y))
+
+natMultTerm ∷ Parser Value
+natMultTerm = do
+  reservedOp "*"
+  x <- natural
+  y <- natural
+  eof
+  return $ natOp (*) (Nat (fromInteger x)) (Nat (fromInteger y))
+
+--parser for values
+pValue :: Parser Value
+pValue = parens pValue <|> natAddTerm <|> natSubTerm <|> natMultTerm
+-}
 --the type checker takes in a term, its usage and type, and returns ...
 pCType ∷ Parser (Result ())
-pCType = do
-  reservedOp "cType"
-  theTerm <- ctermOnly
-  usage <- natw
-  theType <- ctermOnly
-  return $ cType 0 [] theTerm (usage, cEval theType [])
+pCType =
+  parens pCType <|> do
+    reservedOp "cType"
+    theTerm ← ctermOnly
+    usage ← natw
+    theType ← ctermOnly
+    return $ cType 0 [] theTerm (usage, cEval theType [])
+
+parseWhole ∷ Parser a → Parser a
+parseWhole p = do
+  whiteSpace
+  t ← p
+  whiteSpace
+  eof
+  return t
 
 parseString ∷ Parser a → String → Maybe a
 parseString p str =
   case parse p "" str of
-    Left _  -> Nothing
-    Right r -> Just r
+    Left _ → Nothing
+    Right r → Just r

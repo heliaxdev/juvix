@@ -72,7 +72,9 @@ library:
     - Juvix
     - Juvix.Core
     - Juvix.Core.MainLang
+    - Juvix.Core.Parser
     - Juvix.Core.Erasure
+    - Juvix.Core.SemiRing
     - Juvix.EAC
     - Juvix.EAC.Check
     - Juvix.EAC.EAC

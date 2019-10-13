@@ -1,9 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE UnicodeSyntax     #-}
+{-# LANGUAGE UnicodeSyntax #-}
 
 module Main where
 
-import           Prelude (IO, Int, map, print, (+))
+import Prelude ((+), IO, Int, map, print)
 
 main ∷ IO ()
 main = do
@@ -13,4 +13,4 @@ l ∷ [Int]
 l = [1, 2, 3]
 
 f ∷ [Int] → Int → Int → [Int]
-f l a b = map (\x -> x + (a + b)) l
+f l a b = map (\x → x + (a + b)) l
