@@ -1,13 +1,13 @@
-{-# LANGUAGE ExplicitForAll    #-}
+{-# LANGUAGE ExplicitForAll #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE UnicodeSyntax     #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE UnicodeSyntax #-}
 
 module Main where
 
-import           Prelude (IO, print)
+import Prelude (IO, print)
 
-type Num = forall a . (a → a) → (a → a)
+type Num = ∀ a. (a → a) → (a → a)
 
 zero ∷ Num
 zero s z = z

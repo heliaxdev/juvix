@@ -1,22 +1,20 @@
 module Interactive where
 
-import           Control.Monad.IO.Class
-import qualified Data.Text                    as T
-import           Prelude                      (String)
-import           Protolude
-import qualified System.Console.Haskeline     as H
-import           Text.PrettyPrint.ANSI.Leijen hiding ((<>))
-
-import           Config
-import           Options
-
-import qualified Juvix.Backends.Env           as Env
-import qualified Juvix.Backends.Graph         as Graph
-import qualified Juvix.Backends.Maps          as Maps ()
-import qualified Juvix.Bohm                   as Bohm
-import qualified Juvix.Core                   as Core
-import qualified Juvix.EAC                    as EAC
-import qualified Juvix.Nets.Bohm              as Bohm
+import Config
+import Control.Monad.IO.Class
+import qualified Data.Text as T
+import qualified Juvix.Backends.Env as Env
+import qualified Juvix.Backends.Graph as Graph
+import qualified Juvix.Backends.Maps as Maps ()
+import qualified Juvix.Bohm as Bohm
+import qualified Juvix.Core as Core
+import qualified Juvix.EAC as EAC
+import qualified Juvix.Nets.Bohm as Bohm
+import Options
+import Protolude
+import qualified System.Console.Haskeline as H
+import Text.PrettyPrint.ANSI.Leijen hiding ((<>))
+import Prelude (String)
 
 interactive ∷ Context → Config → IO ()
 interactive ctx _ = do
@@ -26,9 +24,9 @@ interactive ctx _ = do
 settings ∷ Context → H.Settings IO
 settings ctx =
   H.Settings
-    { H.complete       = H.completeFilename
-    , H.historyFile    = Just (contextHomeDirectory ctx <> "/.jvxi_history")
-    , H.autoAddHistory = True
+    { H.complete = H.completeFilename,
+      H.historyFile = Just (contextHomeDirectory ctx <> "/.jvxi_history"),
+      H.autoAddHistory = True
     }
 
 mainLoop ∷ (String → IO String) → H.InputT IO ()
@@ -46,7 +44,7 @@ mainLoop func = do
 handleSpecial ∷ String → H.InputT IO () → H.InputT IO ()
 handleSpecial str cont = do
   case str of
-    "?"    → liftIO (putDoc specialsDoc) >> cont
+    "?" → liftIO (putDoc specialsDoc) >> cont
     "exit" → return ()
     "tutorial" → do
       H.outputStrLn "Interactive tutorial coming soon!"
@@ -64,7 +62,7 @@ handleSpecial str cont = do
           H.outputStrLn $ show eval
         Nothing → return ()
       cont
-    'c' : 'e' : ' ': rest → do
+    'c' : 'e' : ' ' : rest → do
       let parsed = Core.parseString Core.cterm rest
       H.outputStrLn $ show parsed
       case parsed of
@@ -80,25 +78,25 @@ handleSpecial str cont = do
       let parsed = EAC.parseEal rest
       case parsed of
         Right r → transformAndEvaluateEal True r
-        _       → return ()
+        _ → return ()
       cont
     'e' : 'q' : ' ' : rest → do
       let parsed = EAC.parseEal rest
       case parsed of
         Right r → transformAndEvaluateEal False r
-        _       → return ()
+        _ → return ()
       cont
     'e' : 'e' : ' ' : rest → do
       let parsed = EAC.parseEal rest
       H.outputStrLn $ show parsed
       case parsed of
         Right r → transformAndEvaluateEal True r
-        _       → return ()
+        _ → return ()
       cont
     _ → H.outputStrLn "Unknown special command" >> cont
 
 eraseAndSolveCore ∷
-     Core.CTerm → H.InputT IO (Either EAC.Errors (EAC.RPT, EAC.ParamTypeAssignment))
+  Core.CTerm → H.InputT IO (Either EAC.Errors (EAC.RPT, EAC.ParamTypeAssignment))
 eraseAndSolveCore cterm = do
   let (term, typeAssignment) = Core.erase' cterm
   res ← liftIO (EAC.validEal term typeAssignment)
@@ -122,9 +120,11 @@ transformAndEvaluateEal debug term = do
 
 specialsDoc ∷ Doc
 specialsDoc =
-  mconcat [ line
-          , mconcat (fmap (flip (<>) line . specialDoc) specials)
-          , line ]
+  mconcat
+    [ line,
+      mconcat (fmap (flip (<>) line . specialDoc) specials),
+      line
+    ]
 
 specialDoc ∷ Special → Doc
 specialDoc (Special command helpDesc) =
@@ -132,20 +132,21 @@ specialDoc (Special command helpDesc) =
 
 specials ∷ [Special]
 specials =
-  [ Special "cp [term]" "Parse a Juvix Core term"
-  , Special "ct [term}" "Parse, typecheck, & evaluate a Juvix Core term"
-  , Special "ce [term"
-            "Parse a Juvix Core term, translate to EAC, solve constraints, evaluate & read-back"
-  , Special "ep [term]" "Parse an EAC term"
-  , Special "ee [term]" "Parse an EAC term, evaluate & read-back"
-  , Special "eq [term]" "Parse an EAC term, evaluate & read-back quietly"
-  , Special "tutorial" "Embark upon an interactive tutorial"
-  , Special "?" "Show this help message"
-  , Special "exit" "Quit interactive mode"
+  [ Special "cp [term]" "Parse a Juvix Core term",
+    Special "ct [term}" "Parse, typecheck, & evaluate a Juvix Core term",
+    Special
+      "ce [term"
+      "Parse a Juvix Core term, translate to EAC, solve constraints, evaluate & read-back",
+    Special "ep [term]" "Parse an EAC term",
+    Special "ee [term]" "Parse an EAC term, evaluate & read-back",
+    Special "eq [term]" "Parse an EAC term, evaluate & read-back quietly",
+    Special "tutorial" "Embark upon an interactive tutorial",
+    Special "?" "Show this help message",
+    Special "exit" "Quit interactive mode"
   ]
 
-data Special =
-  Special
-    { specialCommand  :: Text
-    , specialHelpDesc :: Text
-    }
+data Special
+  = Special
+      { specialCommand ∷ Text,
+        specialHelpDesc ∷ Text
+      }

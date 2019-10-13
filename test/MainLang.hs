@@ -1,25 +1,27 @@
 --Tests for the type checker and evaluator in Core/MainLang.hs.
 module MainLang where
 
-import           Juvix.Core.MainLang
-import           Juvix.Core.Parser
-import           Juvix.Core.SemiRing
-
-import           Prelude
-
-import qualified Test.Tasty          as T
-import qualified Test.Tasty.HUnit    as T
+import Juvix.Core.MainLang
+import Juvix.Core.Parser
+import Juvix.Core.SemiRing
+import qualified Test.Tasty as T
+import qualified Test.Tasty.HUnit as T
+import Prelude
 
 identity ∷ CTerm
 identity = Lam (Conv (Bound 0))
 
 identityCompTy ∷ Annotation
-identityCompTy = ( SNat 1
-                 , VPi (SNat 1) VNats (const (VNats)))
+identityCompTy =
+  ( SNat 1,
+    VPi (SNat 1) VNats (const (VNats))
+  )
 
 identityContTy ∷ Annotation
-identityContTy = ( SNat 0
-                 , VPi (SNat 0) VNats (const (VNats)))
+identityContTy =
+  ( SNat 0,
+    VPi (SNat 0) VNats (const (VNats))
+  )
 
 test_identity_computational ∷ T.TestTree
 test_identity_computational = shouldCheck identity identityCompTy
@@ -46,51 +48,77 @@ shouldInfer term ann =
     iType0 [] term T.@=? Right ann
 
 one ∷ CTerm
-one = Lam
+one =
+  Lam
     $ Lam
     $ Conv
-    $ App (Bound 1)
-               (Conv (Bound 0))
+    $ App
+      (Bound 1)
+      (Conv (Bound 0))
 
 oneCompTy ∷ Annotation
-oneCompTy = ( SNat 1
-            , VPi (SNat 1)
-                       (VPi (SNat 1)
-                                 VNats
-                                 (const VNats))
-                       (const (VPi (SNat 1)
-                                        VNats
-                                        (const VNats))))
+oneCompTy =
+  ( SNat 1,
+    VPi
+      (SNat 1)
+      ( VPi
+          (SNat 1)
+          VNats
+          (const VNats)
+      )
+      ( const
+          ( VPi
+              (SNat 1)
+              VNats
+              (const VNats)
+          )
+      )
+  )
 
 two ∷ CTerm
-two = Lam
+two =
+  Lam
     $ Lam
     $ Conv
-    $ App (Bound 1)
-               (Conv (App (Bound 1)
-                                    (Conv (Bound 0))))
+    $ App
+      (Bound 1)
+      ( Conv
+          ( App
+              (Bound 1)
+              (Conv (Bound 0))
+          )
+      )
 
 twoCompTy ∷ Annotation
-twoCompTy = ( SNat 1
-            , VPi (SNat 2)
-                       (VPi (SNat 1)
-                                 VNats
-                                 (const VNats))
-                       (const (VPi (SNat 1)
-                                        VNats
-                                        (const VNats))))
+twoCompTy =
+  ( SNat 1,
+    VPi
+      (SNat 2)
+      ( VPi
+          (SNat 1)
+          VNats
+          (const VNats)
+      )
+      ( const
+          ( VPi
+              (SNat 1)
+              VNats
+              (const VNats)
+          )
+      )
+  )
 
 --property tests of type checker:
 --the term's inferred type equals to the input type
 --property test of evaluator:
 -- \x.x (any term) evaluates to (any term evaluated)
-{-lamProp :: CTerm -> Env -> Property
+{-lamProp ∷ CTerm → Env → Property
 lamProp cterm env = App (cEval (Lam Bound 0) env) cterm == cterm-}
 -- any constant term evaluates to itself
 --constProp ∷ CTerm → Env → Bool
 --constProp (Star i) env = cEval (Star i) env == VStar i
 --constProp Nats env     = cEval Nats env == VNats
-  --constProp _ _          = True --Not testing non-const terms
+--constProp _ _          = True --Not testing non-const terms
 
 {-TODO need to combine generators to generate CTerms http://hackage.haskell.org/package/QuickCheck-2.13.2/docs/Test-QuickCheck-Gen.html
 instance Arbitrary CTerm where
@@ -109,8 +137,10 @@ test_primitive_type_Nats ∷ T.TestTree
 test_primitive_type_Nats = shouldParse "Nat" Nats
 
 test_dependent_fun ∷ T.TestTree
-test_dependent_fun = shouldParse
-        "[Π] 1 * 0 * 0" (Pi (SNat 1) (Star 0) (Star 0))
+test_dependent_fun =
+  shouldParse
+    "[Π] 1 * 0 * 0"
+    (Pi (SNat 1) (Star 0) (Star 0))
 
 test_lam_identity ∷ T.TestTree
 test_lam_identity = shouldParse "\\x. Bound 0" (Lam (Conv (Bound 0)))
@@ -128,7 +158,8 @@ test_silent_convert_Free ∷ T.TestTree
 test_silent_convert_Free = shouldParse "Free (Global aStringName)" (Conv (Free (Global "aStringName")))
 
 test_silent_convert_App ∷ T.TestTree
-test_silent_convert_App =  --doesn't make sense now because there is no ITerm that is a function atm.
+test_silent_convert_App =
+  --doesn't make sense now because there is no ITerm that is a function atm.
   shouldParse "App Bound 0 Nat" (Conv (App (Bound 0) Nats))
 
 test_silent_convert_Ann ∷ T.TestTree
