@@ -1,8 +1,9 @@
 -- | Provides a mechanism for defining Sum types
 module Juvix.LLVM.Sum where
 
+import Juvix.LLVM.Shared
 import Juvix.Library hiding (Type)
-import qualified Juvix.Utility.HashMap ()
+import qualified Juvix.Utility.HashMap as Map
 import LLVM.AST
 import qualified LLVM.AST as AST ()
 import qualified LLVM.AST.Constant as C ()
@@ -22,6 +23,10 @@ data VarientInfo
         name ∷ Symbol,
         typ' ∷ Type
       }
+
+-----------------------------------------------------------------------------------------
+-- Helper functions
+-----------------------------------------------------------------------------------------
 
 -- TODO ∷ Optimize this using hacker's delight
 
@@ -49,14 +54,48 @@ tagSize variants
   where
     len = length variants
 
+createVariantName ∷ Symbol → Symbol → Symbol
+createVariantName sumName varName = sumName <> "-" <> varName
+
+-----------------------------------------------------------------------------------------
+-- Important functions
+-----------------------------------------------------------------------------------------
+
 createSum ∷ [VarientInfo] → Type
-createSum variants = StructureType
-  { isPacked = False,
-    elementTypes =
-      [ tag,
-        arrSize
-      ]
-  }
+createSum variants =
+  StructureType
+    { isPacked = False,
+      elementTypes =
+        [tag, arrSize]
+    }
   where
     tag = tagSize variants
     arrSize = sumSize variants
+
+insertSums ∷
+  Symbol →
+  [VarientInfo] →
+  SymbolTable →
+  VariantToType →
+  (SymbolTable, VariantToType)
+insertSums sumName variants symTbl varTbl = (newSymTbl, newVarTbl)
+  where
+    sum' = createSum variants
+    symTbl' =
+      Map.insert sumName (LocalReference sum' (mkName (unintern sumName))) symTbl
+    newVarTbl =
+      foldr
+        ( \(Variant {name = n}) tbl →
+            Map.insert (createVariantName sumName n) sumName tbl
+        )
+        varTbl
+        variants
+    newSymTbl =
+      foldr
+        ( \(Variant _s n t) tbl →
+            let name = createVariantName sumName n
+                operand = LocalReference t (mkName (unintern name))
+             in Map.insert name operand tbl
+        )
+        symTbl'
+        variants

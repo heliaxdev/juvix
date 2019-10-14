@@ -1,5 +1,6 @@
 module Juvix.LLVM.Codegen where
 
+import Juvix.LLVM.Shared
 import Juvix.Library hiding (Type)
 import qualified Juvix.Utility.HashMap as Map
 import LLVM.AST
@@ -67,8 +68,6 @@ nodeType = StructureType
 -- Codegen State
 -------------------------------------------------------------------------------
 
-type SymbolTable = Map.Map Symbol Operand
-
 data CodegenState
   = CodegenState
       { -- | Name of the active block to append to
@@ -77,6 +76,8 @@ data CodegenState
         blocks ∷ Map.Map Name BlockState,
         -- | Function scope symbol table
         symtab ∷ SymbolTable,
+        -- | a mapping from the variants to the sum type
+        vartab ∷ SymbolTable,
         -- | Count of basic blocks
         blockCount ∷ Int,
         -- | Count of unnamed instructions
