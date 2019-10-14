@@ -42,7 +42,7 @@ See [CONTRIBUTING.md](./doc/CONTRIBUTING.md).
 
 ## Installation
 
-Installing requires:
+Requirements for installing:
 - [Stack](https://haskellstack.org)
 - [z3](https://github.com/Z3Prover/z3)
 - [LLVM9](https://llvm.org/)
