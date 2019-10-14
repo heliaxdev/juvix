@@ -72,6 +72,8 @@ createSum variants =
     tag = tagSize variants
     arrSize = sumSize variants
 
+-- | 'insertSums' creates a sum type, and inserts the new types into the symbol table
+-- and the variant table for all the newly created variants
 insertSums ∷
   Symbol →
   [VarientInfo] →

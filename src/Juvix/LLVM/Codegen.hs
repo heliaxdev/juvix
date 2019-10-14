@@ -65,44 +65,8 @@ nodeType = StructureType
   }
 
 -------------------------------------------------------------------------------
--- Codegen State
--------------------------------------------------------------------------------
-
-data CodegenState
-  = CodegenState
-      { -- | Name of the active block to append to
-        currentBlock ∷ Name,
-        -- | Blocks for function
-        blocks ∷ Map.Map Name BlockState,
-        -- | Function scope symbol table
-        symtab ∷ SymbolTable,
-        -- | a mapping from the variants to the sum type
-        vartab ∷ SymbolTable,
-        -- | Count of basic blocks
-        blockCount ∷ Int,
-        -- | Count of unnamed instructions
-        count ∷ Word,
-        -- | Name Supply
-        names ∷ Names
-      }
-  deriving (Show)
-
-data BlockState
-  = BlockState
-      { -- | Block index
-        idx ∷ Int,
-        -- | Stack of instructions
-        stack ∷ [Named Instruction],
-        -- | Block terminator
-        term ∷ Maybe (Named Terminator)
-      }
-  deriving (Show)
-
--------------------------------------------------------------------------------
 -- Names
 -------------------------------------------------------------------------------
-
-type Names = Map.Map Symbol Int
 
 uniqueName ∷ Symbol → Names → (Symbol, Names)
 uniqueName nm ns =
