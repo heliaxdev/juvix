@@ -172,6 +172,21 @@
   3. Type Classes aliases for having just a Primary port, or an
      Auxiliary port and a Primary, or two Auxiliary ports and a
      primary, and so forth.
+*** LLVM
+- Serves as the LLVM backend compiler to Juvix.
+- This is an alternative to the interpreter provided.
+**** Sum <<LLVM/Sum>>
+- Has the code to encode a sum type via what is defined by the user or
+  what is defined to create the interaction net systen.
+- _Relies on_
+  + [[LLVM/Shared]]
+**** Shared <<LLVM/Shared>>
+- Has shared types between parts of the code base
+**** Codegen <<LLVM/Codegen>>
+- Has the code necessary to generate LLVM Code
+- _Relies on_
+  + [[LLVM/Shared]]
+  + [[LLVM/Sum]]
 * Tests
 ** Bohm
 - Tests all code involved with =Bohm=
