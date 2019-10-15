@@ -3,16 +3,14 @@ module Juvix.LLVM.Codegen.Types where
 import Juvix.Library hiding (Type)
 import Juvix.Utility.HashMap as Map
 import LLVM.AST
-import LLVM.AST.AddrSpace
 import qualified LLVM.AST as AST ()
+import LLVM.AST.AddrSpace
 import qualified LLVM.AST.Constant as C ()
 import LLVM.AST.Global as Global ()
-
 
 -------------------------------------------------------------------------------
 -- Haskell Types
 -------------------------------------------------------------------------------
-
 
 type SymbolTable = Map.Map Symbol Operand
 
@@ -78,7 +76,6 @@ newtype Codegen a = CodeGen {runCodegen ∷ State CodegenState a}
   deriving
     (HasState "names" Names)
     via Field "names" () (MonadState (State CodegenState))
-
 
 -------------------------------------------------------------------------------
 -- LLVM Types

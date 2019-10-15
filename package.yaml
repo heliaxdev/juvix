@@ -101,6 +101,9 @@ library:
     - Juvix.Encoding.Mendler
     - Juvix.Encoding.Scott
     - Juvix.Encoding.Types
+    - Juvix.LLVM.Codegen.Constants
+    - Juvix.LLVM.Codegen.Sum
+    - Juvix.LLVM.Codegen.Types
 
 executables:
   juvix:
