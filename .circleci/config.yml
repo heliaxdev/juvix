@@ -27,7 +27,7 @@ jobs:
           paths:
             - "~/.stack"
             - ".stack-work"
- 
+
   test_suite:
     docker:
       - image: cgoes/juvix-ci
