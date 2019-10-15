@@ -2,6 +2,11 @@
 
 Contributions are welcome! Please consider the following guidelines.
 
+## Code formatting
+
+- Run `make format` to automatically format your code.
+- Any changes to code style should be submitted as pull requests to https://github.com/cryptiumlabs/ormolu
+
 ## Branch usage
 
 The mainline branch is `develop` (this will change post-1.0.0). Feature development should be done on feature branches.
@@ -18,10 +23,10 @@ Before 1.0.0, you may merge your own PRs, review is not required (but feel free 
 
 ## Pre-commit hooks
 
-Please put the following in `.git/hooks/pre-commit` and ensure it passes before you submit a pull request:
-
+Please put the following in `.git/hooks/pre-commit` and run `chmod +x .git/hooks/pre-commit`.
 ```bash
 #!/bin/sh
 
 ./scripts/precommit.sh
 ```
+Ensure that it passes before you submit a pull request.

@@ -1,12 +1,13 @@
 module Juvix.Utility.HashMap
-  ( module Data.HashMap.Strict
-  , Map
-  , (!?)
-  ) where
+  ( module Data.HashMap.Strict,
+    Map,
+    (!?),
+  )
+where
 
-import           Data.Hashable       (Hashable)
-import           Data.HashMap.Strict
-import           Protolude           (Eq, Maybe)
+import Data.HashMap.Strict
+import Data.Hashable (Hashable)
+import Protolude (Eq, Maybe)
 
 type Map = HashMap
 

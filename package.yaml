@@ -60,6 +60,7 @@ ghc-options:
   - -fno-warn-orphans
   - -fno-warn-name-shadowing
   - -j6
+  - -static
 
 library:
   source-dirs: src
@@ -68,12 +69,16 @@ library:
   exposed-modules:
     - Juvix
     - Juvix.Core
-    - Juvix.EAL
-    - Juvix.EAL.Check
-    - Juvix.EAL.EAL
-    - Juvix.EAL.Solve
-    - Juvix.EAL.Types
-    - Juvix.EAL.Parser
+    - Juvix.Core.MainLang
+    - Juvix.Core.Parser
+    - Juvix.Core.Erasure
+    - Juvix.Core.SemiRing
+    - Juvix.EAC
+    - Juvix.EAC.Check
+    - Juvix.EAC.EAC
+    - Juvix.EAC.Solve
+    - Juvix.EAC.Types
+    - Juvix.EAC.Parser
     - Juvix.Utility
     - Juvix.Nets.Bohm
     - Juvix.Nets.Combinators
@@ -125,6 +130,8 @@ tests:
       - juvix
       - tasty
       - tasty-hunit
+      - tasty-quickcheck
+      - QuickCheck
       - tasty-discover
       - temporary
       - raw-strings-qq
