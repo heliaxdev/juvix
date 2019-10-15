@@ -332,39 +332,35 @@ fanInAux3 numFan (numOther, otherLang) level = do
   incGraphSizeStep 3
   other1 ← newNode (Auxiliary3 otherLang)
   other2 ← newNode (Auxiliary3 otherLang)
-  other3 ← newNode (Auxiliary3 otherLang)
   fanIn1 ← newNode (Auxiliary2 (FanIn level))
   fanIn2 ← newNode (Auxiliary2 (FanIn level))
   fanIn3 ← newNode (Auxiliary2 (FanIn level))
   let nodeOther1 = RELAuxiliary3 { node       = other1
                                  , primary    = ReLink numFan Aux1
-                                 , auxiliary1 = Link (Port Aux1 fanIn3)
+                                 , auxiliary1 = Link (Port Aux1 fanIn1)
                                  , auxiliary2 = Link (Port Aux1 fanIn2)
-                                 , auxiliary3 = Link (Port Aux1 fanIn1)
+                                 , auxiliary3 = Link (Port Aux1 fanIn3)
                                  }
       nodeOther2 = RELAuxiliary3 { node       = other2
                                  , primary    = ReLink numFan Aux2
-                                 , auxiliary1 = Link (Port Aux2 fanIn3)
+                                 , auxiliary1 = Link (Port Aux2 fanIn1)
                                  , auxiliary2 = Link (Port Aux2 fanIn2)
-                                 , auxiliary3 = Link (Port Aux2 fanIn1)
+                                 , auxiliary3 = Link (Port Aux2 fanIn3)
                                  }
-      nodeFan1   = RELAuxiliary3 { node       = fanIn1
-                                 , primary    = ReLink numOther Aux3
-                                 , auxiliary1 = Link (Port Aux3 other1)
-                                 , auxiliary2 = Link (Port Aux3 other2)
-                                 , auxiliary3 = Link (Port Aux3 other3)
-                                 }
-      nodeFan2   = RELAuxiliary3 { node       = fanIn2
-                                 , primary    = ReLink numOther Aux2
-                                 , auxiliary1 = Link (Port Aux2 other1)
-                                 , auxiliary2 = Link (Port Aux2 other2)
-                                 , auxiliary3 = Link (Port Aux2 other3)
-                                 }
-      nodeFan3   = RELAuxiliary3 { node       = fanIn3
+      nodeFan1   = RELAuxiliary2 { node       = fanIn1
                                  , primary    = ReLink numOther Aux1
                                  , auxiliary1 = Link (Port Aux1 other1)
                                  , auxiliary2 = Link (Port Aux1 other2)
-                                 , auxiliary3 = Link (Port Aux1 other3)
+                                 }
+      nodeFan2   = RELAuxiliary2 { node       = fanIn2
+                                 , primary    = ReLink numOther Aux2
+                                 , auxiliary1 = Link (Port Aux2 other1)
+                                 , auxiliary2 = Link (Port Aux2 other2)
+                                 }
+      nodeFan3   = RELAuxiliary2 { node       = fanIn3
+                                 , primary    = ReLink numOther Aux3
+                                 , auxiliary1 = Link (Port Aux3 other1)
+                                 , auxiliary2 = Link (Port Aux3 other2)
                                  }
   traverse_ linkAll [nodeOther1, nodeOther2, nodeFan1, nodeFan2, nodeFan3]
   deleteRewire [numFan, numOther] [other1, other2, fanIn1, fanIn2, fanIn3]
