@@ -23,11 +23,20 @@ identityContTy =
     VPi (SNat 0) VNats (const (VNats))
   )
 
+identityApplication ∷ CTerm
+identityApplication = Conv (App (Ann (SNat 1) identity (Pi (SNat 1) Nats Nats)) (Conv (Nat 1)))
+
+natTy ∷ Annotation
+natTy = (SNat 1, VNats)
+
 test_identity_computational ∷ T.TestTree
 test_identity_computational = shouldCheck identity identityCompTy
 
 test_identity_contemplation ∷ T.TestTree
 test_identity_contemplation = shouldCheck identity identityContTy
+
+test_identity_application ∷ T.TestTree
+test_identity_application = shouldCheck identityApplication natTy
 
 test_nats_type_star0 ∷ T.TestTree
 test_nats_type_star0 = shouldCheck Nats (SNat 0, VStar 0)
