@@ -147,8 +147,7 @@ reduce = do
                       Just IsPrim {_tag0} → True <$ fanInAux0 n (node, _tag0)
                       Just IsAux1 {_tag1} → True <$ fanInAux1 n (node, _tag1) level
                       Just IsAux2 {_tag2} → True <$ fanInAux2 n (node, _tag2) level
-                      -- Update later to be `True <$ fanInAux3 n (node, _tag3) level`
-                      Just IsAux3 {_tag3} → pure isChanged
+                      Just IsAux3 {_tag3} → True <$ fanInAux3 n (node, _tag3) level
                       Nothing → pure isChanged
                   Curried2 f → curryMatch curry2 (f, n) node isChanged
                   -- Cases in which we fall through, and have the other node handle it
