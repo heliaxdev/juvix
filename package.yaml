@@ -69,7 +69,6 @@ library:
   exposed-modules:
     - Juvix
     - Juvix.Core
-    - Juvix.Core.Parser
     - Juvix.Core.Erasure
     - Juvix.Core.SemiRing
     - Juvix.EAC
@@ -103,6 +102,7 @@ library:
     - Juvix.Core.IR.Types
     - Juvix.Core.IR.Typechecker
     - Juvix.Core.HR
+    - Juvix.Core.HR.Parser
     - Juvix.Core.HR.Types
 
 executables:
