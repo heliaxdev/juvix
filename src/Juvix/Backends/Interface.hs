@@ -51,8 +51,8 @@ data Relink
         auxiliary1 ∷ REL NumPort,
         auxiliary2 ∷ REL NumPort
       }
-  | RELAuxiliary1 { node ∷ Node, primary ∷ REL NumPort, auxiliary1 ∷ REL NumPort }
-  | RELAuxiliary0 { node ∷ Node, primary ∷ REL NumPort }
+  | RELAuxiliary1 {node ∷ Node, primary ∷ REL NumPort, auxiliary1 ∷ REL NumPort}
+  | RELAuxiliary0 {node ∷ Node, primary ∷ REL NumPort}
   deriving (Show)
 
 -- | An Edge type, used to sometimes represent edges
@@ -142,7 +142,7 @@ linkAll (RELAuxiliary2 {primary, node, auxiliary1, auxiliary2}) =
     [(primary, Prim), (auxiliary1, Aux1), (auxiliary2, Aux2)]
 linkAll (RELAuxiliary3 {primary, node, auxiliary1, auxiliary2, auxiliary3}) =
   traverse_
-    (\ (t, nt) → linkHelper t nt node)
+    (\(t, nt) → linkHelper t nt node)
     [(primary, Prim), (auxiliary1, Aux1), (auxiliary2, Aux2), (auxiliary3, Aux3)]
 
 linkHelper ∷ (Network net, NetState (net a) m) ⇒ REL NumPort → PortType → Node → m ()

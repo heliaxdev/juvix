@@ -393,7 +393,7 @@ fanInAux3 numFan (numOther, otherLang) level = do
   fanIn3 ← newNode (Auxiliary2 (FanIn level))
   let nodeOther1 = RELAuxiliary3
         { node = other1,
-          primary    = ReLink numFan Aux1,
+          primary = ReLink numFan Aux1,
           auxiliary1 = Link (Port Aux1 fanIn1),
           auxiliary2 = Link (Port Aux1 fanIn2),
           auxiliary3 = Link (Port Aux1 fanIn3)
@@ -422,7 +422,7 @@ fanInAux3 numFan (numOther, otherLang) level = do
           primary = ReLink numOther Aux3,
           auxiliary1 = Link (Port Aux3 other1),
           auxiliary2 = Link (Port Aux3 other2)
-       }
+        }
   traverse_ linkAll [nodeOther1, nodeOther2, nodeFan1, nodeFan2, nodeFan3]
   deleteRewire [numFan, numOther] [other1, other2, fanIn1, fanIn2, fanIn3]
 
