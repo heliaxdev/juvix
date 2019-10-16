@@ -6,7 +6,7 @@ module Juvix.Core
   )
 where
 
-import Juvix.Core.IR
-import Juvix.Core.HR
 import Juvix.Core.Erasure
+import Juvix.Core.HR
+import Juvix.Core.IR
 import Juvix.Core.Usage

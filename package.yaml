@@ -101,6 +101,7 @@ library:
   other-modules:
     - Juvix.Core.IR
     - Juvix.Core.IR.Types
+    - Juvix.Core.IR.Typechecker
     - Juvix.Core.HR
     - Juvix.Core.HR.Types
 

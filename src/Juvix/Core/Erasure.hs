@@ -11,9 +11,9 @@ import Prelude ((!!))
 
 erase' ∷ Core.CTerm → Either ErasureError (EAC.Term, EAC.TypeAssignment)
 erase' cterm =
-  let (term, env) = exec (erase cterm) in
-    term >>| \term ->
-      (term, typeAssignment env)
+  let (term, env) = exec (erase cterm)
+   in term >>| \term →
+        (term, typeAssignment env)
 
 exec ∷ EnvErasure a → (Either ErasureError a, Env)
 exec (EnvEra env) = runState (runExceptT env) (Env empty 0 [])
@@ -97,10 +97,10 @@ newtype EnvErasure a = EnvEra (ExceptT ErasureError (State Env) a)
   deriving
     (HasState "nameStack" [Int])
     via Field "nameStack" () (MonadState (ExceptT ErasureError (State Env)))
-  deriving (HasThrow "erasureError" ErasureError)
+  deriving
+    (HasThrow "erasureError" ErasureError)
     via MonadError (ExceptT ErasureError (MonadState (State Env)))
 
-data ErasureError =
-  Unsupported
-
+data ErasureError
+  = Unsupported
   deriving (Show, Eq, Generic)
