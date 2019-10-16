@@ -1,12 +1,11 @@
---Tests for the type checker and evaluator in Core/MainLang.hs.
-module MainLang where
+-- | Tests for the type checker and evaluator in Core/IR/Typechecker.hs
+module CoreTypechecker where
 
-import Juvix.Core.MainLang
-import Juvix.Core.Parser
-import Juvix.Core.SemiRing
+import Juvix.Core.IR
+import Juvix.Core.Usage
+import Juvix.Library hiding (identity)
 import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as T
-import Prelude
 
 identity ∷ CTerm
 identity = Lam (Conv (Bound 0))
@@ -116,7 +115,6 @@ twoCompTy =
           )
       )
   )
-
 -- property tests of type checker:
 -- the term's inferred type equals to the input type
 -- property test of evaluator:
@@ -133,44 +131,3 @@ lamProp cterm env = App (cEval (Lam Bound 0) env) cterm == cterm-}
    CTerms http://hackage.haskell.org/package/QuickCheck-2.13.2/docs/Test-QuickCheck-Gen.html
 instance Arbitrary CTerm where
   arbitrary = CTerm -}
-
--- unit tests for cterm parser.
-shouldParse ∷ String → CTerm → T.TestTree
-shouldParse term parsed =
-  T.testCase (show term <> " should parse as " <> show parsed) $
-    parseString (parseWhole cterm) term T.@=? Just parsed
-
-test_star_n ∷ T.TestTree
-test_star_n = shouldParse "* 0" (Star 0)
-
-test_primitive_type_Nats ∷ T.TestTree
-test_primitive_type_Nats = shouldParse "Nat" Nats
-
-test_dependent_fun ∷ T.TestTree
-test_dependent_fun =
-  shouldParse
-    "[Π] 1 * 0 * 0"
-    (Pi (SNat 1) (Star 0) (Star 0))
-
-test_lam_identity ∷ T.TestTree
-test_lam_identity = shouldParse "\\x. Bound 0" (Lam (Conv (Bound 0)))
-
-test_conversion ∷ T.TestTree
-test_conversion = shouldParse "Conv 0" (Conv (Nat 0))
-
-test_silent_convert_nat ∷ T.TestTree
-test_silent_convert_nat = shouldParse "0" (Conv (Nat 0))
-
-test_silent_convert_Bound ∷ T.TestTree
-test_silent_convert_Bound = shouldParse "Bound 0" (Conv (Bound 0))
-
-test_silent_convert_Free ∷ T.TestTree
-test_silent_convert_Free = shouldParse "Free (Global aStringName)" (Conv (Free (Global "aStringName")))
-
-test_silent_convert_App ∷ T.TestTree
-test_silent_convert_App =
-  -- doesn't make sense now because there is no ITerm that is a function atm.
-  shouldParse "App Bound 0 Nat" (Conv (App (Bound 0) Nats))
-
-test_silent_convert_Ann ∷ T.TestTree
-test_silent_convert_Ann = shouldParse "w Nat : * 0" (Conv (Ann Omega Nats (Star 0)))

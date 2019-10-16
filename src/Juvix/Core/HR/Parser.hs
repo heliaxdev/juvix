@@ -98,15 +98,16 @@ convTerm = do
 appElim ∷ Parser SElim
 appElim = do
   func ← term
+  whiteSpace
   val ← elim
   eof
   return $ App func val
 
 annElim ∷ Parser SElim
 annElim = do
-  pi ← usage
   theTerm ← term
   reservedOp ":"
+  pi ← usage
   theType ← term
   eof
   return $ Ann pi theTerm theType
