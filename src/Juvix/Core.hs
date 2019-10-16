@@ -1,12 +1,12 @@
 module Juvix.Core
-  ( module Juvix.Core.MainLang,
+  ( module Juvix.Core.IR,
+    module Juvix.Core.HR,
     module Juvix.Core.Erasure,
-    module Juvix.Core.SemiRing,
-    module Juvix.Core.Parser,
+    module Juvix.Core.Usage,
   )
 where
 
+import Juvix.Core.IR
+import Juvix.Core.HR
 import Juvix.Core.Erasure
-import Juvix.Core.MainLang
-import Juvix.Core.Parser
-import Juvix.Core.SemiRing
+import Juvix.Core.Usage

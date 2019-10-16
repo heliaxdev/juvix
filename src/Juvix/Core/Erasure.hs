@@ -3,7 +3,7 @@ module Juvix.Core.Erasure
   )
 where
 
-import qualified Juvix.Core.MainLang as Core
+import qualified Juvix.Core.IR.Types as Core
 import qualified Juvix.EAC.Types as EAC
 import Juvix.Library hiding (empty)
 import Juvix.Utility

@@ -2,7 +2,7 @@ module Juvix.Core.Parser where
 
 import Data.Functor.Identity
 import Juvix.Core.MainLang
-import Juvix.Core.SemiRing
+import Juvix.Core.Usage
 import Juvix.Library hiding ((<|>))
 import Text.Parsec
 import Text.ParserCombinators.Parsec

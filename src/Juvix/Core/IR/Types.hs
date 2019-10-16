@@ -1,12 +1,11 @@
 -- Quantitative type implementation inspired by
 -- Atkey 2017 and McBride 2016.
-module Juvix.Core.MainLang where
+module Juvix.Core.IR.Types where
 
 import Control.Lens ((^?), ix)
 import Control.Monad.Except (throwError)
-import Juvix.Core.SemiRing
+import Juvix.Core.Usage
 import Juvix.Library hiding (show)
-import Numeric.Natural
 import Prelude (Show (..), String, error, lookup)
 
 -- | checkable terms

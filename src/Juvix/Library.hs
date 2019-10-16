@@ -5,6 +5,7 @@ module Juvix.Library
     module Capability.Error,
     module Capability.Writer,
     module Capability.Stream,
+    module Numeric.Natural,
     (∨),
     (∧),
     (|<<),
@@ -20,6 +21,7 @@ where
 import Capability.Error
 import Capability.Reader
 import Capability.State
+import Numeric.Natural
 import Capability.Stream
 import Capability.Writer
 import Data.String (fromString)

@@ -69,7 +69,6 @@ library:
   exposed-modules:
     - Juvix
     - Juvix.Core
-    - Juvix.Core.MainLang
     - Juvix.Core.Parser
     - Juvix.Core.Erasure
     - Juvix.Core.SemiRing
@@ -99,6 +98,11 @@ library:
     - Juvix.Encoding.Mendler
     - Juvix.Encoding.Scott
     - Juvix.Encoding.Types
+  other-modules:
+    - Juvix.Core.IR
+    - Juvix.Core.IR.Types
+    - Juvix.Core.HR
+    - Juvix.Core.HR.Types
 
 executables:
   juvix:
