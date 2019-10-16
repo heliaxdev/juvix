@@ -117,22 +117,23 @@
 - _Relies on_
   + [[Bohm/Types]]
   + [[Bohm/Shared]]
-*** =Eal=
+*** =Eac=
 - This directory contains the implementation of =Eal= and the inferred
   bracket checker on =Eal=
 **** Parser
 - A parser into the old version of the =Eal= types
 - _Relies on_
   + [[Eal/Eal]]
-**** =Eal= <<Eal/Eal>>
-- Old version of the =Eal= Term checker
-- Also includes a type checker and a bracket checker
+**** Check
+- A constraint checker for EAC.
 - _Relies on_
-  + [[Bohm/Types]]
-**** Types2 <<Eal/Types2>>
+  + [[Eal/Types2]]
+  + [[Eal/Solve]]
+  + [[Eac/Eac]]
+**** Types <<Eal/Types2>>
 - Serves as the abstract type for the new =Eal= evaluator
 - Also includes the environment from which to run =Eal=
-**** Eal2
+**** Eac <<Eac/Eac>>
 - A term and type infer-er for bang placement
   + Deals with details such as unification
 - _Relies on_
@@ -172,15 +173,28 @@
   3. Type Classes aliases for having just a Primary port, or an
      Auxiliary port and a Primary, or two Auxiliary ports and a
      primary, and so forth.
+*** Core
+**** Erasure
+- Type erasure
+**** Parser
+**** SemiRing
+- The semiring instance for usage quantification
+- Generic and can be swapped out if need be
+**** MainLang
+* =App=
+** Config
+** Interactive
+** Main
+** Options
 * Tests
 ** Bohm
 - Tests all code involved with =Bohm=
 - From generating Nets, to running them, to even generating images
   + see test76Gen to see how to generate images
-** Eal
-- Tester for the old =Eal= code
-** Eal2
-- Tester for the new =Eal= code
+** EaC
+- Tester for the old =Eac= code
+** EaC2
+- Tester for the new =Eac= code
 ** Encoding
 - Deals with the Scott and =Mendler= encoding of structures, run
   against the Lisp in playgrounds to see if they are correct
