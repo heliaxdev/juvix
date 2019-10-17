@@ -19,6 +19,8 @@ type VariantToType = Map.Map Symbol Symbol
 
 type Names = Map.Map Symbol Int
 
+instance Hashable Name
+
 -------------------------------------------------------------------------------
 -- Codegen State
 -------------------------------------------------------------------------------
@@ -53,29 +55,37 @@ data BlockState
       }
   deriving (Show, Generic)
 
-newtype Codegen a = CodeGen {runCodegen ∷ State CodegenState a}
+data Errors
+  = -- | Error when a block does not exist
+    NoSuchBlock Text
+  deriving (Show)
+
+newtype Codegen a = CodeGen {runCodegen ∷ ExceptT Errors (State CodegenState) a}
   deriving (Functor, Applicative, Monad)
   deriving
     (HasState "currentBlock" Name)
-    via Field "currentBlock" () (MonadState (State CodegenState))
+    via Field "currentBlock" () (MonadState (ExceptT Errors (State CodegenState)))
   deriving
     (HasState "blocks" (Map.Map Name BlockState))
-    via Field "blocks" () (MonadState (State CodegenState))
+    via Field "blocks" () (MonadState (ExceptT Errors (State CodegenState)))
   deriving
     (HasState "symtab" SymbolTable)
-    via Field "symtab" () (MonadState (State CodegenState))
+    via Field "symtab" () (MonadState (ExceptT Errors (State CodegenState)))
   deriving
     (HasState "vartab" VariantToType)
-    via Field "vartab" () (MonadState (State CodegenState))
+    via Field "vartab" () (MonadState (ExceptT Errors (State CodegenState)))
   deriving
     (HasState "blockCount" Int)
-    via Field "blockCount" () (MonadState (State CodegenState))
+    via Field "blockCount" () (MonadState (ExceptT Errors (State CodegenState)))
   deriving
     (HasState "count" Word)
-    via Field "count" () (MonadState (State CodegenState))
+    via Field "count" () (MonadState (ExceptT Errors (State CodegenState)))
   deriving
     (HasState "names" Names)
-    via Field "names" () (MonadState (State CodegenState))
+    via Field "names" () (MonadState (ExceptT Errors (State CodegenState)))
+  deriving
+    (HasThrow "err" Errors)
+    via MonadError (ExceptT Errors (State CodegenState))
 
 -------------------------------------------------------------------------------
 -- LLVM Types

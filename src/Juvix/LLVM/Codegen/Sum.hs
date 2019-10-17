@@ -101,3 +101,6 @@ insertSums sumName variants symTbl varTbl = (newSymTbl, newVarTbl)
         )
         symTbl'
         variants
+
+-- | creates a variant
+createVariant = undefined
