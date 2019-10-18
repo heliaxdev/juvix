@@ -7,7 +7,8 @@ import Juvix.Core.Usage
 import Juvix.Library hiding ((<|>))
 import Text.Parsec
 import Text.ParserCombinators.Parsec
-import Text.ParserCombinators.Parsec.Language
+import Text.ParserCombinators.Parsec.Expr
+import Text.ParserCombinators.Parsec.Language hiding (reservedNames, reservedOpNames)
 import qualified Text.ParserCombinators.Parsec.Token as Token
 import Prelude (String)
 
@@ -23,17 +24,32 @@ languageDef =
       Token.commentLine = "//",
       Token.identStart = letter,
       Token.identLetter = alphaNum,
-      Token.reservedNames =
-        [ "*", -- sort
-          "[Π]", -- function type
-          "w" -- omega
-        ],
-      Token.reservedOpNames =
-        [ "\\", -- lambda
-          ":", -- type & usage annotation
-          "->" -- arrow
-        ]
+      Token.reservedNames = reservedNames,
+      Token.reservedOpNames = reservedOpNames
     }
+
+reservedNames ∷ [String]
+reservedNames =
+  [ "*", -- sort
+    "[Π]", -- function type
+    "w" -- omega
+  ]
+
+reservedOpNames ∷ [String]
+reservedOpNames =
+  [ "\\", -- lambda
+    ":", -- type & usage annotation
+    "->" -- arrow
+  ]
+
+ops ∷ [[Operator Char () SElim]]
+ops = [[Infix appl AssocLeft]]
+
+appl ∷ Parser (SElim → SElim → SElim)
+appl = do
+  whiteSpace
+  notFollowedBy (choice (map reservedOp reservedOpNames))
+  pure (\f x → App (Elim f) x)
 
 lexer ∷ Token.GenTokenParser String u Identity
 lexer = Token.makeTokenParser languageDef
@@ -90,24 +106,22 @@ lamTerm = do
 binder ∷ Parser Text
 binder = Text.pack |<< identifier
 
-convTerm ∷ Parser STerm
-convTerm = do
+term ∷ Parser STerm
+term =
+  parens term <|> sortTerm <|> piTerm <|> lamTerm <|> elimTerm
+
+elimTerm ∷ Parser STerm
+elimTerm = do
   elim ← elim
   pure (Elim elim)
 
-appElim ∷ Parser SElim
-appElim = do
-  func ← term
-  whiteSpace
-  val ← elim
-  eof
-  return $ App func val
-
 annElim ∷ Parser SElim
 annElim = do
+  reservedOp ":"
   theTerm ← term
   reservedOp ":"
   pi ← usage
+  reservedOp ":"
   theType ← term
   eof
   return $ Ann pi theTerm theType
@@ -115,13 +129,12 @@ annElim = do
 varElim ∷ Parser SElim
 varElim = Var |<< binder
 
-term ∷ Parser STerm
-term =
-  parens term <|> sortTerm <|> piTerm <|> lamTerm <|> convTerm
-
 elim ∷ Parser SElim
-elim =
-  parens elim <|> varElim <|> appElim <|> annElim
+elim = buildExpressionParser ops elim'
+
+elim' ∷ Parser SElim
+elim' =
+  parens elim <|> varElim <|> annElim
 
 parseWhole ∷ Parser a → Parser a
 parseWhole p = do
