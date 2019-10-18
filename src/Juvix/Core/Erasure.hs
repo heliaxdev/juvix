@@ -4,6 +4,7 @@ module Juvix.Core.Erasure
 where
 
 import qualified Juvix.Core.IR.Types as Core
+import Juvix.Core.Utility
 import qualified Juvix.EAC.Types as EAC
 import Juvix.Library hiding (empty)
 import Juvix.Utility
@@ -56,27 +57,6 @@ erase term =
           erase a
         Core.Nat n → pure (EAC.Prim (EAC.Nat n))
     _ → throw @"erasureError" Unsupported
-
-unDeBruijin ∷
-  ( HasState "nextName" Int m,
-    HasState "nameStack" [Int] m
-  ) ⇒
-  Int →
-  m Symbol
-unDeBruijin ind = do
-  stack ← get @"nameStack"
-  pure (intern $ show $ stack !! ind)
-
-newName ∷
-  ( HasState "nextName" Int m,
-    HasState "nameStack" [Int] m
-  ) ⇒
-  m Symbol
-newName = do
-  name ← get @"nextName"
-  modify @"nextName" (+ 1)
-  modify @"nameStack" ((:) name)
-  return (intern (show name))
 
 data Env
   = Env

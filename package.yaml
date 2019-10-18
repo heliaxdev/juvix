@@ -104,6 +104,7 @@ library:
     - Juvix.Utility.HashMap
     - Juvix.Utility.Helper
     - Juvix.Utility.PrettyPrint
+    - Juvix.Core.Utility
     - Juvix.Core.IR.Types
     - Juvix.Core.IR.Typechecker
     - Juvix.Core.HR.Parser
