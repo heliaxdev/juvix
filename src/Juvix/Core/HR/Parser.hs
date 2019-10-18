@@ -38,6 +38,7 @@ reservedNames =
 reservedOpNames ∷ [String]
 reservedOpNames =
   [ "\\", -- lambda
+    "@", -- TODO: remove me, necessary for annotation parsing at the moment
     ":", -- type & usage annotation
     "->" -- arrow
   ]
@@ -107,8 +108,11 @@ binder ∷ Parser Text
 binder = Text.pack |<< identifier
 
 term ∷ Parser STerm
-term =
-  parens term <|> sortTerm <|> piTerm <|> lamTerm <|> elimTerm
+term = termOnly <|> elimTerm
+
+termOnly ∷ Parser STerm
+termOnly =
+  parens termOnly <|> sortTerm <|> piTerm <|> lamTerm
 
 elimTerm ∷ Parser STerm
 elimTerm = do
@@ -117,14 +121,13 @@ elimTerm = do
 
 annElim ∷ Parser SElim
 annElim = do
-  reservedOp ":"
-  theTerm ← term
+  reservedOp "@"
+  theTerm ← termOnly
   reservedOp ":"
   pi ← usage
-  reservedOp ":"
   theType ← term
   eof
-  return $ Ann pi theTerm theType
+  pure (Ann pi theTerm theType)
 
 varElim ∷ Parser SElim
 varElim = Var |<< binder
@@ -149,42 +152,3 @@ parseString p str =
   case parse p "" str of
     Left _ → Nothing
     Right r → Just r
-{-
- - TODO
-
-natTypeTerm ∷ Parser STerm
-natTypeTerm = do
-  reserved "Nat"
-  return Nats
-
-natTerm ∷ Parser ITerm
-natTerm = Nat . fromInteger <$> natural
-
-natAddTerm ∷ Parser Value
-natAddTerm = do
-  reservedOp "+"
-  x <- natural
-  y <- natural
-  eof
-  return $ natOp (+) (Nat (fromInteger x)) (Nat (fromInteger y))
-
-natSubTerm ∷ Parser Value
-natSubTerm = do
-  reservedOp "-"
-  x <- natural
-  y <- natural
-  eof
-  return $ natOp (-) (Nat (fromInteger x)) (Nat (fromInteger y))
-
-natMultTerm ∷ Parser Value
-natMultTerm = do
-  reservedOp "*"
-  x <- natural
-  y <- natural
-  eof
-  return $ natOp (*) (Nat (fromInteger x)) (Nat (fromInteger y))
-
---parser for values
-pValue :: Parser Value
-pValue = parens pValue <|> natAddTerm <|> natSubTerm <|> natMultTerm
--}

@@ -57,4 +57,9 @@ test_silent_convert_app ∷ T.TestTree
 test_silent_convert_app = shouldParse "fun var" (Elim (App (Elim (Var "fun")) (Var "var")))
 
 test_silent_convert_ann ∷ T.TestTree
-test_silent_convert_ann = shouldParse ": (* 0) : w : (* 0)" (Elim (Ann Omega (Star 0) (Star 0)))
+test_silent_convert_ann = shouldParse "@ (* 0) : w (* 0)" (Elim (Ann Omega (Star 0) (Star 0)))
+-- test_ann_func :: T.TestTree
+-- test_ann_func = shouldParse "(@ (\\x -> x) : w (* 0))" (Elim (Ann Omega (Lam "x" (Elim (Var "x"))) (Star 0)))
+
+-- test_app_ann :: T.TestTree
+-- test_app_ann = shouldParse "(@ (\\x -> x) : w (* 0)) y" (Elim (App (Elim (Ann Omega (Lam "x" (Elim (Var "x"))) (Star 0))) (Var "y")))
