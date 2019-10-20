@@ -2,7 +2,7 @@ module Juvix.Core.Types where
 
 import Juvix.Library
 
-data CoreParams primTy primVal
-  = CoreParams
+data Parameterisation primTy primVal
+  = Parameterisation
       { typeOf ∷ primVal → primTy
       }

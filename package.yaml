@@ -106,6 +106,7 @@ library:
     - Juvix.Utility.PrettyPrint
     - Juvix.Core.Types
     - Juvix.Core.Utility
+    - Juvix.Core.Parameterisations.Naturals
     - Juvix.Core.IR.Types
     - Juvix.Core.IR.Typechecker
     - Juvix.Core.HR.Parser

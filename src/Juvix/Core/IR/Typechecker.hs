@@ -3,6 +3,7 @@ module Juvix.Core.IR.Typechecker where
 import Control.Lens ((^?), ix)
 import Control.Monad.Except (throwError)
 import Juvix.Core.IR.Types
+import Juvix.Core.Types
 import Juvix.Core.Usage
 import Juvix.Library hiding (show)
 import Prelude (Show (..), String, error, lookup)
@@ -34,6 +35,7 @@ iEval (Bound ii) d =
 
 vapp ∷ (Show primTy, Show primVal) ⇒ Value primTy primVal → Value primTy primVal → Value primTy primVal
 vapp (VLam f) v = f v
+-- TODO: deal with primitive functions
 vapp (VNeutral n) v = VNeutral (NApp n v)
 vapp x y =
   error
@@ -82,8 +84,8 @@ errorMsg binder cterm expectedT gotT =
 type Result a = Either String a --when type checking fails, it throws an error.
 
 -- | 'checker' for checkable terms checks the term against an annotation and returns ().
-cType ∷ (Show primTy, Show primVal, Eq primTy, Eq primVal) ⇒ Natural → Context primTy primVal → CTerm primTy primVal → Annotation primTy primVal → Result ()
-cType _ii _g t@(Star n) ann = do
+cType ∷ (Show primTy, Show primVal, Eq primTy, Eq primVal) ⇒ Parameterisation primTy primVal → Natural → Context primTy primVal → CTerm primTy primVal → Annotation primTy primVal → Result ()
+cType _ _ii _g t@(Star n) ann = do
   unless (SNat 0 == fst ann) (throwError "Sigma has to be 0.") -- checks sigma = 0.
   let ty = snd ann
   case ty of
@@ -97,20 +99,19 @@ cType _ii _g t@(Star n) ann = do
               <> " is * of a equal or lower universe."
         )
     _ → throwError $ "* n is of type * but " <> show (snd ann) <> " is not *."
-{-
-cType ii _g Nats ann =
+cType _ ii _g x@(PrimTy t) ann =
   unless
     (SNat 0 == fst ann && quote0 (snd ann) == Star 0)
-    (throwError (errorMsg ii Nats (zero, VStar 0) ann))
--}
-cType ii g (Pi pi varType resultType) ann = do
+    (throwError (errorMsg ii x (zero, VStar 0) ann))
+cType p ii g (Pi pi varType resultType) ann = do
   unless (SNat 0 == fst ann) (throwError "Sigma has to be 0.") -- checks sigma = 0.
   let ty = snd ann
   case ty of
     VStar _ → do
-      cType ii g varType ann -- checks varType is of type Star i
+      cType p ii g varType ann -- checks varType is of type Star i
       let ty = cEval varType []
-      cType -- checks resultType is of type Star i
+      cType
+        p -- checks resultType is of type Star i
         (ii + 1)
         ((Local ii, (pi, ty)) : g)
         (cSubst 0 (Free (Local ii)) resultType)
@@ -119,25 +120,26 @@ cType ii g (Pi pi varType resultType) ann = do
       throwError
         "The variable type and the result type must be of type * at the same level."
 -- (Lam) introduction rule of dependent function type
-cType ii g (Lam s) ann =
+cType p ii g (Lam s) ann =
   case ann of
     (sig, VPi pi ty ty') →
       -- Lam s should be of dependent function type (Pi pi ty ty').
       cType
+        p
         (ii + 1)
         ((Local ii, (sig <.> pi, ty)) : g) -- put s in the context with usage sig*pi
         (cSubst 0 (Free (Local ii)) s) -- x (varType) in context S with sigma*pi usage.
         (sig, ty' (vfree (Local ii))) -- is of type M (usage sigma) in context T
     _ → throwError $ show (snd ann) <> " is not a function type but should be."
-cType ii g (Conv e) ann = do
-  ann' ← iType ii g e
+cType p ii g (Conv e) ann = do
+  ann' ← iType p ii g e
   unless
     (fst ann == fst ann' && quote0 (snd ann) == quote0 (snd ann'))
     (throwError (errorMsg ii (Conv e) ann ann'))
 
 -- inferable terms have type as output.
-iType0 ∷ (Show primTy, Show primVal, Eq primTy, Eq primVal) ⇒ Context primTy primVal → ITerm primTy primVal → Result (Annotation primTy primVal)
-iType0 = iType 0
+iType0 ∷ (Show primTy, Show primVal, Eq primTy, Eq primVal) ⇒ Parameterisation primTy primVal → Context primTy primVal → ITerm primTy primVal → Result (Annotation primTy primVal)
+iType0 p = iType p 0
 
 iTypeErrorMsg ∷ Natural → Name → String
 iTypeErrorMsg ii x =
@@ -147,23 +149,21 @@ iTypeErrorMsg ii x =
     <> show ii
     <> ") in the environment."
 
-iType ∷ (Show primTy, Show primVal, Eq primTy, Eq primVal) ⇒ Natural → Context primTy primVal → ITerm primTy primVal → Result (Annotation primTy primVal)
+iType ∷ (Show primTy, Show primVal, Eq primTy, Eq primVal) ⇒ Parameterisation primTy primVal → Natural → Context primTy primVal → ITerm primTy primVal → Result (Annotation primTy primVal)
 -- the type checker should never encounter a bound variable (as in LambdaPi)? To be confirmed.
-iType _ii _g (Bound _) = error "Bound variable cannot be inferred"
-iType ii g (Free x) =
+iType _ _ii _g (Bound _) = error "Bound variable cannot be inferred"
+iType _ ii g (Free x) =
   case lookup x g of
     Just ann → return ann
     Nothing → throwError (iTypeErrorMsg ii x)
 -- Prim-Const typing rule
-{-
-iType _ii _g (Nat _) = return (Omega, VNats)
--}
+iType p _ii _g (Prim prim) = return (Omega, VPrimTy (typeOf p prim))
 -- App rule, function M applies to N
-iType ii g (App m n) = do
-  mTy ← iType ii g m -- annotation of M is usage sig and Pi with pi usage.
+iType p ii g (App m n) = do
+  mTy ← iType p ii g m -- annotation of M is usage sig and Pi with pi usage.
   case mTy of
     (sig, VPi pi varTy resultTy) → do
-      cType ii g n (pi, varTy) -- N has to be of type varTy with usage pi
+      cType p ii g n (pi, varTy) -- N has to be of type varTy with usage pi
       return (sig, resultTy (cEval n []))
     _ →
       throwError
@@ -174,10 +174,10 @@ iType ii g (App m n) = do
             <> show n
             <> "\n cannot be applied to it."
         )
-iType ii g (Ann pi theTerm theType) =
+iType p ii g (Ann pi theTerm theType) =
   -- TODO check theType is of type Star first? But we have stakable universes now.
   -- cType ii g theType (0, VStar 0)
   do
     let ty = cEval theType []
-    cType ii g theTerm (pi, ty)
+    cType p ii g theTerm (pi, ty)
     return (pi, ty)
