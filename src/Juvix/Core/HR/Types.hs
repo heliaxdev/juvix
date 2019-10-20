@@ -3,17 +3,17 @@ module Juvix.Core.HR.Types where
 import Juvix.Core.Usage
 import Juvix.Library
 
-data Term primTy primVal binderTy
+data Term primTy primVal
   = Star Natural
   | PrimTy primTy
-  | Pi Usage (Term primTy primVal binderTy) (Term primTy primVal binderTy)
-  | Lam binderTy (Term primTy primVal binderTy)
-  | Elim (Elim primTy primVal binderTy)
+  | Pi Usage (Term primTy primVal) (Term primTy primVal)
+  | Lam Text (Term primTy primVal)
+  | Elim (Elim primTy primVal)
   deriving (Show, Eq, Generic)
 
-data Elim primTy primVal binderTy
-  = Var binderTy
+data Elim primTy primVal
+  = Var Text
   | Prim primVal
-  | App (Term primTy primVal binderTy) (Elim primTy primVal binderTy)
-  | Ann Usage (Term primTy primVal binderTy) (Term primTy primVal binderTy)
+  | App (Term primTy primVal) (Elim primTy primVal)
+  | Ann Usage (Term primTy primVal) (Term primTy primVal)
   deriving (Show, Eq, Generic)

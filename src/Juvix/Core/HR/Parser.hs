@@ -12,9 +12,9 @@ import Text.ParserCombinators.Parsec.Language hiding (reservedNames, reservedOpN
 import qualified Text.ParserCombinators.Parsec.Token as Token
 import Prelude (String)
 
-type STerm = Term () () Text
+type STerm = Term () ()
 
-type SElim = Elim () () Text
+type SElim = Elim () ()
 
 languageDef ∷ GenLanguageDef String u Identity
 languageDef =

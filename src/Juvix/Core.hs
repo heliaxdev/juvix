@@ -13,10 +13,10 @@ import Juvix.Core.Usage
 import Juvix.Core.Utility
 import Juvix.Library
 
-hrToIR ∷ HR.Term a b c → IR.CTerm
+hrToIR ∷ HR.Term a b → IR.CTerm
 hrToIR = undefined
 
-irToHR ∷ IR.CTerm → HR.Term a b c
+irToHR ∷ IR.CTerm → HR.Term a b
 irToHR = fst . exec . irToHR'
 
 irToHR' ∷
@@ -24,7 +24,7 @@ irToHR' ∷
     HasState "nameStack" [Int] m
   ) ⇒
   IR.CTerm →
-  m (HR.Term a b c)
+  m (HR.Term a b)
 irToHR' = undefined
 
 exec ∷ EnvConv a → (a, Env)
