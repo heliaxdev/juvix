@@ -20,8 +20,8 @@ data Term primTy primVal
     -- The abstracted variable's usage is tracked with the Usage(π).
     Lam (Term primTy primVal)
   | -- | 'CONV' conversion rule. TODO make sure 0Γ ⊢ S≡T
-    -- 'Conv' is the constructor that embeds Elim to Term
-    Conv (Elim primTy primVal)
+    -- 'Elim' is the constructor that embeds Elim to Term
+    Elim (Elim primTy primVal)
   deriving (Eq)
 
 instance (Show primTy, Show primVal) ⇒ Show (Term primTy primVal) where
@@ -30,8 +30,8 @@ instance (Show primTy, Show primVal) ⇒ Show (Term primTy primVal) where
   show (Pi _usage varTy resultTy) =
     "[Π] " <> show varTy <> "-> " <> show resultTy
   show (Lam var) = "\\x. " <> show var
-  -- Conv should be invisible to users.
-  show (Conv term) = show term
+  -- Elim should be invisible to users.
+  show (Elim term) = show term
 
 -- | inferable terms
 data Elim primTy primVal
@@ -103,8 +103,8 @@ quote _ii (VPrimTy p) = PrimTy p
 quote ii (VPi pi v f) =
   Pi pi (quote ii v) (quote (ii + 1) (f (vfree (Quote ii))))
 quote ii (VLam f) = Lam (quote (ii + 1) (f (vfree (Quote ii))))
-quote ii (VNeutral n) = Conv (neutralQuote ii n)
-quote _ii (VPrim p) = Conv (Prim p)
+quote ii (VNeutral n) = Elim (neutralQuote ii n)
+quote _ii (VPrim p) = Elim (Prim p)
 
 neutralQuote ∷ Natural → Neutral primTy primVal → Elim primTy primVal
 neutralQuote ii (NFree x) = boundfree ii x

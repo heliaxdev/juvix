@@ -38,7 +38,7 @@ erase term =
       modify @"typeAssignment" (insert name ty)
       body ← erase body
       pure (EAC.Lam name body)
-    Core.Conv iterm → do
+    Core.Elim iterm → do
       case iterm of
         Core.Bound n → do
           name ← unDeBruijin (fromIntegral n)
@@ -49,7 +49,7 @@ erase term =
             Core.Local _s → throw @"erasureError" Unsupported
             Core.Quote _s → throw @"erasureError" Unsupported
         Core.App a b → do
-          a ← erase (Core.Conv a)
+          a ← erase (Core.Elim a)
           b ← erase b
           pure (EAC.App a b)
         Core.Ann _ _ a → do

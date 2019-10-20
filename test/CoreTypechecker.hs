@@ -1,32 +1,39 @@
 -- | Tests for the type checker and evaluator in Core/IR/Typechecker.hs
 module CoreTypechecker where
 
-import Juvix.Core.IR
+import qualified Juvix.Core.IR as IR
+import Juvix.Core.Parameterisations.Naturals
 import Juvix.Core.Usage
 import Juvix.Library hiding (identity)
 import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as T
 
-identity ∷ CTerm
-identity = Lam (Conv (Bound 0))
+type Term = IR.Term NatTy NatVal
+
+type Elim = IR.Elim NatTy NatVal
+
+type Annotation = IR.Annotation NatTy NatVal
+
+identity ∷ Term
+identity = IR.Lam (IR.Elim (IR.Bound 0))
 
 identityCompTy ∷ Annotation
 identityCompTy =
   ( SNat 1,
-    VPi (SNat 1) VNats (const (VNats))
+    IR.VPi (SNat 1) (IR.VPrimTy Nat) (const (IR.VPrimTy Nat))
   )
 
 identityContTy ∷ Annotation
 identityContTy =
   ( SNat 0,
-    VPi (SNat 0) VNats (const (VNats))
+    IR.VPi (SNat 0) (IR.VPrimTy Nat) (const (IR.VPrimTy Nat))
   )
 
-identityApplication ∷ CTerm
-identityApplication = Conv (App (Ann (SNat 1) identity (Pi (SNat 1) Nats Nats)) (Conv (Nat 1)))
+identityApplication ∷ Term
+identityApplication = IR.Elim (IR.App (IR.Ann (SNat 1) identity (IR.Pi (SNat 1) (IR.PrimTy Nat) (IR.PrimTy Nat))) (IR.Elim (IR.Prim (Natural 1))))
 
 natTy ∷ Annotation
-natTy = (SNat 1, VNats)
+natTy = (SNat 1, IR.VPrimTy Nat)
 
 test_identity_computational ∷ T.TestTree
 test_identity_computational = shouldCheck identity identityCompTy
@@ -38,80 +45,80 @@ test_identity_application ∷ T.TestTree
 test_identity_application = shouldCheck identityApplication natTy
 
 test_nats_type_star0 ∷ T.TestTree
-test_nats_type_star0 = shouldCheck Nats (SNat 0, VStar 0)
+test_nats_type_star0 = shouldCheck (IR.PrimTy Nat) (SNat 0, IR.VStar 0)
 
 test_nat1 ∷ T.TestTree
-test_nat1 = shouldInfer (Nat 1) (Omega, VNats)
+test_nat1 = shouldInfer (IR.Prim (Natural 1)) (Omega, IR.VPrimTy Nat)
 
 --unit tests for cType
-shouldCheck ∷ CTerm → Annotation → T.TestTree
+shouldCheck ∷ Term → Annotation → T.TestTree
 shouldCheck term ann =
   T.testCase (show term <> " should check as type " <> show ann) $
-    cType 0 [] term ann T.@=? Right ()
+    IR.cType naturals 0 [] term ann T.@=? Right ()
 
 --unit tests for iType
-shouldInfer ∷ ITerm → Annotation → T.TestTree
+shouldInfer ∷ Elim → Annotation → T.TestTree
 shouldInfer term ann =
   T.testCase (show term <> " should infer to type " <> show ann) $
-    iType0 [] term T.@=? Right ann
+    IR.iType0 naturals [] term T.@=? Right ann
 
-one ∷ CTerm
+one ∷ Term
 one =
-  Lam
-    $ Lam
-    $ Conv
-    $ App
-      (Bound 1)
-      (Conv (Bound 0))
+  IR.Lam
+    $ IR.Lam
+    $ IR.Elim
+    $ IR.App
+      (IR.Bound 1)
+      (IR.Elim (IR.Bound 0))
 
 oneCompTy ∷ Annotation
 oneCompTy =
   ( SNat 1,
-    VPi
+    IR.VPi
       (SNat 1)
-      ( VPi
+      ( IR.VPi
           (SNat 1)
-          VNats
-          (const VNats)
+          (IR.VPrimTy Nat)
+          (const (IR.VPrimTy Nat))
       )
       ( const
-          ( VPi
+          ( IR.VPi
               (SNat 1)
-              VNats
-              (const VNats)
+              (IR.VPrimTy Nat)
+              (const (IR.VPrimTy Nat))
           )
       )
   )
 
-two ∷ CTerm
+two ∷ Term
 two =
-  Lam
-    $ Lam
-    $ Conv
-    $ App
-      (Bound 1)
-      ( Conv
-          ( App
-              (Bound 1)
-              (Conv (Bound 0))
+  IR.Lam
+    $ IR.Lam
+    $ IR.Elim
+    $ IR.App
+      (IR.Bound 1)
+      ( IR.Elim
+          ( IR.App
+              (IR.Bound 1)
+              (IR.Elim (IR.Bound 0))
           )
       )
 
 twoCompTy ∷ Annotation
 twoCompTy =
   ( SNat 1,
-    VPi
+    IR.VPi
       (SNat 2)
-      ( VPi
+      ( IR.VPi
           (SNat 1)
-          VNats
-          (const VNats)
+          (IR.VPrimTy Nat)
+          (const (IR.VPrimTy Nat))
       )
       ( const
-          ( VPi
+          ( IR.VPi
               (SNat 1)
-              VNats
-              (const VNats)
+              (IR.VPrimTy Nat)
+              (const (IR.VPrimTy Nat))
           )
       )
   )
@@ -119,15 +126,15 @@ twoCompTy =
 -- the term's inferred type equals to the input type
 -- property test of evaluator:
 -- \x.x (any term) evaluates to (any term evaluated)
-{- lamProp ∷ CTerm → Env → Property
-lamProp cterm env = App (cEval (Lam Bound 0) env) cterm == cterm-}
+{- lamProp ∷ Term → Env → Property
+lamProp cterm env = IR.App (cEval (IR.Lam IR.Bound 0) env) cterm == cterm-}
 -- any constant term evaluates to itself
--- constProp ∷ CTerm → Env → Bool
--- constProp (Star i) env = cEval (Star i) env == VStar i
--- constProp Nats env     = cEval Nats env == VNats
+-- constProp ∷ Term → Env → Bool
+-- constProp (Star i) env = cEval (Star i) env == IR.VStar i
+-- constProp IR.PrimTy Nat env     = cEval IR.PrimTy Nat env == IR.VPrimTy Nat
 -- constProp _ _          = True --Not testing non-const terms
 
 {- TODO need to combine generators to generate
-   CTerms http://hackage.haskell.org/package/QuickCheck-2.13.2/docs/Test-QuickCheck-Gen.html
-instance Arbitrary CTerm where
-  arbitrary = CTerm -}
+   Terms http://hackage.haskell.org/package/QuickCheck-2.13.2/docs/Test-QuickCheck-Gen.html
+instance Arbitrary Term where
+  arbitrary = Term -}

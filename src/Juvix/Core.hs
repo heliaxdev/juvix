@@ -32,7 +32,7 @@ hrToIR' term =
       pushName n
       b ← hrToIR' b
       pure (IR.Lam b)
-    HR.Elim e → IR.Conv |<< hrElimToIR' e
+    HR.Elim e → IR.Elim |<< hrElimToIR' e
 
 hrElimToIR' ∷
   (HasState "symbolStack" [Symbol] m) ⇒
@@ -76,7 +76,7 @@ irToHR' term =
       n ← newName
       t ← irToHR' t
       pure (HR.Lam n t)
-    IR.Conv e → HR.Elim |<< irElimToHR' e
+    IR.Elim e → HR.Elim |<< irElimToHR' e
 
 irElimToHR' ∷
   ( HasState "nextName" Int m,
@@ -100,7 +100,7 @@ irElimToHR' elim =
       x ← irToHR' x
       pure (HR.Ann u t x)
 
-exec ∷ EnvConv a → (a, Env)
+exec ∷ EnvElim a → (a, Env)
 exec (EnvCon env) = runState env (Env 0 [] [])
 
 data Env
@@ -111,7 +111,7 @@ data Env
       }
   deriving (Show, Eq, Generic)
 
-newtype EnvConv a = EnvCon (State Env a)
+newtype EnvElim a = EnvCon (State Env a)
   deriving (Functor, Applicative, Monad)
   deriving
     (HasState "nextName" Int)

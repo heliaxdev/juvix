@@ -73,6 +73,7 @@ library:
     - Juvix.Core.IR
     - Juvix.Core.Erasure
     - Juvix.Core.Usage
+    - Juvix.Core.Parameterisations.Naturals
     - Juvix.EAC
     - Juvix.EAC.Check
     - Juvix.EAC.EAC
@@ -106,7 +107,6 @@ library:
     - Juvix.Utility.PrettyPrint
     - Juvix.Core.Types
     - Juvix.Core.Utility
-    - Juvix.Core.Parameterisations.Naturals
     - Juvix.Core.IR.Types
     - Juvix.Core.IR.Typechecker
     - Juvix.Core.HR.Parser

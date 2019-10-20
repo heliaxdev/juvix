@@ -8,6 +8,7 @@ import qualified Juvix.Backends.Graph as Graph
 import qualified Juvix.Backends.Maps as Maps ()
 import qualified Juvix.Bohm as Bohm
 import qualified Juvix.Core as Core
+import qualified Juvix.Core.HR as Core
 import qualified Juvix.EAC as EAC
 import qualified Juvix.Nets.Bohm as Bohm
 import Options

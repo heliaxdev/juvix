@@ -17,7 +17,7 @@ cEval (Star i) _d = VStar i
 cEval (PrimTy p) _d = VPrimTy p
 cEval (Pi pi ty ty') d = VPi pi (cEval ty d) (\x → cEval ty' (x : d))
 cEval (Lam e) d = VLam (\x → cEval e (x : d))
-cEval (Conv ii) d = iEval ii d
+cEval (Elim ii) d = iEval ii d
 
 toInt ∷ Natural → Int
 toInt = fromInteger . toInteger
@@ -51,7 +51,7 @@ cSubst _ii _r (Star i) = Star i
 cSubst _ii _r (PrimTy p) = PrimTy p
 cSubst ii r (Pi pi ty ty') = Pi pi (cSubst ii r ty) (cSubst (ii + 1) r ty')
 cSubst ii r (Lam f) = Lam (cSubst (ii + 1) r f)
-cSubst ii r (Conv e) = Conv (iSubst ii r e)
+cSubst ii r (Elim e) = Elim (iSubst ii r e)
 
 -- substitution function for inferable terms
 iSubst ∷ (Show primTy, Show primVal) ⇒ Natural → Elim primTy primVal → Elim primTy primVal → Elim primTy primVal
@@ -131,11 +131,11 @@ cType p ii g (Lam s) ann =
         (cSubst 0 (Free (Local ii)) s) -- x (varType) in context S with sigma*pi usage.
         (sig, ty' (vfree (Local ii))) -- is of type M (usage sigma) in context T
     _ → throwError $ show (snd ann) <> " is not a function type but should be."
-cType p ii g (Conv e) ann = do
+cType p ii g (Elim e) ann = do
   ann' ← iType p ii g e
   unless
     (fst ann == fst ann' && quote0 (snd ann) == quote0 (snd ann'))
-    (throwError (errorMsg ii (Conv e) ann ann'))
+    (throwError (errorMsg ii (Elim e) ann ann'))
 
 -- inferable terms have type as output.
 iType0 ∷ (Show primTy, Show primVal, Eq primTy, Eq primVal) ⇒ Parameterisation primTy primVal → Context primTy primVal → Elim primTy primVal → Result (Annotation primTy primVal)
