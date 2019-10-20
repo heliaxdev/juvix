@@ -1,7 +1,6 @@
 module Juvix.Core.HR.Parser where
 
 import Data.Functor.Identity
-import qualified Data.Text as Text
 import Juvix.Core.HR.Types
 import Juvix.Core.Usage
 import Juvix.Library hiding ((<|>))

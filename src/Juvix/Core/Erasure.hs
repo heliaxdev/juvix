@@ -8,9 +8,8 @@ import Juvix.Core.Utility
 import qualified Juvix.EAC.Types as EAC
 import Juvix.Library hiding (empty)
 import Juvix.Utility
-import Prelude ((!!))
 
-erase' ∷ Core.CTerm primTy primVal → Either ErasureError (EAC.Term, EAC.TypeAssignment)
+erase' ∷ Core.Term primTy primVal → Either ErasureError (EAC.Term, EAC.TypeAssignment)
 erase' cterm =
   let (term, env) = exec (erase cterm)
    in term >>| \term →
@@ -25,7 +24,7 @@ erase ∷
     HasState "nameStack" [Int] m,
     HasThrow "erasureError" ErasureError m
   ) ⇒
-  Core.CTerm primTy primVal →
+  Core.Term primTy primVal →
   m EAC.Term
 erase term =
   case term of

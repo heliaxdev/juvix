@@ -1,7 +1,23 @@
 module Juvix.Core.Utility where
 
+import Data.List (findIndex)
 import Juvix.Library
 import Prelude ((!!))
+
+pushName ∷
+  (HasState "symbolStack" [Symbol] m) ⇒
+  Symbol →
+  m ()
+pushName name = modify @"symbolStack" ((:) name)
+
+lookupName ∷
+  (HasState "symbolStack" [Symbol] m) ⇒
+  Symbol →
+  m (Maybe Int)
+lookupName name = do
+  stack ← get @"symbolStack"
+  let ind = findIndex ((==) name) stack
+  pure ind
 
 unDeBruijin ∷
   ( HasState "nextName" Int m,

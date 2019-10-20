@@ -1,7 +1,5 @@
 module Juvix.Core
-  ( module HR,
-    module IR,
-    hrToIR,
+  ( hrToIR,
     irToHR,
     module Juvix.Core.Erasure,
     module Juvix.Core.Usage,
@@ -15,23 +13,56 @@ import Juvix.Core.Usage
 import Juvix.Core.Utility
 import Juvix.Library
 
-hrToIR ∷ HR.Term primTy primVal → IR.CTerm primTy primVal
+hrToIR ∷ HR.Term primTy primVal → IR.Term primTy primVal
 hrToIR = fst . exec . hrToIR'
 
 hrToIR' ∷
   (HasState "symbolStack" [Symbol] m) ⇒
   HR.Term primTy primVal →
-  m (IR.CTerm primTy primVal)
-hrToIR' = undefined
+  m (IR.Term primTy primVal)
+hrToIR' term =
+  case term of
+    HR.Star n → pure (IR.Star n)
+    HR.PrimTy p → pure (IR.PrimTy p)
+    HR.Pi u a b → do
+      a ← hrToIR' a
+      b ← hrToIR' b
+      pure (IR.Pi u a b)
+    HR.Lam n b → do
+      pushName n
+      b ← hrToIR' b
+      pure (IR.Lam b)
+    HR.Elim e → IR.Conv |<< hrElimToIR' e
 
-irToHR ∷ IR.CTerm primTy primVal → HR.Term primTy primVal
+hrElimToIR' ∷
+  (HasState "symbolStack" [Symbol] m) ⇒
+  HR.Elim primTy primVal →
+  m (IR.Elim primTy primVal)
+hrElimToIR' elim =
+  case elim of
+    HR.Var n → do
+      maybeIndex ← lookupName n
+      pure $ case maybeIndex of
+        Just ind → IR.Bound (fromIntegral ind)
+        Nothing → IR.Free (IR.Global (show n))
+    HR.Prim p → pure (IR.Prim p)
+    HR.App f x → do
+      f ← hrElimToIR' f
+      x ← hrToIR' x
+      pure (IR.App f x)
+    HR.Ann u t x → do
+      t ← hrToIR' t
+      x ← hrToIR' x
+      pure (IR.Ann u t x)
+
+irToHR ∷ IR.Term primTy primVal → HR.Term primTy primVal
 irToHR = fst . exec . irToHR'
 
 irToHR' ∷
   ( HasState "nextName" Int m,
     HasState "nameStack" [Int] m
   ) ⇒
-  IR.CTerm primTy primVal →
+  IR.Term primTy primVal →
   m (HR.Term primTy primVal)
 irToHR' term =
   case term of
@@ -48,11 +79,14 @@ irToHR' term =
     IR.Conv e → HR.Elim |<< irElimToHR' e
 
 irElimToHR' ∷
-  (HasState "nextName" Int m, HasState "nameStack" [Int] m) ⇒
-  IR.ITerm primTy primVal →
+  ( HasState "nextName" Int m,
+    HasState "nameStack" [Int] m
+  ) ⇒
+  IR.Elim primTy primVal →
   m (HR.Elim primTy primVal)
-irElimToHR' e =
-  case e of
+irElimToHR' elim =
+  case elim of
+    IR.Free n → pure (HR.Var (intern (show n)))
     IR.Bound i → do
       v ← unDeBruijin (fromIntegral i)
       pure (HR.Var v)
@@ -67,9 +101,15 @@ irElimToHR' e =
       pure (HR.Ann u t x)
 
 exec ∷ EnvConv a → (a, Env)
-exec (EnvCon env) = runState env (Env 0 [])
+exec (EnvCon env) = runState env (Env 0 [] [])
 
-data Env = Env {nextName ∷ Int, nameStack ∷ [Int]} deriving (Show, Eq, Generic)
+data Env
+  = Env
+      { nextName ∷ Int,
+        nameStack ∷ [Int],
+        symbolStack ∷ [Symbol]
+      }
+  deriving (Show, Eq, Generic)
 
 newtype EnvConv a = EnvCon (State Env a)
   deriving (Functor, Applicative, Monad)
@@ -79,3 +119,6 @@ newtype EnvConv a = EnvCon (State Env a)
   deriving
     (HasState "nameStack" [Int])
     via Field "nameStack" () (MonadState (State Env))
+  deriving
+    (HasState "symbolStack" [Symbol])
+    via Field "symbolStack" () (MonadState (State Env))

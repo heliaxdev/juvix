@@ -1,33 +1,30 @@
 module Juvix.Core.IR.Types where
 
-import Control.Lens ((^?), ix)
-import Control.Monad.Except (throwError)
-import Juvix.Core.Types
 import Juvix.Core.Usage
 import Juvix.Library hiding (show)
-import Prelude (Show (..), String, error, lookup)
+import Prelude (Show (..), String)
 
 -- Quantitative type implementation inspired by
 -- Atkey 2017 and McBride 2016.
 
 -- | checkable terms
-data CTerm primTy primVal
+data Term primTy primVal
   = -- | (sort i) i th ordering of (closed) universe.
     Star Natural
   | -- | 'PrimTy' primitive type
     PrimTy primTy
   | -- | formation rule of the dependent function type 'PI'.
     -- the Usage(π) tracks how many times x is used.
-    Pi Usage (CTerm primTy primVal) (CTerm primTy primVal)
+    Pi Usage (Term primTy primVal) (Term primTy primVal)
   | -- | 'LAM' Introduction rule of PI.
     -- The abstracted variable's usage is tracked with the Usage(π).
-    Lam (CTerm primTy primVal)
+    Lam (Term primTy primVal)
   | -- | 'CONV' conversion rule. TODO make sure 0Γ ⊢ S≡T
-    -- 'Conv' is the constructor that embeds ITerm to CTerm
-    Conv (ITerm primTy primVal)
+    -- 'Conv' is the constructor that embeds Elim to Term
+    Conv (Elim primTy primVal)
   deriving (Eq)
 
-instance (Show primTy, Show primVal) ⇒ Show (CTerm primTy primVal) where
+instance (Show primTy, Show primVal) ⇒ Show (Term primTy primVal) where
   show (Star n) = "* " <> show n
   show (PrimTy p) = show p
   show (Pi _usage varTy resultTy) =
@@ -37,7 +34,7 @@ instance (Show primTy, Show primVal) ⇒ Show (CTerm primTy primVal) where
   show (Conv term) = show term
 
 -- | inferable terms
-data ITerm primTy primVal
+data Elim primTy primVal
   = -- | Bound variables, in de Bruijn indices
     Bound Natural
   | -- | Free variables of type name (see below)
@@ -45,12 +42,12 @@ data ITerm primTy primVal
   | -- | primitive constant
     Prim primVal
   | -- | elimination rule of PI (APP).
-    App (ITerm primTy primVal) (CTerm primTy primVal)
+    App (Elim primTy primVal) (Term primTy primVal)
   | -- | Annotation with usage.
-    Ann Usage (CTerm primTy primVal) (CTerm primTy primVal)
+    Ann Usage (Term primTy primVal) (Term primTy primVal)
   deriving (Eq)
 
-instance (Show primTy, Show primVal) ⇒ Show (ITerm primVal primTy) where
+instance (Show primTy, Show primVal) ⇒ Show (Elim primVal primTy) where
   show (Bound i) = "Bound " <> show i -- to be improved
   show (Free name) = show name -- using derived show Name instance, to be improved
   show (Prim p) = show p
@@ -97,10 +94,10 @@ instance (Show primTy, Show primVal) ⇒ Show (Value primTy primVal) where
   show x = show (quote0 x)
 
 -- Quotation: takes a value back to a term
-quote0 ∷ Value primTy primVal → CTerm primTy primVal
+quote0 ∷ Value primTy primVal → Term primTy primVal
 quote0 = quote 0
 
-quote ∷ Natural → Value primTy primVal → CTerm primTy primVal
+quote ∷ Natural → Value primTy primVal → Term primTy primVal
 quote _ii (VStar n) = Star n
 quote _ii (VPrimTy p) = PrimTy p
 quote ii (VPi pi v f) =
@@ -109,7 +106,7 @@ quote ii (VLam f) = Lam (quote (ii + 1) (f (vfree (Quote ii))))
 quote ii (VNeutral n) = Conv (neutralQuote ii n)
 quote _ii (VPrim p) = Conv (Prim p)
 
-neutralQuote ∷ Natural → Neutral primTy primVal → ITerm primTy primVal
+neutralQuote ∷ Natural → Neutral primTy primVal → Elim primTy primVal
 neutralQuote ii (NFree x) = boundfree ii x
 neutralQuote ii (NApp n v) = App (neutralQuote ii n) (quote ii v)
 
@@ -118,6 +115,6 @@ vfree ∷ Name → Value primTy primVal
 vfree n = VNeutral (NFree n)
 
 -- checks if the variable occurring at the head of the application is a bound variable or a free name
-boundfree ∷ Natural → Name → ITerm primTy primVal
+boundfree ∷ Natural → Name → Elim primTy primVal
 boundfree ii (Quote k) = Bound (ii - k - 1)
 boundfree _ii x = Free x
