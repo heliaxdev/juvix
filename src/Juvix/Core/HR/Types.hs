@@ -7,13 +7,13 @@ data Term primTy primVal
   = Star Natural
   | PrimTy primTy
   | Pi Usage (Term primTy primVal) (Term primTy primVal)
-  | Lam Text (Term primTy primVal)
+  | Lam Symbol (Term primTy primVal)
   | Elim (Elim primTy primVal)
   deriving (Show, Eq, Generic)
 
 data Elim primTy primVal
-  = Var Text
+  = Var Symbol
   | Prim primVal
-  | App (Term primTy primVal) (Elim primTy primVal)
+  | App (Elim primTy primVal) (Term primTy primVal)
   | Ann Usage (Term primTy primVal) (Term primTy primVal)
   deriving (Show, Eq, Generic)

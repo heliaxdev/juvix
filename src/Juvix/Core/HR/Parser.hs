@@ -50,7 +50,7 @@ appl ∷ Parser (SElim → SElim → SElim)
 appl = do
   whiteSpace
   notFollowedBy (choice (map reservedOp reservedOpNames))
-  pure (\f x → App (Elim f) x)
+  pure (\f x → App f (Elim x))
 
 lexer ∷ Token.GenTokenParser String u Identity
 lexer = Token.makeTokenParser languageDef
@@ -104,8 +104,8 @@ lamTerm = do
   func ← term
   return $ Lam binder func
 
-binder ∷ Parser Text
-binder = Text.pack |<< identifier
+binder ∷ Parser Symbol
+binder = intern |<< identifier
 
 term ∷ Parser STerm
 term = termOnly <|> elimTerm
