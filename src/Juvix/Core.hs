@@ -13,18 +13,18 @@ import Juvix.Core.Usage
 import Juvix.Core.Utility
 import Juvix.Library
 
-hrToIR ∷ HR.Term a b → IR.CTerm
+hrToIR ∷ HR.Term primTy primVal → IR.CTerm primTy primVal
 hrToIR = undefined
 
-irToHR ∷ IR.CTerm → HR.Term a b
+irToHR ∷ IR.CTerm primTy primVal → HR.Term primTy primVal
 irToHR = fst . exec . irToHR'
 
 irToHR' ∷
   ( HasState "nextName" Int m,
     HasState "nameStack" [Int] m
   ) ⇒
-  IR.CTerm →
-  m (HR.Term a b)
+  IR.CTerm primTy primVal →
+  m (HR.Term primTy primVal)
 irToHR' = undefined
 
 exec ∷ EnvConv a → (a, Env)

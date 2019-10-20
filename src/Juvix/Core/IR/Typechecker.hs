@@ -8,12 +8,12 @@ import Juvix.Library hiding (show)
 import Prelude (Show (..), String, error, lookup)
 
 -- initial environment
-initEnv ∷ Env
+initEnv ∷ Env primTy primVal
 initEnv = []
 
-cEval ∷ CTerm → Env → Value
+cEval ∷ (Show primTy, Show primVal) ⇒ CTerm primTy primVal → Env primTy primVal → Value primTy primVal
 cEval (Star i) _d = VStar i
-cEval Nats _d = VNats
+cEval (PrimTy p) _d = VPrimTy p
 cEval (Pi pi ty ty') d = VPi pi (cEval ty d) (\x → cEval ty' (x : d))
 cEval (Lam e) d = VLam (\x → cEval e (x : d))
 cEval (Conv ii) d = iEval ii d
@@ -22,9 +22,9 @@ toInt ∷ Natural → Int
 toInt = fromInteger . toInteger
 
 -- TODO ∷ Promote iEval and cEval into the maybe monad and all call sites
-iEval ∷ ITerm → Env → Value
+iEval ∷ (Show primTy, Show primVal) ⇒ ITerm primTy primVal → Env primTy primVal → Value primTy primVal
 iEval (Free x) _d = vfree x
-iEval (Nat n) _d = VNat n
+iEval (Prim p) _d = VPrim p
 iEval (App iterm cterm) d = vapp (iEval iterm d) (cEval cterm d)
 iEval (Ann _pi term _type) d = cEval term d
 iEval (Bound ii) d =
@@ -32,7 +32,7 @@ iEval (Bound ii) d =
     Just x → x
     Nothing → error ("unbound index " <> show ii)
 
-vapp ∷ Value → Value → Value
+vapp ∷ (Show primTy, Show primVal) ⇒ Value primTy primVal → Value primTy primVal → Value primTy primVal
 vapp (VLam f) v = f v
 vapp (VNeutral n) v = VNeutral (NApp n v)
 vapp x y =
@@ -44,25 +44,25 @@ vapp x y =
     )
 
 -- substitution function for checkable terms
-cSubst ∷ Natural → ITerm → CTerm → CTerm
+cSubst ∷ (Show primTy, Show primVal) ⇒ Natural → ITerm primTy primVal → CTerm primTy primVal → CTerm primTy primVal
 cSubst _ii _r (Star i) = Star i
-cSubst _ii _r Nats = Nats
+cSubst _ii _r (PrimTy p) = PrimTy p
 cSubst ii r (Pi pi ty ty') = Pi pi (cSubst ii r ty) (cSubst (ii + 1) r ty')
 cSubst ii r (Lam f) = Lam (cSubst (ii + 1) r f)
 cSubst ii r (Conv e) = Conv (iSubst ii r e)
 
 -- substitution function for inferable terms
-iSubst ∷ Natural → ITerm → ITerm → ITerm
+iSubst ∷ (Show primTy, Show primVal) ⇒ Natural → ITerm primTy primVal → ITerm primTy primVal → ITerm primTy primVal
 iSubst ii r (Bound j)
   | ii == j = r
   | otherwise = Bound j
 iSubst _ii _r (Free y) = Free y
-iSubst _ii _r (Nat n) = Nat n
+iSubst _ii _r (Prim p) = Prim p
 iSubst ii r (App it ct) = App (iSubst ii r it) (cSubst ii r ct)
 iSubst ii r (Ann pi term t) = Ann pi (cSubst ii r term) (cSubst ii r t)
 
 -- error message for inferring/checking types
-errorMsg ∷ Natural → CTerm → Annotation → Annotation → String
+errorMsg ∷ (Show primTy, Show primVal) ⇒ Natural → CTerm primTy primVal → Annotation primTy primVal → Annotation primTy primVal → String
 errorMsg binder cterm expectedT gotT =
   "Type mismatched. \n"
     <> show cterm
@@ -82,8 +82,8 @@ errorMsg binder cterm expectedT gotT =
 type Result a = Either String a --when type checking fails, it throws an error.
 
 -- | 'checker' for checkable terms checks the term against an annotation and returns ().
-cType ∷ Natural → Context → CTerm → Annotation → Result ()
-cType _ii _g (Star n) ann = do
+cType ∷ (Show primTy, Show primVal, Eq primTy, Eq primVal) ⇒ Natural → Context primTy primVal → CTerm primTy primVal → Annotation primTy primVal → Result ()
+cType _ii _g t@(Star n) ann = do
   unless (SNat 0 == fst ann) (throwError "Sigma has to be 0.") -- checks sigma = 0.
   let ty = snd ann
   case ty of
@@ -91,16 +91,18 @@ cType _ii _g (Star n) ann = do
       unless
         (n < j)
         ( throwError $
-            show (Star n)
+            show t
               <> " is of type * of a higher universe. But the expected type "
               <> show (snd ann)
               <> " is * of a equal or lower universe."
         )
     _ → throwError $ "* n is of type * but " <> show (snd ann) <> " is not *."
+{-
 cType ii _g Nats ann =
   unless
     (SNat 0 == fst ann && quote0 (snd ann) == Star 0)
     (throwError (errorMsg ii Nats (zero, VStar 0) ann))
+-}
 cType ii g (Pi pi varType resultType) ann = do
   unless (SNat 0 == fst ann) (throwError "Sigma has to be 0.") -- checks sigma = 0.
   let ty = snd ann
@@ -134,7 +136,7 @@ cType ii g (Conv e) ann = do
     (throwError (errorMsg ii (Conv e) ann ann'))
 
 -- inferable terms have type as output.
-iType0 ∷ Context → ITerm → Result Annotation
+iType0 ∷ (Show primTy, Show primVal, Eq primTy, Eq primVal) ⇒ Context primTy primVal → ITerm primTy primVal → Result (Annotation primTy primVal)
 iType0 = iType 0
 
 iTypeErrorMsg ∷ Natural → Name → String
@@ -145,7 +147,7 @@ iTypeErrorMsg ii x =
     <> show ii
     <> ") in the environment."
 
-iType ∷ Natural → Context → ITerm → Result Annotation
+iType ∷ (Show primTy, Show primVal, Eq primTy, Eq primVal) ⇒ Natural → Context primTy primVal → ITerm primTy primVal → Result (Annotation primTy primVal)
 -- the type checker should never encounter a bound variable (as in LambdaPi)? To be confirmed.
 iType _ii _g (Bound _) = error "Bound variable cannot be inferred"
 iType ii g (Free x) =
@@ -153,7 +155,9 @@ iType ii g (Free x) =
     Just ann → return ann
     Nothing → throwError (iTypeErrorMsg ii x)
 -- Prim-Const typing rule
+{-
 iType _ii _g (Nat _) = return (Omega, VNats)
+-}
 -- App rule, function M applies to N
 iType ii g (App m n) = do
   mTy ← iType ii g m -- annotation of M is usage sig and Pi with pi usage.

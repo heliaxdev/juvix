@@ -10,7 +10,7 @@ import Juvix.Library hiding (empty)
 import Juvix.Utility
 import Prelude ((!!))
 
-erase' ∷ Core.CTerm → Either ErasureError (EAC.Term, EAC.TypeAssignment)
+erase' ∷ Core.CTerm primTy primVal → Either ErasureError (EAC.Term, EAC.TypeAssignment)
 erase' cterm =
   let (term, env) = exec (erase cterm)
    in term >>| \term →
@@ -25,7 +25,7 @@ erase ∷
     HasState "nameStack" [Int] m,
     HasThrow "erasureError" ErasureError m
   ) ⇒
-  Core.CTerm →
+  Core.CTerm primTy primVal →
   m EAC.Term
 erase term =
   case term of
@@ -55,7 +55,7 @@ erase term =
           pure (EAC.App a b)
         Core.Ann _ _ a → do
           erase a
-        Core.Nat n → pure (EAC.Prim (EAC.Nat n))
+    --Core.Nat n → pure (EAC.Prim (EAC.Nat n))
     _ → throw @"erasureError" Unsupported
 
 data Env
