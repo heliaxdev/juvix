@@ -12,6 +12,8 @@ import qualified Juvix.Nets.Bohm as Bohm
 import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as T
 
+{-
+ -
 eraseSolveEval ∷ Core.CTerm → IO ()
 eraseSolveEval cterm = do
   let (term, typeAssignment) = Erasure.erase' cterm
@@ -32,3 +34,5 @@ eraseSolveEval cterm = do
       let readback = Bohm.netToAst res
       putText ("Reduction info: " <> show info ∷ Text)
       putText ("Read-back term: " <> show readback ∷ Text)
+
+-}

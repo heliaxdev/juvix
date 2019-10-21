@@ -5,6 +5,7 @@ module Juvix.Library
     module Capability.Error,
     module Capability.Writer,
     module Capability.Stream,
+    module Numeric.Natural,
     (∨),
     (∧),
     (|<<),
@@ -24,6 +25,7 @@ import Capability.Stream
 import Capability.Writer
 import Data.String (fromString)
 import qualified Data.Text as T
+import Numeric.Natural
 import Protolude hiding
   ( (:.:),
     Constraint,

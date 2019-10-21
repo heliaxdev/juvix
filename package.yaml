@@ -69,10 +69,11 @@ library:
   exposed-modules:
     - Juvix
     - Juvix.Core
-    - Juvix.Core.MainLang
-    - Juvix.Core.Parser
+    - Juvix.Core.HR
+    - Juvix.Core.IR
     - Juvix.Core.Erasure
-    - Juvix.Core.SemiRing
+    - Juvix.Core.Usage
+    - Juvix.Core.Parameterisations.Naturals
     - Juvix.EAC
     - Juvix.EAC.Check
     - Juvix.EAC.EAC
@@ -99,6 +100,18 @@ library:
     - Juvix.Encoding.Mendler
     - Juvix.Encoding.Scott
     - Juvix.Encoding.Types
+  other-modules:
+    - Juvix.NodeInterface
+    - Juvix.Utility.HashMap
+    - Juvix.Utility.Helper
+    - Juvix.Utility.PrettyPrint
+    - Juvix.Core.Types
+    - Juvix.Core.Translate
+    - Juvix.Core.Utility
+    - Juvix.Core.IR.Types
+    - Juvix.Core.IR.Typechecker
+    - Juvix.Core.HR.Parser
+    - Juvix.Core.HR.Types
 
 executables:
   juvix:
