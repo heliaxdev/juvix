@@ -106,6 +106,7 @@ library:
     - Juvix.Utility.Helper
     - Juvix.Utility.PrettyPrint
     - Juvix.Core.Types
+    - Juvix.Core.Translate
     - Juvix.Core.Utility
     - Juvix.Core.IR.Types
     - Juvix.Core.IR.Typechecker
