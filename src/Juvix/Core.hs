@@ -13,6 +13,8 @@ import Juvix.Core.Usage
 import Juvix.Core.Utility
 import Juvix.Library
 
+-- contract: no shadowing
+-- TODO - handle this automatically by renaming shadowed vars
 hrToIR ∷ HR.Term primTy primVal → IR.Term primTy primVal
 hrToIR = fst . exec . hrToIR'
 
