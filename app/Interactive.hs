@@ -9,6 +9,7 @@ import qualified Juvix.Backends.Maps as Maps ()
 import qualified Juvix.Bohm as Bohm
 import qualified Juvix.Core as Core
 import qualified Juvix.Core.HR as Core
+import Juvix.Core.Parameterisations.Naturals
 import qualified Juvix.EAC as EAC
 import qualified Juvix.Nets.Bohm as Bohm
 import Options
@@ -42,6 +43,9 @@ mainLoop func = do
           H.outputStrLn =<< liftIO (func inp)
           mainLoop func
 
+parseString ∷ String → Maybe (Core.Term NatTy NatVal)
+parseString = Core.generateParser naturals
+
 handleSpecial ∷ String → H.InputT IO () → H.InputT IO ()
 handleSpecial str cont = do
   case str of
@@ -51,7 +55,7 @@ handleSpecial str cont = do
       H.outputStrLn "Interactive tutorial coming soon!"
       cont
     'c' : 'p' : ' ' : rest → do
-      let parsed = Core.parseString Core.term rest
+      let parsed = parseString rest
       H.outputStrLn $ show parsed
       cont
     {-
