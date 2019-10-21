@@ -65,9 +65,9 @@ generateParser parameterisation =
       whiteSpace = Token.whiteSpace lexer
       usage ∷ Parser Usage
       usage =
-          (reserved "w"
-           >> return Omega
-          )
+        ( reserved "w"
+            >> return Omega
+        )
           <|> SNat . fromInteger <$> natural
       primTyTerm ∷ Parser (Term primTy primVal)
       primTyTerm = PrimTy |<< parseTy parameterisation lexer
@@ -126,7 +126,6 @@ generateParser parameterisation =
         eof
         return t
    in parseString' (parseWhole term)
-
 
 parseString' ∷ Parser a → String → Maybe a
 parseString' p str =
