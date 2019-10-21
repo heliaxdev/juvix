@@ -42,7 +42,7 @@ test_lam_nested_app = shouldParse "\\x -> \\y -> x y" (Lam "x" (Lam "y" (Elim (A
 
 -- TODO: Fix this; currently only applications of eliminations can be parsed.
 -- test_parse_app ∷ T.TestTree
--- test_parse_app = shouldParse "(\\x -> x) y" (Elim (App (Lam "x" (Elim (Var "x"))) (Var "y")))
+-- test_parse_app = shouldParse "(\\x -> x) y" (Elim (App (Lam "x" (Elim (Var "x"))) (Elim (Var "y"))))
 
 -- test_conversion ∷ T.TestTree
 -- test_conversion = shouldParse "Elim 0" (Elim (Nat 0))
@@ -58,8 +58,11 @@ test_silent_convert_app = shouldParse "fun var" (Elim (App (Var "fun") (Elim (Va
 
 test_silent_convert_ann ∷ T.TestTree
 test_silent_convert_ann = shouldParse "@ (* 0) : w (* 0)" (Elim (Ann Omega (Star 0) (Star 0)))
--- test_ann_func :: T.TestTree
--- test_ann_func = shouldParse "(@ (\\x -> x) : w (* 0))" (Elim (Ann Omega (Lam "x" (Elim (Var "x"))) (Star 0)))
+
+test_ann_func ∷ T.TestTree
+test_ann_func = shouldParse "@ (\\x -> x) : w (* 0)" (Elim (Ann Omega (Lam "x" (Elim (Var "x"))) (Star 0)))
+-- test_ann_func_parens :: T.TestTree
+-- test_ann_func_parens = shouldParse "(@ (\\x -> x) : w (* 0))" (Elim (Ann Omega (Lam "x" (Elim (Var "x"))) (Star 0)))
 
 -- test_app_ann :: T.TestTree
--- test_app_ann = shouldParse "(@ (\\x -> x) : w (* 0)) y" (Elim (App (Elim (Ann Omega (Lam "x" (Elim (Var "x"))) (Star 0))) (Var "y")))
+-- test_app_ann = shouldParse "(@ (\\x -> x) : w (* 0)) y" (Elim (App (Ann Omega (Lam "x" (Elim (Var "x"))) (Star 0)) (Elim (Var "y"))))

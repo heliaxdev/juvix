@@ -136,7 +136,7 @@ elim = buildExpressionParser ops elim'
 
 elim' ∷ Parser SElim
 elim' =
-  parens elim <|> varElim <|> annElim
+  parens elim <|> annElim <|> varElim
 
 parseWhole ∷ Parser a → Parser a
 parseWhole p = do
