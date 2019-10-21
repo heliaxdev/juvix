@@ -10,5 +10,7 @@ data Parameterisation primTy primVal
       { typeOf ∷ primVal → primTy,
         apply ∷ primVal → primVal → Maybe primVal,
         parseTy ∷ Token.GenTokenParser String () Identity → Parser primTy,
-        parseVal ∷ Token.GenTokenParser String () Identity → Parser primVal
+        parseVal ∷ Token.GenTokenParser String () Identity → Parser primVal,
+        reservedNames ∷ [String],
+        reservedOpNames ∷ [String]
       }
