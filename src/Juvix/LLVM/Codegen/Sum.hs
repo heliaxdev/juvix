@@ -1,7 +1,7 @@
 -- | Provides a mechanism for defining Sum types
 module Juvix.LLVM.Codegen.Sum where
 
-import Juvix.LLVM.Codegen.Types
+import Juvix.LLVM.Codegen.Shared
 import Juvix.Library hiding (Type)
 import qualified Juvix.Utility.HashMap as Map
 import LLVM.AST
@@ -17,7 +17,7 @@ import LLVM.AST.Type
 type Size = Int
 
 -- | Data needed to make a Variant
-data VarientInfo
+data VariantInfo
   = Variant
       { size ∷ Size,
         name ∷ Symbol,
@@ -32,7 +32,7 @@ data VarientInfo
 
 -- | 'sumSize' takes a list of variants and creates the array type to hold the
 -- largest variant
-sumSize ∷ [VarientInfo] → Type
+sumSize ∷ [VariantInfo] → Type
 sumSize variants
   -- Assume 8 is the smallest allocation type
   | largest `mod` 16 == 0 = ArrayType (divLarg 16) i16
@@ -43,9 +43,10 @@ sumSize variants
 
 -- TODO ∷ optimize this using bit-wise functions
 -- Think hacker's delight
+-- Also should we allow smaller than i8?
 
 -- | 'tagSize' takes a list of variants and figures out what the size of the tag should be
-tagSize ∷ [VarientInfo] → Type
+tagSize ∷ [VariantInfo] → Type
 tagSize variants
   | len < 256 = i8
   | len < 65536 = i16
@@ -61,7 +62,7 @@ createVariantName sumName varName = sumName <> "-" <> varName
 -- Important functions
 -----------------------------------------------------------------------------------------
 
-createSum ∷ [VarientInfo] → Type
+createSum ∷ [VariantInfo] → Type
 createSum variants =
   StructureType
     { isPacked = False,
@@ -76,7 +77,7 @@ createSum variants =
 -- and the variant table for all the newly created variants
 insertSums ∷
   Symbol →
-  [VarientInfo] →
+  [VariantInfo] →
   SymbolTable →
   VariantToType →
   (SymbolTable, VariantToType)

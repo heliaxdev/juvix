@@ -106,6 +106,7 @@ library:
     - Juvix.LLVM.Codegen.Constants
     - Juvix.LLVM.Codegen.Sum
     - Juvix.LLVM.Codegen.Types
+    - Juvix.LLVM.Codegen.Shared
   other-modules:
     - Juvix.NodeInterface
     - Juvix.Utility.Helper

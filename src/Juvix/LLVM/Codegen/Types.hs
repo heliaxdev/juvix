@@ -1,25 +1,18 @@
-module Juvix.LLVM.Codegen.Types where
+module Juvix.LLVM.Codegen.Types
+  ( module Juvix.LLVM.Codegen.Types,
+    module Juvix.LLVM.Codegen.Shared,
+  )
+where
 
+import Juvix.LLVM.Codegen.Shared
+import Juvix.LLVM.Codegen.Sum
 import Juvix.Library hiding (Type)
-import Juvix.Utility.HashMap as Map
+import qualified Juvix.Utility.HashMap as Map
 import LLVM.AST
 import qualified LLVM.AST as AST ()
 import LLVM.AST.AddrSpace
 import qualified LLVM.AST.Constant as C ()
 import LLVM.AST.Global as Global ()
-
--------------------------------------------------------------------------------
--- Haskell Types
--------------------------------------------------------------------------------
-
-type SymbolTable = Map.Map Symbol Operand
-
--- | a mapping between the variant and the sum type it encompasses
-type VariantToType = Map.Map Symbol Symbol
-
-type Names = Map.Map Symbol Int
-
-instance Hashable Name
 
 -------------------------------------------------------------------------------
 -- Codegen State
@@ -87,9 +80,9 @@ newtype Codegen a = CodeGen {runCodegen ∷ ExceptT Errors (State CodegenState) 
     (HasThrow "err" Errors)
     via MonadError (ExceptT Errors (State CodegenState))
 
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- LLVM Types
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 double ∷ Type
 double = FloatingPointType DoubleFP
@@ -100,11 +93,37 @@ double = FloatingPointType DoubleFP
 int ∷ Type
 int = IntegerType 64
 
+-- | 'numPortsSmall' is used for the number of ports that fit within 16 bits
+numPortsSmall ∷ VarientInfo
+numPortsSmall =
+  Variant
+    { size = 16,
+      name = "small",
+      typ' = IntegerType 16
+    }
+
+-- | 'numPortsLarge' is used for the number of ports that don't fit within 16 bits
+numPortsLarge ∷ VarientInfo
+numPortsLarge =
+  Variant
+    { size = 16,
+      name = "large",
+      typ' = PointerType
+        { pointerReferent = nodeType,
+          pointerAddrSpace = AddrSpace 16
+        }
+    }
+
 -- number of ports on a node or the port offset
--- TODO ∷ Have this union of a pointer of the same size
--- so we can have fixed size offset of nodes
 numPorts ∷ Type
-numPorts = IntegerType 16
+numPorts =
+  typ
+    { elementTypes =
+        let _ : rest = elementTypes typ
+         in IntegerType {typeBits = 1} : rest
+    }
+  where
+    typ = createSum [numPortsLarge, numPortsSmall]
 
 -- | Construct a 16 bit port space so we can put many inside a node cheaply
 -- The pointer points to the beginning of a node and an offset
@@ -123,7 +142,7 @@ portType = StructureType
       ]
   }
 
--- TODO ∷ Figure out how to have a union here for all baked in types
+-- TODO ∷ Figure out how to have an un-tagged union here for all baked in types
 dataType ∷ Type
 dataType = int
 
