@@ -1,7 +1,6 @@
-module Juvix.Core.SemiRing (Usage, NatAndw (..), numToNat) where
+module Juvix.Core.Usage (Usage, NatAndw (..), numToNat) where
 
 import Juvix.Library hiding (show)
-import Numeric.Natural
 import Prelude (Show (..))
 
 -- | Usage is an alias for the semiring representation

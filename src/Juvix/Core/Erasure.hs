@@ -3,27 +3,28 @@ module Juvix.Core.Erasure
   )
 where
 
-import qualified Juvix.Core.MainLang as Core
+import qualified Juvix.Core.IR.Types as Core
+import Juvix.Core.Utility
 import qualified Juvix.EAC.Types as EAC
 import Juvix.Library hiding (empty)
 import Juvix.Utility
-import Juvix.Utility.HashMap
-import Prelude ((!!))
 
-erase' ∷ Core.CTerm → (EAC.Term, EAC.TypeAssignment)
+erase' ∷ Core.Term primTy primVal → Either ErasureError (EAC.Term, EAC.TypeAssignment)
 erase' cterm =
   let (term, env) = exec (erase cterm)
-   in (term, typeAssignment env)
+   in term >>| \term →
+        (term, typeAssignment env)
 
-exec ∷ EnvErasure a → (a, Env)
-exec (EnvEra env) = runState env (Env empty 0 [])
+exec ∷ EnvErasure a → (Either ErasureError a, Env)
+exec (EnvEra env) = runState (runExceptT env) (Env empty 0 [])
 
 erase ∷
   ( HasState "typeAssignment" EAC.TypeAssignment m,
     HasState "nextName" Int m,
-    HasState "nameStack" [Int] m
+    HasState "nameStack" [Int] m,
+    HasThrow "erasureError" ErasureError m
   ) ⇒
-  Core.CTerm →
+  Core.Term primTy primVal →
   m EAC.Term
 erase term =
   case term of
@@ -37,7 +38,7 @@ erase term =
       modify @"typeAssignment" (insert name ty)
       body ← erase body
       pure (EAC.Lam name body)
-    Core.Conv iterm → do
+    Core.Elim iterm → do
       case iterm of
         Core.Bound n → do
           name ← unDeBruijin (fromIntegral n)
@@ -45,37 +46,16 @@ erase term =
         Core.Free n →
           case n of
             Core.Global s → pure (EAC.Var (intern s))
-            Core.Local _s → undefined
-            Core.Quote _s → undefined
+            Core.Local _s → throw @"erasureError" Unsupported
+            Core.Quote _s → throw @"erasureError" Unsupported
         Core.App a b → do
-          a ← erase (Core.Conv a)
+          a ← erase (Core.Elim a)
           b ← erase b
           pure (EAC.App a b)
         Core.Ann _ _ a → do
           erase a
-        Core.Nat n → pure (EAC.Prim (EAC.Nat n))
-    _ → undefined
-
-unDeBruijin ∷
-  ( HasState "nextName" Int m,
-    HasState "nameStack" [Int] m
-  ) ⇒
-  Int →
-  m Symbol
-unDeBruijin ind = do
-  stack ← get @"nameStack"
-  pure (intern $ show $ stack !! ind)
-
-newName ∷
-  ( HasState "nextName" Int m,
-    HasState "nameStack" [Int] m
-  ) ⇒
-  m Symbol
-newName = do
-  name ← get @"nextName"
-  modify @"nextName" (+ 1)
-  modify @"nameStack" ((:) name)
-  return (intern (show name))
+    --Core.Nat n → pure (EAC.Prim (EAC.Nat n))
+    _ → throw @"erasureError" Unsupported
 
 data Env
   = Env
@@ -85,14 +65,21 @@ data Env
       }
   deriving (Show, Eq, Generic)
 
-newtype EnvErasure a = EnvEra (State Env a)
+newtype EnvErasure a = EnvEra (ExceptT ErasureError (State Env) a)
   deriving (Functor, Applicative, Monad)
   deriving
     (HasState "typeAssignment" EAC.TypeAssignment)
-    via Field "typeAssignment" () (MonadState (State Env))
+    via Field "typeAssignment" () (MonadState (ExceptT ErasureError (State Env)))
   deriving
     (HasState "nextName" Int)
-    via Field "nextName" () (MonadState (State Env))
+    via Field "nextName" () (MonadState (ExceptT ErasureError (State Env)))
   deriving
     (HasState "nameStack" [Int])
-    via Field "nameStack" () (MonadState (State Env))
+    via Field "nameStack" () (MonadState (ExceptT ErasureError (State Env)))
+  deriving
+    (HasThrow "erasureError" ErasureError)
+    via MonadError (ExceptT ErasureError (MonadState (State Env)))
+
+data ErasureError
+  = Unsupported
+  deriving (Show, Eq, Generic)
