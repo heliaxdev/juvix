@@ -38,7 +38,14 @@ data REL a
 
 -- | Type for specifying how one wants to link nodes
 data Relink
-  = RELAuxiliary2
+  = RELAuxiliary3
+      { node ∷ Node,
+        primary ∷ REL NumPort,
+        auxiliary1 ∷ REL NumPort,
+        auxiliary2 ∷ REL NumPort,
+        auxiliary3 ∷ REL NumPort
+      }
+  | RELAuxiliary2
       { node ∷ Node,
         primary ∷ REL NumPort,
         auxiliary1 ∷ REL NumPort,
@@ -53,7 +60,7 @@ data Relink
 data EdgeInfo = Edge (Node, PortType) (Node, PortType)
   deriving (Show, Eq)
 
--- TODO :: Once neighbor is in, delete this type class
+-- TODO ∷ Once neighbor is in, delete this type class
 -- and provide these as all derived functions!
 
 -- | a network that has one type for nodes but another for
@@ -108,8 +115,8 @@ class Network net where
 
   delNodes ∷ NetState (net a) m ⇒ [Node] → m ()
 
-  -- TODO :: remove deleteRewire, add neighbors, and move auxFromGraph to here!
-  -- TODO :: make a helper function that does most of deleteRewire, just send in neighbors
+  -- TODO ∷ remove deleteRewire, add neighbors, and move auxFromGraph to here!
+  -- TODO ∷ make a helper function that does most of deleteRewire, just send in neighbors
   deleteRewire ∷ NetState (net a) m ⇒ [Node] → [Node] → m ()
 
   deleteEdge ∷ NetState (net a) m ⇒ (Node, PortType) → (Node, PortType) → m ()
@@ -133,6 +140,10 @@ linkAll (RELAuxiliary2 {primary, node, auxiliary1, auxiliary2}) =
   traverse_
     (\(t, nt) → linkHelper t nt node)
     [(primary, Prim), (auxiliary1, Aux1), (auxiliary2, Aux2)]
+linkAll (RELAuxiliary3 {primary, node, auxiliary1, auxiliary2, auxiliary3}) =
+  traverse_
+    (\(t, nt) → linkHelper t nt node)
+    [(primary, Prim), (auxiliary1, Aux1), (auxiliary2, Aux2), (auxiliary3, Aux3)]
 
 linkHelper ∷ (Network net, NetState (net a) m) ⇒ REL NumPort → PortType → Node → m ()
 linkHelper rel nodeType node =

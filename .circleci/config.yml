@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   setup_dependencies:
     docker:
-      - image: cgoes/juvix-ci
+      - image: cryptiumlabs/juvix-ci
     steps:
       - checkout
       - restore_cache:
@@ -30,7 +30,7 @@ jobs:
 
   test_suite:
     docker:
-      - image: cgoes/juvix-ci
+      - image: cryptiumlabs/juvix-ci
     steps:
       - attach_workspace:
           at: /root
