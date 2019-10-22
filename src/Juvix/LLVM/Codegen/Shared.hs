@@ -10,8 +10,11 @@ import LLVM.AST.Global as Global ()
 
 type SymbolTable = Map.Map Symbol Operand
 
--- | a mapping between the variant and the sum type it encompasses
-type VariantToType = Map.Map Symbol Symbol
+type TypeTable = Map.Map Symbol Type
+
+-- | a mapping between the variant and the sum type along with
+-- the tag associated with it
+type VariantToType = Map.Map Symbol (Symbol, Int)
 
 type Names = Map.Map Symbol Int
 

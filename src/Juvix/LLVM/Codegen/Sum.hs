@@ -80,18 +80,30 @@ insertSums ∷
   [VariantInfo] →
   SymbolTable →
   VariantToType →
-  (SymbolTable, VariantToType)
-insertSums sumName variants symTbl varTbl = (newSymTbl, newVarTbl)
+  TypeTable →
+  (SymbolTable, VariantToType, TypeTable)
+insertSums sumName variants symTbl varTbl typTbl = (newSymTbl, newVarTbl, newTypTbl)
   where
     sum' = createSum variants
+    typTbl' = Map.insert sumName sum' typTbl
     symTbl' =
       Map.insert sumName (LocalReference sum' (mkName (unintern sumName))) symTbl
     newVarTbl =
+      fst $
+        foldr
+          ( \(Variant {name = n}) (tbl, offset) →
+              ( Map.insert (createVariantName sumName n) (sumName, offset) tbl,
+                succ offset
+              )
+          )
+          (varTbl, 0)
+          variants
+    newTypTbl =
       foldr
-        ( \(Variant {name = n}) tbl →
-            Map.insert (createVariantName sumName n) sumName tbl
+        ( \(Variant _s n t) tbl →
+            Map.insert (createVariantName sumName n) t tbl
         )
-        varTbl
+        typTbl'
         variants
     newSymTbl =
       foldr
@@ -102,6 +114,3 @@ insertSums sumName variants symTbl varTbl = (newSymTbl, newVarTbl)
         )
         symTbl'
         variants
-
--- | creates a variant
-createVariant = undefined

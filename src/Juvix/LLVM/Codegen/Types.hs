@@ -14,9 +14,9 @@ import LLVM.AST.AddrSpace
 import qualified LLVM.AST.Constant as C ()
 import LLVM.AST.Global as Global ()
 
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Codegen State
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 data CodegenState
   = CodegenState
@@ -25,9 +25,11 @@ data CodegenState
         -- | Blocks for function
         blocks ∷ Map.Map Name BlockState,
         -- | Function scope symbol table
-        symtab ∷ SymbolTable,
+        symTab ∷ SymbolTable,
+        -- | Mapping from symbol to Type
+        typTab ∷ TypeTable,
         -- | a mapping from the variants to the sum type
-        vartab ∷ VariantToType,
+        varTab ∷ VariantToType,
         -- | Count of basic blocks
         blockCount ∷ Int,
         -- | Count of unnamed instructions
@@ -51,6 +53,10 @@ data BlockState
 data Errors
   = -- | Error when a block does not exist
     NoSuchBlock Text
+  | -- | Error when a Variant does not exist
+    NoSuchVariant Text
+  | -- | Error that should never happen
+    DoesNotHappen Text
   deriving (Show)
 
 newtype Codegen a = CodeGen {runCodegen ∷ ExceptT Errors (State CodegenState) a}
@@ -62,11 +68,14 @@ newtype Codegen a = CodeGen {runCodegen ∷ ExceptT Errors (State CodegenState) 
     (HasState "blocks" (Map.Map Name BlockState))
     via Field "blocks" () (MonadState (ExceptT Errors (State CodegenState)))
   deriving
-    (HasState "symtab" SymbolTable)
-    via Field "symtab" () (MonadState (ExceptT Errors (State CodegenState)))
+    (HasState "symTab" SymbolTable)
+    via Field "symTab" () (MonadState (ExceptT Errors (State CodegenState)))
   deriving
-    (HasState "vartab" VariantToType)
-    via Field "vartab" () (MonadState (ExceptT Errors (State CodegenState)))
+    (HasState "varTab" VariantToType)
+    via Field "varTab" () (MonadState (ExceptT Errors (State CodegenState)))
+  deriving
+    (HasState "typTab" TypeTable)
+    via Field "typTab" () (MonadState (ExceptT Errors (State CodegenState)))
   deriving
     (HasState "blockCount" Int)
     via Field "blockCount" () (MonadState (ExceptT Errors (State CodegenState)))
@@ -94,7 +103,7 @@ int ∷ Type
 int = IntegerType 64
 
 -- | 'numPortsSmall' is used for the number of ports that fit within 16 bits
-numPortsSmall ∷ VarientInfo
+numPortsSmall ∷ VariantInfo
 numPortsSmall =
   Variant
     { size = 16,
@@ -103,7 +112,7 @@ numPortsSmall =
     }
 
 -- | 'numPortsLarge' is used for the number of ports that don't fit within 16 bits
-numPortsLarge ∷ VarientInfo
+numPortsLarge ∷ VariantInfo
 numPortsLarge =
   Variant
     { size = 16,
