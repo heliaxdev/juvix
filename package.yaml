@@ -108,7 +108,6 @@ library:
     - Juvix.LLVM.Codegen.Types
   other-modules:
     - Juvix.NodeInterface
-    - Juvix.Utility.HashMap
     - Juvix.Utility.Helper
     - Juvix.Utility.PrettyPrint
     - Juvix.Core.Types
