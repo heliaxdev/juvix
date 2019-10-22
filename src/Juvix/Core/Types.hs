@@ -7,7 +7,7 @@ import Prelude (String)
 
 data Parameterisation primTy primVal
   = Parameterisation
-      { typeOf ∷ primVal → primTy,
+      { typeOf ∷ ∀ a. ([primTy] → a) → primVal → Either a primTy,
         apply ∷ primVal → primVal → Maybe primVal,
         parseTy ∷ Token.GenTokenParser String () Identity → Parser primTy,
         parseVal ∷ Token.GenTokenParser String () Identity → Parser primVal,

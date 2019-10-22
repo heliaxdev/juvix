@@ -12,6 +12,8 @@ type Term = IR.Term NatTy NatVal
 
 type Elim = IR.Elim NatTy NatVal
 
+type Value = IR.Value NatTy NatVal
+
 type Annotation = IR.Annotation NatTy NatVal
 
 identity ∷ Term
@@ -50,6 +52,15 @@ test_nats_type_star0 = shouldCheck (IR.PrimTy Nat) (SNat 0, IR.VStar 0)
 test_nat1 ∷ T.TestTree
 test_nat1 = shouldInfer (IR.Prim (Natural 1)) (Omega, IR.VPrimTy Nat)
 
+test_add_nat ∷ T.TestTree
+test_add_nat = shouldInfer (IR.App (IR.App (IR.Prim Add) (IR.Elim (IR.Prim (Natural 1)))) (IR.Elim (IR.Prim (Natural 2)))) (Omega, IR.VPrimTy Nat)
+
+test_eval_add ∷ T.TestTree
+test_eval_add = shouldEval (IR.Elim (IR.App (IR.App (IR.Prim Add) (IR.Elim (IR.Prim (Natural 1)))) (IR.Elim (IR.Prim (Natural 2))))) (IR.VPrim (Natural 3))
+
+test_eval_sub ∷ T.TestTree
+test_eval_sub = shouldEval (IR.Elim (IR.App (IR.App (IR.Prim Sub) (IR.Elim (IR.Prim (Natural 5)))) (IR.Elim (IR.Prim (Natural 2))))) (IR.VPrim (Natural 3))
+
 --unit tests for cType
 shouldCheck ∷ Term → Annotation → T.TestTree
 shouldCheck term ann =
@@ -61,6 +72,11 @@ shouldInfer ∷ Elim → Annotation → T.TestTree
 shouldInfer term ann =
   T.testCase (show term <> " should infer to type " <> show ann) $
     IR.iType0 naturals [] term T.@=? Right ann
+
+shouldEval ∷ Term → Value → T.TestTree
+shouldEval term res =
+  T.testCase (show term <> " should evaluate to " <> show res) $
+    IR.cEval naturals term IR.initEnv T.@=? res
 
 one ∷ Term
 one =

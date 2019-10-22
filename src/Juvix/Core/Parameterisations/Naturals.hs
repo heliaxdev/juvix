@@ -12,12 +12,25 @@ data NatTy
 
 data NatVal
   = Natural Natural
+  | Add
+  | Sub
+  | Mul
+  | Curried NatVal Natural
   deriving (Show, Eq)
 
-typeOf ∷ NatVal → NatTy
-typeOf (Natural _) = Nat
+typeOf ∷ ∀ a. ([NatTy] → a) → NatVal → Either a NatTy
+typeOf _ (Natural _) = Right Nat
+typeOf arrow Add = Left $ arrow [Nat, Nat, Nat]
+typeOf arrow Sub = Left $ arrow [Nat, Nat, Nat]
+typeOf arrow Mul = Left $ arrow [Nat, Nat, Nat]
 
 apply ∷ NatVal → NatVal → Maybe NatVal
+apply Add (Natural x) = pure (Curried Add x)
+apply Sub (Natural x) = pure (Curried Sub x)
+apply Mul (Natural x) = pure (Curried Mul x)
+apply (Curried Add x) (Natural y) = pure (Natural (x + y))
+apply (Curried Sub x) (Natural y) = pure (Natural (x - y))
+apply (Curried Mul x) (Natural y) = pure (Natural (x * y))
 apply _ _ = Nothing
 
 parseTy ∷ Token.GenTokenParser String () Identity → Parser NatTy
