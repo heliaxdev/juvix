@@ -9,10 +9,8 @@ import Juvix.LLVM.Codegen.Sum
 import Juvix.Library hiding (Type)
 import qualified Juvix.Utility.HashMap as Map
 import LLVM.AST
-import qualified LLVM.AST as AST ()
 import LLVM.AST.AddrSpace
-import qualified LLVM.AST.Constant as C ()
-import LLVM.AST.Global as Global ()
+import qualified LLVM.AST.Type as Type
 
 --------------------------------------------------------------------------------
 -- Codegen State
@@ -105,23 +103,27 @@ int = IntegerType 64
 -- | 'numPortsSmall' is used for the number of ports that fit within 16 bits
 numPortsSmall ∷ VariantInfo
 numPortsSmall =
-  Variant
-    { size = 16,
-      name = "small",
-      typ' = IntegerType 16
-    }
+  updateVariant
+    Type.i1
+    Variant
+      { size = 16,
+        name = "small",
+        typ' = IntegerType 16
+      }
 
 -- | 'numPortsLarge' is used for the number of ports that don't fit within 16 bits
 numPortsLarge ∷ VariantInfo
 numPortsLarge =
-  Variant
-    { size = 16,
-      name = "large",
-      typ' = PointerType
-        { pointerReferent = nodeType,
-          pointerAddrSpace = AddrSpace 16
-        }
-    }
+  updateVariant
+    Type.i1
+    Variant
+      { size = 16,
+        name = "large",
+        typ' = PointerType
+          { pointerReferent = nodeType,
+            pointerAddrSpace = AddrSpace 16
+          }
+      }
 
 -- number of ports on a node or the port offset
 numPorts ∷ Type
@@ -129,7 +131,7 @@ numPorts =
   typ
     { elementTypes =
         let _ : rest = elementTypes typ
-         in IntegerType {typeBits = 1} : rest
+         in Type.i1 : rest
     }
   where
     typ = createSum [numPortsLarge, numPortsSmall]

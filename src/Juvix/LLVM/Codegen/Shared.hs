@@ -2,7 +2,7 @@
 module Juvix.LLVM.Codegen.Shared where
 
 import Juvix.Library hiding (Type)
-import Juvix.Utility.HashMap as Map
+import qualified Juvix.Utility.HashMap as Map
 import LLVM.AST
 import qualified LLVM.AST as AST ()
 import qualified LLVM.AST.Constant as C ()
@@ -12,9 +12,17 @@ type SymbolTable = Map.Map Symbol Operand
 
 type TypeTable = Map.Map Symbol Type
 
+data SumInfo
+  = S
+      { sum' ∷ Symbol,
+        offset ∷ Int,
+        tagSize' ∷ Word32
+      }
+  deriving (Show, Eq)
+
 -- | a mapping between the variant and the sum type along with
 -- the tag associated with it
-type VariantToType = Map.Map Symbol (Symbol, Int)
+type VariantToType = Map.Map Symbol SumInfo
 
 type Names = Map.Map Symbol Int
 
