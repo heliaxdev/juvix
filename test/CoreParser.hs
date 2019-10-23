@@ -74,3 +74,12 @@ test_app_ann = shouldParse "(@ (\\x -> x) : w (* 0)) y" (Elim (App (Ann Omega (L
 
 test_2_paren ∷ T.TestTree
 test_2_paren = shouldParse "(2)" (Elim (Prim (Natural 2)))
+
+test_parse_add ∷ T.TestTree
+test_parse_add = shouldParse "(+ 3 4)" (Elim (App (App (Prim Add) (Elim (Prim (Natural 3)))) (Elim (Prim (Natural 4)))))
+
+test_parse_sub ∷ T.TestTree
+test_parse_sub = shouldParse "(- 4 3)" (Elim (App (App (Prim Sub) (Elim (Prim (Natural 4)))) (Elim (Prim (Natural 3)))))
+
+test_parse_mul ∷ T.TestTree
+test_parse_mul = shouldParse "(* 4 3)" (Elim (App (App (Prim Mul) (Elim (Prim (Natural 4)))) (Elim (Prim (Natural 3)))))

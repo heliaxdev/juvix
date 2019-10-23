@@ -12,32 +12,35 @@ import Prelude (Show (..), String, error, lookup)
 initEnv ∷ Env primTy primVal
 initEnv = []
 
-cEval ∷ (Show primTy, Show primVal) ⇒ Term primTy primVal → Env primTy primVal → Value primTy primVal
-cEval (Star i) _d = VStar i
-cEval (PrimTy p) _d = VPrimTy p
-cEval (Pi pi ty ty') d = VPi pi (cEval ty d) (\x → cEval ty' (x : d))
-cEval (Lam e) d = VLam (\x → cEval e (x : d))
-cEval (Elim ii) d = iEval ii d
+cEval ∷ (Show primTy, Show primVal) ⇒ Parameterisation primTy primVal → Term primTy primVal → Env primTy primVal → Value primTy primVal
+cEval _ (Star i) _d = VStar i
+cEval _ (PrimTy p) _d = VPrimTy p
+cEval param (Pi pi ty ty') d = VPi pi (cEval param ty d) (\x → cEval param ty' (x : d))
+cEval param (Lam e) d = VLam (\x → cEval param e (x : d))
+cEval param (Elim ii) d = iEval param ii d
 
 toInt ∷ Natural → Int
 toInt = fromInteger . toInteger
 
 -- TODO ∷ Promote iEval and cEval into the maybe monad and all call sites
-iEval ∷ (Show primTy, Show primVal) ⇒ Elim primTy primVal → Env primTy primVal → Value primTy primVal
-iEval (Free x) _d = vfree x
-iEval (Prim p) _d = VPrim p
-iEval (App iterm cterm) d = vapp (iEval iterm d) (cEval cterm d)
-iEval (Ann _pi term _type) d = cEval term d
-iEval (Bound ii) d =
+iEval ∷ (Show primTy, Show primVal) ⇒ Parameterisation primTy primVal → Elim primTy primVal → Env primTy primVal → Value primTy primVal
+iEval _ (Free x) _d = vfree x
+iEval _ (Prim p) _d = VPrim p
+iEval param (App iterm cterm) d = vapp param (iEval param iterm d) (cEval param cterm d)
+iEval param (Ann _pi term _type) d = cEval param term d
+iEval _ (Bound ii) d =
   case d ^? ix (toInt ii) of
     Just x → x
     Nothing → error ("unbound index " <> show ii)
 
-vapp ∷ (Show primTy, Show primVal) ⇒ Value primTy primVal → Value primTy primVal → Value primTy primVal
-vapp (VLam f) v = f v
--- TODO: deal with primitive functions
-vapp (VNeutral n) v = VNeutral (NApp n v)
-vapp x y =
+vapp ∷ (Show primTy, Show primVal) ⇒ Parameterisation primTy primVal → Value primTy primVal → Value primTy primVal → Value primTy primVal
+vapp _ (VLam f) v = f v
+vapp _ (VNeutral n) v = VNeutral (NApp n v)
+vapp param (VPrim x) (VPrim y) =
+  case apply param x y of
+    Just v → VPrim v
+    Nothing → error ("Primitive application error: cannot apply " <> show x <> " to " <> show y)
+vapp _ x y =
   error
     ( "Application (vapp) error. Cannot apply \n"
         <> show y
@@ -109,7 +112,7 @@ cType p ii g (Pi pi varType resultType) ann = do
   case ty of
     VStar _ → do
       cType p ii g varType ann -- checks varType is of type Star i
-      let ty = cEval varType []
+      let ty = cEval p varType []
       cType
         p -- checks resultType is of type Star i
         (ii + 1)
@@ -157,14 +160,19 @@ iType _ ii g (Free x) =
     Just ann → return ann
     Nothing → throwError (iTypeErrorMsg ii x)
 -- Prim-Const typing rule
-iType p _ii _g (Prim prim) = return (Omega, VPrimTy (typeOf p prim))
+iType p _ii _g (Prim prim) =
+  let arrow (x : []) = VPrimTy x
+      arrow (x : xs) = VPi Omega (VPrimTy x) (const (arrow xs))
+   in case typeOf p arrow prim of
+        Right a → return (Omega, VPrimTy a)
+        Left f → return (Omega, f)
 -- App rule, function M applies to N
 iType p ii g (App m n) = do
   mTy ← iType p ii g m -- annotation of M is usage sig and Pi with pi usage.
   case mTy of
     (sig, VPi pi varTy resultTy) → do
       cType p ii g n (pi, varTy) -- N has to be of type varTy with usage pi
-      return (sig, resultTy (cEval n []))
+      return (sig, resultTy (cEval p n []))
     _ →
       throwError
         ( show m
@@ -178,6 +186,6 @@ iType p ii g (Ann pi theTerm theType) =
   -- TODO check theType is of type Star first? But we have stakable universes now.
   -- cType ii g theType (0, VStar 0)
   do
-    let ty = cEval theType []
+    let ty = cEval p theType []
     cType p ii g theTerm (pi, ty)
     return (pi, ty)
