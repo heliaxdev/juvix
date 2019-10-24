@@ -4,12 +4,15 @@ module Juvix.LLVM.Codegen.Types
   )
 where
 
+import Data.ByteString.Short
+import qualified Juvix.LLVM.Codegen.Constants as Constants
 import Juvix.LLVM.Codegen.Shared
 import Juvix.LLVM.Codegen.Sum
 import Juvix.Library hiding (Type)
 import qualified Juvix.Utility.HashMap as Map
-import LLVM.AST
+import LLVM.AST as AST
 import LLVM.AST.AddrSpace
+import LLVM.AST.DataLayout (DataLayout (..))
 import qualified LLVM.AST.Type as Type
 
 --------------------------------------------------------------------------------
@@ -87,18 +90,28 @@ newtype Codegen a = CodeGen {runCodegen ∷ ExceptT Errors (State CodegenState) 
     (HasThrow "err" Errors)
     via MonadError (ExceptT Errors (State CodegenState))
 
+-- TODO ∷ see if this is still useful
+newtype LLVM a = LLVM {runLLVM ∷ State AST.Module a}
+  deriving (Functor, Applicative, Monad)
+  deriving
+    (HasState "moduleName" ShortByteString)
+    via Field "moduleName" () (MonadState (State AST.Module))
+  deriving
+    (HasState "moduleSourceFileName" ShortByteString)
+    via Field "moduleSourceFileName" () (MonadState (State AST.Module))
+  deriving
+    (HasState "moduleDataLayout" (Maybe LLVM.AST.DataLayout.DataLayout))
+    via Field "moduleDataLayout" () (MonadState (State AST.Module))
+  deriving
+    (HasState "moduleTargetTriple" (Maybe ShortByteString))
+    via Field "moduleTargetTriple" () (MonadState (State AST.Module))
+  deriving
+    (HasState "moduleDefinitions" [Definition])
+    via Field "moduleDefinitions" () (MonadState (State AST.Module))
+
 --------------------------------------------------------------------------------
 -- LLVM Types
 --------------------------------------------------------------------------------
-
-double ∷ Type
-double = FloatingPointType DoubleFP
-
--- TODO ∷ change this based on the machine, C++ pargma?
-
--- | Use 64 bit ints
-int ∷ Type
-int = IntegerType 64
 
 -- | 'numPortsSmall' is used for the number of ports that fit within 16 bits
 numPortsSmall ∷ VariantInfo
@@ -155,7 +168,7 @@ portType = StructureType
 
 -- TODO ∷ Figure out how to have an un-tagged union here for all baked in types
 dataType ∷ Type
-dataType = int
+dataType = Constants.int
 
 -- TODO ∷ Figure out how to get varying data in here
 nodeType ∷ Type

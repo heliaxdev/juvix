@@ -5,13 +5,31 @@ import Juvix.Library hiding (Type, local)
 import Juvix.Utility.HashMap as Map
 import LLVM.AST
 import qualified LLVM.AST as AST ()
-import LLVM.AST.AddrSpace
-import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.Constant as C
 import LLVM.AST.Global as Global ()
 
+--------------------------------------------------------------------------------
+-- Codegen Operations
+--------------------------------------------------------------------------------
+
+fresh ∷ (HasState "count" b m, Enum b) ⇒ m b
+fresh = do
+  i ← get @"count"
+  put @"count" (succ i)
+  pure (succ i)
+
+--------------------------------------------------------------------------------
+-- Block Stack
+--------------------------------------------------------------------------------
+
 entry ∷ (HasState "currentBlock" Name m) ⇒ m Name
 entry = get @"currentBlock"
+
+getBlock ∷ (HasState "currentBlock" Name m) ⇒ m Name
+getBlock = entry
+
+setBlock ∷ HasState "currentBlock" Name m ⇒ Name → m Name
+setBlock bName = bName <$ put @"currentBlock" bName
 
 modifyBlock ∷
   ( HasState "blocks" (HashMap Name v) m,
@@ -56,12 +74,6 @@ instr typ ins = do
   modifyBlock (blk {stack = (ref := ins) : i})
   pure (local typ ref)
 
-fresh ∷ (HasState "count" b m, Enum b) ⇒ m b
-fresh = do
-  i ← get @"count"
-  put @"count" (succ i)
-  pure (succ i)
-
 unnminstr ∷
   ( HasState "blocks" (HashMap Name BlockState) m,
     HasState "currentBlock" Name m,
@@ -73,6 +85,18 @@ unnminstr ins = do
   blk ← current
   let i = stack blk
   modifyBlock (blk {stack = (Do ins) : i})
+
+terminator ∷
+  ( HasState "blocks" (HashMap Name BlockState) m,
+    HasState "currentBlock" Name m,
+    HasThrow "err" Errors m
+  ) ⇒
+  Named Terminator →
+  m (Named Terminator)
+terminator trm = do
+  blk ← current
+  modifyBlock (blk {term = Just trm})
+  return trm
 
 --------------------------------------------------------------------------------
 -- Effects
@@ -187,6 +211,6 @@ createVariant variantName args = do
                   store ele inst
                   pure (succ i)
               )
-              1
+              1 -- not 0, as 0 is reserved for the tag that was set
               args
             pure casted
