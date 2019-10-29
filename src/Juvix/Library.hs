@@ -43,6 +43,7 @@ import Protolude hiding
     gets,
     local,
     modify,
+    moduleName,
     pass,
     put,
     reader,

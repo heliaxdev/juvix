@@ -109,6 +109,7 @@ library:
     - Juvix.LLVM.Codegen.Types
     - Juvix.LLVM.Codegen.Shared
     - Juvix.LLVM.Codegen.Block
+    - Juvix.LLVM.Codegen.Graph
   other-modules:
     - Juvix.NodeInterface
     - Juvix.Utility.Helper

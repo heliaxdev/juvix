@@ -1,12 +1,15 @@
 module Juvix.LLVM.Codegen.Block where
 
+import Data.ByteString.Short
 import Juvix.LLVM.Codegen.Types
 import Juvix.Library hiding (Type, local)
 import Juvix.Utility.HashMap as Map
 import LLVM.AST
-import qualified LLVM.AST as AST ()
+import qualified LLVM.AST as AST
+import LLVM.AST.AddrSpace
+import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.Constant as C
-import LLVM.AST.Global as Global ()
+import qualified LLVM.AST.Global as Global
 
 --------------------------------------------------------------------------------
 -- Codegen Operations
@@ -17,6 +20,42 @@ fresh = do
   i ← get @"count"
   put @"count" (succ i)
   pure (succ i)
+
+--------------------------------------------------------------------------------
+-- Module Level
+--------------------------------------------------------------------------------
+
+emptyModule ∷ ShortByteString → Module
+emptyModule label = AST.defaultModule {moduleName = label}
+
+addDefn ∷ HasState "moduleDefinitions" [Definition] m ⇒ Definition → m ()
+addDefn d = modify @"moduleDefinitions" (<> [d])
+
+define ∷
+  HasState "moduleDefinitions" [Definition] m ⇒
+  Type →
+  Symbol →
+  [(Type, Name)] →
+  [BasicBlock] →
+  m Operand
+define retty label argtys body = do
+  addDefn
+    $ GlobalDefinition
+    $ functionDefaults
+      { Global.parameters = params,
+        -- Figure out which is best!
+        Global.callingConvention = CC.GHC,
+        Global.returnType = retty,
+        Global.basicBlocks = body,
+        Global.name = (mkName (unintern label))
+      }
+  return
+    $ ConstantOperand
+    $ C.GlobalReference
+      (PointerType (FunctionType retty (fst <$> argtys) False) (AddrSpace 0))
+      (mkName (unintern label))
+  where
+    params = ((\(ty, nm) → Parameter ty nm []) <$> argtys, False)
 
 --------------------------------------------------------------------------------
 -- Block Stack
