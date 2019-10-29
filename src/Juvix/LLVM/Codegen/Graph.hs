@@ -18,4 +18,4 @@ import Juvix.Library hiding (Type, local)
 -- \ 3. grab node from  here
 -- \ 4. do operation
 
--- TODO ∷ Figure out what types to send in… not entirely sure yet
+-- TODO ∷ Figure out what types to send in… not entirely sure yet.
