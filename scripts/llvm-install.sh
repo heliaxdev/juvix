@@ -18,7 +18,7 @@ cd build
 
 # Building
 echo "Building: llvm-${LLVM_VERSION}.src.tar.xz"
-cmake -DLLVM_INCLUDE_TESTS=false -DLLVM_BUILD_LLVM_DYLIB=true -DLLVM_BUILD_LLVM_DYLIB=true ../
+cmake -DLLVM_INCLUDE_TESTS=false -DLLVM_BUILD_LLVM_DYLIB=true -DLLVM_LINK_LLVM_DYLIB=true ../
 
 cmake --build .
 
