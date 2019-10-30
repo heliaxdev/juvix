@@ -6,15 +6,17 @@ import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as Token
 import Prelude (String)
 
+-- k: primitive type: naturals
 data NatTy
   = Nat
   deriving (Show, Eq)
 
+-- c: primitive constant and f: functions
 data NatVal
-  = Natural Natural
-  | Add
-  | Sub
-  | Mul
+  = Natural Natural -- c
+  | Add -- f addition
+  | Sub -- f subtraction
+  | Mul -- f multiplication
   | Curried NatVal Natural
   deriving (Show, Eq)
 
