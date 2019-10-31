@@ -74,6 +74,7 @@ library:
     - Juvix.Core.Erasure
     - Juvix.Core.Usage
     - Juvix.Core.Parameterisations.Naturals
+    - Juvix.Core.Parameterisations.Unit
     - Juvix.EAC
     - Juvix.EAC.Check
     - Juvix.EAC.EAC

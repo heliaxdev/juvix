@@ -17,7 +17,7 @@ data UnitVal
   deriving (Show, Eq)
 
 typeOf ∷ ∀ a. ([UnitTy] → a) → UnitVal → Either a UnitTy
-typeOf _ Unit = Right Unit
+typeOf _ Unit = Right TUnit
 
 apply ∷ UnitVal → UnitVal → Maybe UnitVal
 apply _ _ = Nothing
@@ -31,9 +31,6 @@ parseVal ∷ Token.GenTokenParser String () Identity → Parser UnitVal
 parseVal lexer = do
   Token.reserved lexer "Unit"
   pure Unit
-
-parseUnit ∷ Token.GenTokenParser String () Identity → Parser UnitVal
-parseUnit lexer = Unitural . fromIntegral |<< Token.natural lexer
 
 reservedNames ∷ [String]
 reservedNames = ["TUnit", "Unit"]
