@@ -19,7 +19,7 @@ cd build
 
 # Building
 echo "Building: llvm-${LLVM_VERSION}.src.tar.xz"
-cmake ../
+cmake -DLLVM_INCLUDE_TESTS=false -DLLVM_BUILD_LLVM_DYLIB=true -DLLVM_LINK_LLVM_DYLIB=true ../
 
 cmake --build .
 
@@ -32,3 +32,8 @@ cd ../..
 # Cleanup
 rm llvm-${LLVM_VERSION}.src.tar.xz
 rm -rf llvm-${LLVM_VERSION}.src
+
+
+# This fixes the error with libLLVM-9.so for some reason!!!!
+apt-get update
+apt-get install ranger
