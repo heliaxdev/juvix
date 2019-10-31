@@ -17,18 +17,18 @@ type Value = IR.Value primTy primVal
 
 type Annotation = IR.Annotation primTy primVal
  -}
-identity ∷ IR.Term
+identity ∷ IR.Term NatTy NatVal
 identity = IR.Lam (IR.Elim (IR.Bound 0))
 
-identityCompTy ∷ IR.Annotation
+identityCompTy ∷ IR.Annotation NatTy NatVal
 identityCompTy =
   (SNat 1, IR.VPi (SNat 1) (IR.VPrimTy Nat) (const (IR.VPrimTy Nat)))
 
-identityContTy ∷ IR.Annotation
+identityContTy ∷ IR.Annotation NatTy NatVal
 identityContTy =
   (SNat 0, IR.VPi (SNat 0) (IR.VPrimTy Nat) (const (IR.VPrimTy Nat)))
 
-identityApplication ∷ IR.Term
+identityApplication ∷ IR.Term NatTy NatVal
 identityApplication =
   IR.Elim
     ( IR.App
@@ -40,7 +40,7 @@ identityApplication =
         (IR.Elim (IR.Prim (Natural 1)))
     )
 
-natTy ∷ IR.Annotation
+natTy ∷ IR.Annotation NatTy NatVal
 natTy = (SNat 1, IR.VPrimTy Nat)
 
 test_identity_computational ∷ T.TestTree
@@ -109,7 +109,7 @@ shouldEval term res =
 one ∷ IR.Term
 one = IR.Lam $ IR.Lam $ IR.Elim $ IR.App (IR.Bound 1) (IR.Elim (IR.Bound 0))
 
-oneCompTy ∷ IR.Annotation
+oneCompTy ∷ IR.Annotation NatTy NatVal
 oneCompTy =
   ( SNat 1,
     IR.VPi
@@ -125,7 +125,7 @@ two =
     $ IR.Elim
     $ IR.App (IR.Bound 1) (IR.Elim (IR.App (IR.Bound 1) (IR.Elim (IR.Bound 0))))
 
-twoCompTy ∷ IR.Annotation
+twoCompTy ∷ IR.Annotation NatTy NatVal
 twoCompTy =
   ( SNat 1,
     IR.VPi
