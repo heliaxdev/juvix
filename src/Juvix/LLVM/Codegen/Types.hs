@@ -58,6 +58,8 @@ data Errors
     NoSuchVariant Text
   | -- | Error that should never happen
     DoesNotHappen Text
+  | -- | Error that happens when a variable out of scope is called
+    VariableNotInScope Text
   deriving (Show)
 
 newtype Codegen a = CodeGen {runCodegen ∷ ExceptT Errors (State CodegenState) a}
@@ -149,6 +151,9 @@ numPorts =
   where
     typ = createSum [numPortsLarge, numPortsSmall]
 
+numPortsSize ∷ Num p ⇒ p
+numPortsSize = 17
+
 -- | Construct a 16 bit port space so we can put many inside a node cheaply
 -- The pointer points to the beginning of a node and an offset
 portPointer ∷ Type
@@ -166,9 +171,15 @@ portType = StructureType
       ]
   }
 
+portTypeSize ∷ Num p ⇒ p
+portTypeSize = 33
+
 -- TODO ∷ Figure out how to have an un-tagged union here for all baked in types
 dataType ∷ Type
 dataType = Constants.int
+
+dataTypeSize ∷ Num p ⇒ p
+dataTypeSize = 64
 
 -- TODO ∷ Figure out how to get varying data in here
 nodeType ∷ Type

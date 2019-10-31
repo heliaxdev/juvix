@@ -1,6 +1,7 @@
 module Juvix.LLVM.Codegen.Block where
 
 import Data.ByteString.Short
+import Juvix.LLVM.Codegen.Shared
 import Juvix.LLVM.Codegen.Types
 import Juvix.Library hiding (Type, local)
 import Juvix.Utility.HashMap as Map
@@ -20,6 +21,24 @@ fresh = do
   i ← get @"count"
   put @"count" (succ i)
   pure (succ i)
+
+emptyBlock ∷ Int → BlockState
+emptyBlock i = BlockState i [] Nothing
+
+createBlocks ∷ HasState "blocks" (HashMap Name BlockState) f ⇒ f [BasicBlock]
+createBlocks = fmap makeBlock . sortBlocks . Map.toList <$> get @"blocks"
+
+makeBlock ∷ (Name, BlockState) → BasicBlock
+makeBlock (l, BlockState _ s t) = BasicBlock l (reverse s) (maketerm t)
+  where
+    maketerm (Just x) = x
+    maketerm Nothing = undefined -- error $ "Block has no terminator: " <> show l
+
+sortBlocks ∷ [(a, BlockState)] → [(a, BlockState)]
+sortBlocks = sortBy (compare `on` (idx . snd))
+
+entryBlockName ∷ IsString p ⇒ p
+entryBlockName = "entry"
 
 --------------------------------------------------------------------------------
 -- Module Level
@@ -66,6 +85,25 @@ entry = get @"currentBlock"
 
 getBlock ∷ (HasState "currentBlock" Name m) ⇒ m Name
 getBlock = entry
+
+addBlock ∷
+  ( HasState "blockCount" Int m,
+    HasState "blocks" (HashMap Name BlockState) m,
+    HasState "names" Names m
+  ) ⇒
+  Symbol →
+  m Name
+addBlock bname = do
+  bls ← get @"blocks"
+  ix ← get @"blockCount"
+  nms ← get @"names"
+  let new = emptyBlock ix
+      (qname, supply) = uniqueName bname nms
+      name = (mkName (unintern qname))
+  put @"blocks" (Map.insert name new bls)
+  put @"blockCount" (succ ix)
+  put @"names" supply
+  return name
 
 setBlock ∷ HasState "currentBlock" Name m ⇒ Name → m Name
 setBlock bName = bName <$ put @"currentBlock" bName
@@ -136,6 +174,37 @@ terminator trm = do
   blk ← current
   modifyBlock (blk {term = Just trm})
   return trm
+
+fdiv,
+  fadd,
+  fsub,
+  fmul ∷
+    ( HasThrow "err" Errors m,
+      HasState "blocks" (HashMap Name BlockState) m,
+      HasState "count" Word m,
+      HasState "currentBlock" Name m
+    ) ⇒
+    Type →
+    Operand →
+    Operand →
+    m Operand
+fdiv t a b = instr t $ FDiv noFastMathFlags a b []
+fadd t a b = instr t $ FAdd noFastMathFlags a b []
+fsub t a b = instr t $ FSub noFastMathFlags a b []
+fmul t a b = instr t $ FMul noFastMathFlags a b []
+
+--------------------------------------------------------------------------------
+-- Control Flow
+--------------------------------------------------------------------------------
+
+ret ∷
+  ( HasState "blocks" (HashMap Name BlockState) m,
+    HasState "currentBlock" Name m,
+    HasThrow "err" Errors m
+  ) ⇒
+  Operand →
+  m (Named Terminator)
+ret val = terminator $ Do $ Ret (Just val) []
 
 --------------------------------------------------------------------------------
 -- Effects
@@ -253,3 +322,41 @@ createVariant variantName args = do
               1 -- not 0, as 0 is reserved for the tag that was set
               args
             pure casted
+
+-------------------------------------------------------------------------------
+-- Symbol Table
+-------------------------------------------------------------------------------
+
+assign ∷
+  ( HasState "symtab" (HashMap k v) m,
+    Eq k,
+    Hashable k
+  ) ⇒
+  k →
+  v →
+  m ()
+assign var x = do
+  modify @"symtab" (Map.insert var x)
+
+getvar ∷
+  ( HasState "symtab" (HashMap Text b)
+      m,
+    HasThrow "err" Errors m,
+    Show b
+  ) ⇒
+  Text →
+  m b
+getvar var = do
+  syms ← get @"symtab"
+  case Map.lookup var syms of
+    Just x →
+      return x
+    Nothing →
+      throw @"err"
+        ( VariableNotInScope $
+            "Local variable not in scope:"
+              <> "\n syms: "
+              <> show syms
+              <> "\n var: "
+              <> var
+        )
