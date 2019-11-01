@@ -35,7 +35,7 @@ import qualified LLVM.AST.Type as Type
 -- take 4 Operand.Operand
 --
 link = do
-  (b :: [AST.BasicBlock]) ← body
+  (b ∷ [AST.BasicBlock]) ← body
   return $
     define Constants.int "link" args b
   where
@@ -52,7 +52,9 @@ link = do
       makeFunction "link" args
       setPort ("node_1", "port_1") ("node_2", "port_2")
       setPort ("node_2", "port_2") ("node_1", "port_1")
+      _ ← retNull
       createBlocks
+
 -- preform offsets
 --------------------------------------------------------------------------------
 -- Helpers
@@ -92,7 +94,7 @@ setPort ∷
   (Name.Name, Name.Name) →
   (Name.Name, Name.Name) →
   m ()
-setPort (n1,p1) (n2, p2) = do
+setPort (n1, p1) (n2, p2) = do
   (no1, po1) ← (,) <$> Block.externf n1 <*> Block.externf p1
   (no2, po2) ← (,) <$> Block.externf n2 <*> Block.externf p2
   tag ← Block.instr Type.i1 $

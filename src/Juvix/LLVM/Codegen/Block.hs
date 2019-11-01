@@ -139,7 +139,7 @@ externf ∷
   m Operand
 externf name = getvar (nameToSymbol name)
 
-nameToSymbol :: Name → Symbol
+nameToSymbol ∷ Name → Symbol
 nameToSymbol (UnName n) = (intern (show n))
 nameToSymbol (Name n) = (intern (show n))
 
@@ -217,6 +217,47 @@ ret ∷
   Operand →
   m (Named Terminator)
 ret val = terminator $ Do $ Ret (Just val) []
+
+retNull ∷
+  ( HasState "blocks" (HashMap Name BlockState) m,
+    HasState "currentBlock" Name m,
+    HasThrow "err" Errors m
+  ) ⇒
+  m (Named Terminator)
+retNull = terminator $ Do $ Ret Nothing []
+
+cbr ∷
+  ( HasState "blocks" (HashMap Name BlockState) m,
+    HasState "currentBlock" Name m,
+    HasThrow "err" Errors m
+  ) ⇒
+  Operand →
+  Name →
+  Name →
+  m (Named Terminator)
+cbr cond tr fl = terminator $ Do $ CondBr cond tr fl []
+
+phi ∷
+  ( HasThrow "err" Errors m,
+    HasState "blocks" (HashMap Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name m
+  ) ⇒
+  Type →
+  [(Operand, Name)] →
+  m Operand
+phi ty incoming = instr ty $ Phi ty incoming []
+
+switch ∷
+  ( HasState "blocks" (HashMap Name BlockState) m,
+    HasState "currentBlock" Name m,
+    HasThrow "err" Errors m
+  ) ⇒
+  Operand →
+  Name →
+  [(C.Constant, Name)] →
+  m (Named Terminator)
+switch val default' dests = terminator $ Do $ Switch val default' dests []
 
 --------------------------------------------------------------------------------
 -- Effects
@@ -340,7 +381,7 @@ createVariant variantName args = do
 -------------------------------------------------------------------------------
 
 assign ∷
-  ( HasState "symtab" SymbolTable m ) ⇒
+  (HasState "symtab" SymbolTable m) ⇒
   Symbol →
   Operand →
   m ()
@@ -368,6 +409,5 @@ getvar var = do
               <> show var
         )
 
-
-internName :: Symbol → Name
+internName ∷ Symbol → Name
 internName = mkName . unintern
