@@ -11,6 +11,7 @@ import LLVM.AST.AddrSpace
 import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Global as Global
+import qualified LLVM.AST.IntegerPredicate as IntPred
 
 --------------------------------------------------------------------------------
 -- Codegen Operations
@@ -187,6 +188,83 @@ terminator trm = do
   modifyBlock (blk {term = Just trm})
   return trm
 
+--------------------------------------------------------------------------------
+-- Integer Operations
+--------------------------------------------------------------------------------
+
+sdiv,
+  udiv,
+  add,
+  sub,
+  mul ∷
+    ( HasThrow "err" Errors m,
+      HasState "blocks" (HashMap Name BlockState) m,
+      HasState "count" Word m,
+      HasState "currentBlock" Name m
+    ) ⇒
+    Type →
+    Operand →
+    Operand →
+    m Operand
+sdiv t a b = instr t SDiv
+  { exact = False,
+    operand0 = a,
+    operand1 = b,
+    metadata = []
+  }
+udiv t a b = instr t UDiv
+  { exact = False,
+    operand0 = a,
+    operand1 = b,
+    metadata = []
+  }
+add t a b = instr t Add
+  { -- no signed warp
+    nsw = False,
+    -- no unSigned warp
+    nuw = False,
+    operand0 = a,
+    operand1 = b,
+    metadata = []
+  }
+sub t a b = instr t Sub
+  { -- no signed warp
+    nsw = False,
+    -- no unSigned warp
+    nuw = False,
+    operand0 = a,
+    operand1 = b,
+    metadata = []
+  }
+mul t a b = instr t Mul
+  { -- no signed warp
+    nsw = False,
+    -- no unSigned warp
+    nuw = False,
+    operand0 = a,
+    operand1 = b,
+    metadata = []
+  }
+
+icmp ∷
+  ( HasThrow "err" Errors m,
+    HasState "blocks" (HashMap Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name m
+  ) ⇒
+  Type →
+  IntPred.IntegerPredicate →
+  Operand →
+  Operand →
+  m Operand
+icmp ty iPred op1 op2 = instr ty $ ICmp iPred op1 op2 []
+
+--------------------------------------------------------------------------------
+-- Floating Point Operations
+--------------------------------------------------------------------------------
+
+-- Floating Point operations
+
 fdiv,
   fadd,
   fsub,
@@ -258,6 +336,16 @@ switch ∷
   [(C.Constant, Name)] →
   m (Named Terminator)
 switch val default' dests = terminator $ Do $ Switch val default' dests []
+
+generateIf cond tr fl = do
+  ifThen ← addBlock "if.then"
+  ifElse ← addBlock "if.else"
+  ifExit ← addBlock "if.exit"
+  -- Entry
+  --  cond ← cgen cond
+  undefined
+
+--  test ← fcmp FP.ONE
 
 --------------------------------------------------------------------------------
 -- Effects
