@@ -9,26 +9,38 @@ import Juvix.Library hiding (identity)
 import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as T
 
-{- type Term = IR.Term primTy primVal
+type NatTerm = IR.Term NatTy NatVal
 
-type Elim = IR.Elim primTy primVal
+type NatElim = IR.Elim NatTy NatVal
 
-type Value = IR.Value primTy primVal
+type NatValue = IR.Value NatTy NatVal
 
-type Annotation = IR.Annotation primTy primVal
- -}
-identity ∷ IR.Term NatTy NatVal
+type NatAnnotation = IR.Annotation NatTy NatVal
+
+type UnitTerm = IR.Term UnitTy UnitVal
+
+type UnitElim = IR.Elim UnitTy UnitVal
+
+type UnitValue = IR.Value UnitTy UnitVal
+
+type UnitAnnotation = IR.Annotation UnitTy UnitVal
+
+identity ∷ ∀ primTy primVal. IR.Term primTy primVal
 identity = IR.Lam (IR.Elim (IR.Bound 0))
 
-identityCompTy ∷ IR.Annotation NatTy NatVal
-identityCompTy =
+identityNatCompTy ∷ NatAnnotation
+identityNatCompTy =
   (SNat 1, IR.VPi (SNat 1) (IR.VPrimTy Nat) (const (IR.VPrimTy Nat)))
 
-identityContTy ∷ IR.Annotation NatTy NatVal
-identityContTy =
+identityUnitCompTy ∷ UnitAnnotation
+identityUnitCompTy =
+  (SNat 1, IR.VPi (SNat 1) (IR.VPrimTy TUnit) (const (IR.VPrimTy TUnit)))
+
+identityNatContTy ∷ NatAnnotation
+identityNatContTy =
   (SNat 0, IR.VPi (SNat 0) (IR.VPrimTy Nat) (const (IR.VPrimTy Nat)))
 
-identityApplication ∷ IR.Term NatTy NatVal
+identityApplication ∷ NatTerm
 identityApplication =
   IR.Elim
     ( IR.App
@@ -40,14 +52,17 @@ identityApplication =
         (IR.Elim (IR.Prim (Natural 1)))
     )
 
-natTy ∷ IR.Annotation NatTy NatVal
+natTy ∷ NatAnnotation
 natTy = (SNat 1, IR.VPrimTy Nat)
 
 test_identity_computational ∷ T.TestTree
-test_identity_computational = shouldCheck identity identityCompTy
+test_identity_computational = shouldCheck identity identityNatCompTy
+
+test_identity_unit_computational ∷ T.TestTree
+test_identity_unit_computational = shouldCheck identity identityUnitCompTy
 
 test_identity_contemplation ∷ T.TestTree
-test_identity_contemplation = shouldCheck identity identityContTy
+test_identity_contemplation = shouldCheck identity identityNatContTy
 
 test_identity_application ∷ T.TestTree
 test_identity_application = shouldCheck identityApplication natTy
@@ -90,26 +105,26 @@ test_eval_sub =
     (IR.VPrim (Natural 3))
 
 --unit tests for cType
-shouldCheck ∷ IR.Term → IR.Annotation → T.TestTree
+--shouldCheck ∷ NatTerm -> NatAnnotation -> T.TestTree --forall primTy primVal . IR.Term primTy primVal → IR.Annotation primTy primVal → T.TestTree
 shouldCheck term ann =
   T.testCase (show term <> " should check as type " <> show ann) $
-    IR.cType naturals 0 [] term ann T.@=? Right ()
+    IR.cType 0 [] term ann T.@=? Right ()
 
 --unit tests for iType
-shouldInfer ∷ IR.Elim → IR.Annotation → T.TestTree
+shouldInfer ∷ ∀ primTy primVal. IR.Elim primTy primVal → IR.Annotation primTy primVal → T.TestTree
 shouldInfer term ann =
   T.testCase (show term <> " should infer to type " <> show ann) $
-    IR.iType0 naturals [] term T.@=? Right ann
+    IR.iType0 [] term T.@=? Right ann
 
-shouldEval ∷ IR.Term → IR.Value → T.TestTree
+shouldEval ∷ ∀ primTy primVal. IR.Term primTy primVal → IR.Value primTy primVal → T.TestTree
 shouldEval term res =
   T.testCase (show term <> " should evaluate to " <> show res) $
-    IR.cEval naturals term IR.initEnv T.@=? res
+    IR.cEval term IR.initEnv T.@=? res
 
-one ∷ IR.Term
+one ∷ ∀ primTy primVal. IR.Term primTy primVal
 one = IR.Lam $ IR.Lam $ IR.Elim $ IR.App (IR.Bound 1) (IR.Elim (IR.Bound 0))
 
-oneCompTy ∷ IR.Annotation NatTy NatVal
+oneCompTy ∷ NatAnnotation
 oneCompTy =
   ( SNat 1,
     IR.VPi
@@ -118,14 +133,14 @@ oneCompTy =
       (const (IR.VPi (SNat 1) (IR.VPrimTy Nat) (const (IR.VPrimTy Nat))))
   )
 
-two ∷ IR.Term
+two ∷ ∀ primTy primVal. IR.Term primTy primVal
 two =
   IR.Lam
     $ IR.Lam
     $ IR.Elim
     $ IR.App (IR.Bound 1) (IR.Elim (IR.App (IR.Bound 1) (IR.Elim (IR.Bound 0))))
 
-twoCompTy ∷ IR.Annotation NatTy NatVal
+twoCompTy ∷ NatAnnotation
 twoCompTy =
   ( SNat 1,
     IR.VPi
