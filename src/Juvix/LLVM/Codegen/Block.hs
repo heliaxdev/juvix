@@ -66,13 +66,13 @@ define retty label argtys body = do
         Global.callingConvention = CC.GHC,
         Global.returnType = retty,
         Global.basicBlocks = body,
-        Global.name = (mkName (unintern label))
+        Global.name = (internName label)
       }
   return
     $ ConstantOperand
     $ C.GlobalReference
       (PointerType (FunctionType retty (fst <$> argtys) False) (AddrSpace 0))
-      (mkName (unintern label))
+      (internName label)
   where
     params = ((\(ty, nm) → Parameter ty nm []) <$> argtys, False)
 
@@ -99,7 +99,7 @@ addBlock bname = do
   nms ← get @"names"
   let new = emptyBlock ix
       (qname, supply) = uniqueName bname nms
-      name = (mkName (unintern qname))
+      name = internName qname
   put @"blocks" (Map.insert name new bls)
   put @"blockCount" (succ ix)
   put @"names" supply
@@ -130,6 +130,18 @@ current = do
   case Map.lookup c b of
     Just x → return x
     Nothing → throw @"err" (NoSuchBlock (show c))
+
+externf ∷
+  ( HasState "symtab" SymbolTable m,
+    HasThrow "err" Errors m
+  ) ⇒
+  Name →
+  m Operand
+externf name = getvar (nameToSymbol name)
+
+nameToSymbol :: Name → Symbol
+nameToSymbol (UnName n) = (intern (show n))
+nameToSymbol (Name n) = (intern (show n))
 
 local ∷ Type → Name → Operand
 local = LocalReference
@@ -328,24 +340,19 @@ createVariant variantName args = do
 -------------------------------------------------------------------------------
 
 assign ∷
-  ( HasState "symtab" (HashMap k v) m,
-    Eq k,
-    Hashable k
-  ) ⇒
-  k →
-  v →
+  ( HasState "symtab" SymbolTable m ) ⇒
+  Symbol →
+  Operand →
   m ()
 assign var x = do
   modify @"symtab" (Map.insert var x)
 
 getvar ∷
-  ( HasState "symtab" (HashMap Text b)
-      m,
-    HasThrow "err" Errors m,
-    Show b
+  ( HasState "symtab" SymbolTable m,
+    HasThrow "err" Errors m
   ) ⇒
-  Text →
-  m b
+  Symbol →
+  m Operand
 getvar var = do
   syms ← get @"symtab"
   case Map.lookup var syms of
@@ -358,5 +365,9 @@ getvar var = do
               <> "\n syms: "
               <> show syms
               <> "\n var: "
-              <> var
+              <> show var
         )
+
+
+internName :: Symbol → Name
+internName = mkName . unintern

@@ -1,10 +1,15 @@
 -- | Operations necessary to update nodes
 module Juvix.LLVM.Codegen.Graph where
 
-import Juvix.LLVM.Codegen.Block
+import Juvix.LLVM.Codegen.Block as Block
 import qualified Juvix.LLVM.Codegen.Constants as Constants
+import qualified Juvix.LLVM.Codegen.Shared as Shared
 import Juvix.LLVM.Codegen.Types
 import Juvix.Library hiding (Type, local)
+import qualified Juvix.Utility.HashMap as Map
+import qualified LLVM.AST as AST
+import qualified LLVM.AST.Constant as C
+import qualified LLVM.AST.Instruction as Instruction
 import qualified LLVM.AST.Name as Name
 import qualified LLVM.AST.Operand as Operand
 import qualified LLVM.AST.Type as Type
@@ -30,8 +35,9 @@ import qualified LLVM.AST.Type as Type
 -- take 4 Operand.Operand
 --
 link = do
+  (b :: [AST.BasicBlock]) ← body
   return $
-    define Constants.int "link" args undefined
+    define Constants.int "link" args b
   where
     args =
       ( [ (nodeType, "node_1"),
@@ -42,16 +48,29 @@ link = do
           [(Type.Type, Name.Name)]
       )
     -- TODO ∷ Abstract most of the logic in this function
-    body =
-      makeFunction "link" args $ do
-        undefined
-
+    body = do
+      makeFunction "link" args
+      setPort ("node_1", "port_1") ("node_2", "port_2")
+      setPort ("node_2", "port_2") ("node_1", "port_1")
+      createBlocks
 -- preform offsets
 --------------------------------------------------------------------------------
 -- Helpers
 --------------------------------------------------------------------------------
 
-makeFunction name args body = do
+makeFunction ∷
+  ( HasThrow "err" Errors m,
+    HasState "blockCount" Int m,
+    HasState "blocks" (Map.HashMap Name.Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name.Name m,
+    HasState "names" Names m,
+    HasState "symtab" (Map.HashMap Symbol Operand.Operand) m
+  ) ⇒
+  Symbol →
+  [(Type.Type, Name.Name)] →
+  m ()
+makeFunction name args = do
   entry ← addBlock name
   _ ← setBlock entry
   -- Maybe not needed?
@@ -59,7 +78,31 @@ makeFunction name args body = do
     ( \(typ, nam) → do
         var ← alloca typ
         store var (local typ nam)
-        assign nam var
+        assign (nameToSymbol nam) var
     )
     args
-  body >>= ret
+
+setPort ∷
+  ( HasThrow "err" Errors m,
+    HasState "blocks" (Map.HashMap Name.Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name.Name m,
+    HasState "symtab" Shared.SymbolTable m
+  ) ⇒
+  (Name.Name, Name.Name) →
+  (Name.Name, Name.Name) →
+  m ()
+setPort (n1,p1) (n2, p2) = do
+  (no1, po1) ← (,) <$> Block.externf n1 <*> Block.externf p1
+  (no2, po2) ← (,) <$> Block.externf n2 <*> Block.externf p2
+  tag ← Block.instr Type.i1 $
+    Instruction.GetElementPtr
+      { Instruction.inBounds = False,
+        Instruction.address = po1,
+        Instruction.indices =
+          [ Operand.ConstantOperand (C.Int 32 0),
+            Operand.ConstantOperand (C.Int 32 1)
+          ],
+        Instruction.metadata = []
+      }
+  return ()
