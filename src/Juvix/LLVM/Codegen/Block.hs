@@ -1,3 +1,5 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module Juvix.LLVM.Codegen.Block where
 
 import Data.ByteString.Short
@@ -425,6 +427,33 @@ bitCast ∷
   Type →
   m Operand
 bitCast op typ = instr typ $ BitCast op typ []
+
+--------------------------------------------------------------------------------
+-- Pointer Operations
+--------------------------------------------------------------------------------
+
+-- | 'getElementPtr' gets an index of a struct or an array as a pointer
+-- Takes a minimal data type to emulate named arguments
+getElementPtr ∷
+  ( HasThrow "err" Errors m,
+    HasState "blocks" (HashMap Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name m
+  ) ⇒
+  MinimalPtr →
+  m Operand
+getElementPtr (Minimal address indices type') =
+  instr type' $
+    GetElementPtr
+      { inBounds = True,
+        metadata = [],
+        address = address,
+        indices = indices
+      }
+
+
+constant32List :: Functor f ⇒ f Integer → f Operand
+constant32List = fmap (ConstantOperand . C.Int 32)
 
 --------------------------------------------------------------------------------
 -- Sum Type Declarations

@@ -112,6 +112,18 @@ newtype LLVM a = LLVM {runLLVM ∷ State AST.Module a}
     via Field "moduleDefinitions" () (MonadState (State AST.Module))
 
 --------------------------------------------------------------------------------
+-- Haskell Types
+--------------------------------------------------------------------------------
+
+data MinimalPtr
+  = Minimal
+      { address' ∷ Operand,
+        indincies' ∷ [Operand],
+        type' ∷ Type
+      }
+  deriving (Show)
+
+--------------------------------------------------------------------------------
 -- LLVM Types
 --------------------------------------------------------------------------------
 

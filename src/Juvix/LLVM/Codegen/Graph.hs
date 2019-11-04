@@ -4,7 +4,7 @@ module Juvix.LLVM.Codegen.Graph where
 import Juvix.LLVM.Codegen.Block as Block
 import qualified Juvix.LLVM.Codegen.Constants as Constants
 import qualified Juvix.LLVM.Codegen.Shared as Shared
-import Juvix.LLVM.Codegen.Types
+import Juvix.LLVM.Codegen.Types as Types
 import Juvix.Library hiding (Type, local)
 import qualified Juvix.Utility.HashMap as Map
 import qualified LLVM.AST as AST
@@ -100,59 +100,47 @@ setPort (n1, p1) (n2, p2) = do
   (no1, po1) ← (,) <$> Block.externf n1 <*> Block.externf p1
   (no2, po2) ← (,) <$> Block.externf n2 <*> Block.externf p2
   -- Is a pointer to tagPtr
-  tagPtr ← Block.instr Type.i1 $
-    Instruction.GetElementPtr
-      { Instruction.inBounds = False,
-        Instruction.address = po1,
-        Instruction.indices =
-          [ Operand.ConstantOperand (C.Int 32 0),
-            Operand.ConstantOperand (C.Int 32 1)
-          ],
-        Instruction.metadata = []
+  tagPtr ← getElementPtr $
+    Types.Minimal
+      { Types.type' = Type.i1,
+        Types.address' = po1,
+        Types.indincies' = Block.constant32List [0, 1]
       }
   tag ← load Type.i1 tagPtr
   let intBranch = do
         casted ← bitCast po1 (varientToType numPortsSmall)
-        valueP ← Block.instr numPortsSmallValue $
-          Instruction.GetElementPtr
-            { Instruction.inBounds = False,
-              Instruction.address = casted,
-              Instruction.indices =
-                [ Operand.ConstantOperand (C.Int 32 0),
-                  Operand.ConstantOperand (C.Int 32 1)
-                ],
-              Instruction.metadata = []
+        valueP ← getElementPtr $
+          Types.Minimal
+            { Types.type' = numPortsSmallValue,
+              Types.address' = casted,
+              Types.indincies' = Block.constant32List [0, 1]
             }
         value ← load numPortsSmallValue valueP
         -- Look into nod1 to set
-        portsPtr ← Block.instr portData $
-          Instruction.GetElementPtr
-            { Instruction.inBounds = False,
-              Instruction.address = no1,
-              Instruction.indices =
-                [ Operand.ConstantOperand (C.Int 32 0),
-                  Operand.ConstantOperand (C.Int 32 2)
-                ],
-              Instruction.metadata = []
+        portsPtr ← getElementPtr $
+          Types.Minimal
+            { Types.type' = portData,
+              Types.address' = no1,
+              Types.indincies' = Block.constant32List [0, 2]
             }
         ports ← load portType portsPtr
         -- allocate the new pointer
         p2Ptr ← newPortType no2 po2
         -- Set the port
-        portLocation ← Block.instr portData $
-          Instruction.GetElementPtr
-            { Instruction.inBounds = False,
-              Instruction.address = ports,
+        portLocation ← getElementPtr $
+          Types.Minimal
+            { Types.type' = portData,
+              Types.address' = ports,
               -- TODO ∷ Ι may have to count size here, I don't think so?
-              Instruction.indices =
+              Types.indincies' =
                 [ Operand.ConstantOperand (C.Int 32 0),
                   value
-                ],
-              Instruction.metadata = []
+                ]
             }
         store portLocation p2Ptr
         pure portLocation
-      ptrBranch = do undefined
+      ptrBranch = do
+        undefined
   generateIf Type.i1 tag intBranch ptrBranch
   pure ()
 
@@ -168,37 +156,25 @@ newPortType ∷
 newPortType node offset = do
   newPort ← alloca portType
   -- This is a ptr to a ptr
-  nodePtr ← Block.instr nodePointer $
-    Instruction.GetElementPtr
-      { Instruction.inBounds = False,
-        Instruction.address = newPort,
-        Instruction.indices =
-          [ Operand.ConstantOperand (C.Int 32 0),
-            Operand.ConstantOperand (C.Int 32 1)
-          ],
-        Instruction.metadata = []
+  nodePtr ← getElementPtr $
+    Types.Minimal
+      { Types.type' = nodePointer,
+        Types.address' = newPort,
+        Types.indincies' = Block.constant32List [0, 1]
       }
-  offsetPtr ← Block.instr numPorts $
-    Instruction.GetElementPtr
-      { Instruction.inBounds = False,
-        Instruction.address = newPort,
-        Instruction.indices =
-          [ Operand.ConstantOperand (C.Int 32 0),
-            Operand.ConstantOperand (C.Int 32 2)
-          ],
-        Instruction.metadata = []
+  offsetPtr ← getElementPtr $
+    Types.Minimal
+      { Types.type' = numPorts,
+        Types.address' = newPort,
+        Types.indincies' = Block.constant32List [0, 2]
       }
   -- allocate pointer to the node
   givenNodePtr ← alloca nodePointer
-  placeToStoreNode ← Block.instr nodeType $
-    Instruction.GetElementPtr
-      { Instruction.inBounds = False,
-        Instruction.address = givenNodePtr,
-        Instruction.indices =
-          [ Operand.ConstantOperand (C.Int 32 0),
-            Operand.ConstantOperand (C.Int 32 1)
-          ],
-        Instruction.metadata = []
+  placeToStoreNode ← getElementPtr $
+    Types.Minimal
+      { Types.type' = nodeType,
+        Types.address' = givenNodePtr,
+        Types.indincies' = Block.constant32List [0, 1]
       }
   -- Store the node to it
   store placeToStoreNode node
