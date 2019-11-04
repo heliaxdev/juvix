@@ -199,5 +199,4 @@ nodeType = StructureType
       ]
   }
 
-
 portData = ArrayType 0 portType

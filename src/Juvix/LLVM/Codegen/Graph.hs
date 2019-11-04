@@ -127,30 +127,29 @@ setPort (n1, p1) (n2, p2) = do
         -- Look into nod1 to set
         portsPtr ← Block.instr portData $
           Instruction.GetElementPtr
-          { Instruction.inBounds = False,
-            Instruction.address = no1,
-            Instruction.indices =
-            [ Operand.ConstantOperand (C.Int 32 0),
-              Operand.ConstantOperand (C.Int 32 2)
-            ],
-            Instruction.metadata = []
-          }
-
+            { Instruction.inBounds = False,
+              Instruction.address = no1,
+              Instruction.indices =
+                [ Operand.ConstantOperand (C.Int 32 0),
+                  Operand.ConstantOperand (C.Int 32 2)
+                ],
+              Instruction.metadata = []
+            }
         ports ← load portType portsPtr
         -- allocate the new pointer
         p2Ptr ← newPortType no2 po2
         -- Set the port
         portLocation ← Block.instr portData $
-            Instruction.GetElementPtr
-              { Instruction.inBounds = False,
-                Instruction.address = ports,
-                -- TODO ∷ Ι may have to count size here, I don't think so?
-                Instruction.indices =
+          Instruction.GetElementPtr
+            { Instruction.inBounds = False,
+              Instruction.address = ports,
+              -- TODO ∷ Ι may have to count size here, I don't think so?
+              Instruction.indices =
                 [ Operand.ConstantOperand (C.Int 32 0),
                   value
                 ],
-                Instruction.metadata = []
-              }
+              Instruction.metadata = []
+            }
         store portLocation p2Ptr
         pure portLocation
       ptrBranch = do undefined
@@ -161,23 +160,23 @@ newPortType node offset = do
   p2Ptr ← alloca portType
   -- This is a ptr to a ptr
   nodePtr ← Block.instr nodePointer $
-           Instruction.GetElementPtr
-           { Instruction.inBounds = False,
-             Instruction.address = p2Ptr,
-             Instruction.indices =
-             [ Operand.ConstantOperand (C.Int 32 0),
-               Operand.ConstantOperand (C.Int 32 1)
-             ],
-             Instruction.metadata = []
-           }
+    Instruction.GetElementPtr
+      { Instruction.inBounds = False,
+        Instruction.address = p2Ptr,
+        Instruction.indices =
+          [ Operand.ConstantOperand (C.Int 32 0),
+            Operand.ConstantOperand (C.Int 32 1)
+          ],
+        Instruction.metadata = []
+      }
   offsetPtr ← Block.instr nodePointer $
-           Instruction.GetElementPtr
-           { Instruction.inBounds = False,
-             Instruction.address = p2Ptr,
-             Instruction.indices =
-             [ Operand.ConstantOperand (C.Int 32 0),
-               Operand.ConstantOperand (C.Int 32 1)
-             ],
-             Instruction.metadata = []
-           }
+    Instruction.GetElementPtr
+      { Instruction.inBounds = False,
+        Instruction.address = p2Ptr,
+        Instruction.indices =
+          [ Operand.ConstantOperand (C.Int 32 0),
+            Operand.ConstantOperand (C.Int 32 1)
+          ],
+        Instruction.metadata = []
+      }
   pure p2Ptr
