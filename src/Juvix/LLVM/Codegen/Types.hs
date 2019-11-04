@@ -115,6 +115,10 @@ newtype LLVM a = LLVM {runLLVM ∷ State AST.Module a}
 -- LLVM Types
 --------------------------------------------------------------------------------
 
+-- | 'varientToType' takes the type out of the variant
+varientToType ∷ VariantInfo → Type
+varientToType Variant {typ' = typ'} = typ'
+
 -- | 'numPortsSmall' is used for the number of ports that fit within 16 bits
 numPortsSmall ∷ VariantInfo
 numPortsSmall =
@@ -125,6 +129,9 @@ numPortsSmall =
         name = "small",
         typ' = IntegerType 16
       }
+
+numPortsSmallValue ∷ Type
+numPortsSmallValue = IntegerType 16
 
 -- | 'numPortsLarge' is used for the number of ports that don't fit within 16 bits
 numPortsLarge ∷ VariantInfo

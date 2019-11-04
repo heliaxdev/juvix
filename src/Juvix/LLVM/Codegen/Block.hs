@@ -12,6 +12,7 @@ import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Global as Global
 import qualified LLVM.AST.IntegerPredicate as IntPred
+import qualified LLVM.AST.Type as Type
 
 --------------------------------------------------------------------------------
 -- Codegen Operations
@@ -106,8 +107,8 @@ addBlock bname = do
   put @"names" supply
   return name
 
-setBlock ∷ HasState "currentBlock" Name m ⇒ Name → m Name
-setBlock bName = bName <$ put @"currentBlock" bName
+setBlock ∷ HasState "currentBlock" Name m ⇒ Name → m ()
+setBlock bName = put @"currentBlock" bName
 
 modifyBlock ∷
   ( HasState "blocks" (HashMap Name v) m,
@@ -252,12 +253,11 @@ icmp ∷
     HasState "count" Word m,
     HasState "currentBlock" Name m
   ) ⇒
-  Type →
   IntPred.IntegerPredicate →
   Operand →
   Operand →
   m Operand
-icmp ty iPred op1 op2 = instr ty $ ICmp iPred op1 op2 []
+icmp iPred op1 op2 = instr Type.i1 $ ICmp iPred op1 op2 []
 
 --------------------------------------------------------------------------------
 -- Floating Point Operations
@@ -315,6 +315,15 @@ cbr ∷
   m (Named Terminator)
 cbr cond tr fl = terminator $ Do $ CondBr cond tr fl []
 
+br ∷
+  ( HasState "blocks" (HashMap Name BlockState) m,
+    HasState "currentBlock" Name m,
+    HasThrow "err" Errors m
+  ) ⇒
+  Name →
+  m (Named Terminator)
+br val = terminator $ Do $ Br val []
+
 phi ∷
   ( HasThrow "err" Errors m,
     HasState "blocks" (HashMap Name BlockState) m,
@@ -337,15 +346,40 @@ switch ∷
   m (Named Terminator)
 switch val default' dests = terminator $ Do $ Switch val default' dests []
 
-generateIf cond tr fl = do
+generateIf ∷
+  ( HasThrow "err" Errors m,
+    HasState "blockCount" Int m,
+    HasState "blocks" (HashMap Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name m,
+    HasState "names" Names m
+  ) ⇒
+  Type →
+  Operand →
+  m Operand →
+  m Operand →
+  m Operand
+generateIf ty cond tr fl = do
   ifThen ← addBlock "if.then"
   ifElse ← addBlock "if.else"
   ifExit ← addBlock "if.exit"
   -- Entry
-  --  cond ← cgen cond
-  undefined
-
---  test ← fcmp FP.ONE
+  test ← icmp IntPred.EQ cond (ConstantOperand (C.Int 2 1))
+  _ ← cbr test ifThen ifElse
+  -- if.then
+  setBlock ifThen
+  -- Should be fine if we have the correct effects
+  t ← tr
+  _ ← br ifExit
+  ifThen ← getBlock
+  -- if.else
+  setBlock ifElse
+  f ← fl
+  _ ← br ifExit
+  ifElse ← getBlock
+  -- if.exit
+  setBlock ifExit
+  phi ty [(t, ifThen), (f, ifElse)]
 
 --------------------------------------------------------------------------------
 -- Effects

@@ -86,10 +86,12 @@ makeFunction name args = do
 
 setPort ∷
   ( HasThrow "err" Errors m,
+    HasState "blockCount" Int m,
     HasState "blocks" (Map.HashMap Name.Name BlockState) m,
     HasState "count" Word m,
     HasState "currentBlock" Name.Name m,
-    HasState "symtab" Shared.SymbolTable m
+    HasState "names" Names m,
+    HasState "symtab" SymbolTable m
   ) ⇒
   (Name.Name, Name.Name) →
   (Name.Name, Name.Name) →
@@ -97,7 +99,8 @@ setPort ∷
 setPort (n1, p1) (n2, p2) = do
   (no1, po1) ← (,) <$> Block.externf n1 <*> Block.externf p1
   (no2, po2) ← (,) <$> Block.externf n2 <*> Block.externf p2
-  tag ← Block.instr Type.i1 $
+  -- Is a pointer to tagPtr
+  tagPtr ← Block.instr Type.i1 $
     Instruction.GetElementPtr
       { Instruction.inBounds = False,
         Instruction.address = po1,
@@ -107,4 +110,22 @@ setPort (n1, p1) (n2, p2) = do
           ],
         Instruction.metadata = []
       }
-  return ()
+  tag ← load Type.i1 tagPtr
+  let intBranch = do
+        casted ← bitCast po1 (varientToType numPortsSmall)
+        valueP ← Block.instr numPortsSmallValue $
+          Instruction.GetElementPtr
+            { Instruction.inBounds = False,
+              Instruction.address = casted,
+              Instruction.indices =
+                [ Operand.ConstantOperand (C.Int 32 0),
+                  Operand.ConstantOperand (C.Int 32 1)
+                ],
+              Instruction.metadata = []
+            }
+        value ← load numPortsSmallValue valueP
+        -- Look into port1 to set
+        undefined
+      ptrBranch = do undefined
+  generateIf Type.i1 tag intBranch ptrBranch
+  undefined
