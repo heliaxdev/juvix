@@ -156,27 +156,54 @@ setPort (n1, p1) (n2, p2) = do
   generateIf Type.i1 tag intBranch ptrBranch
   pure ()
 
+newPortType ∷
+  ( HasThrow "err" Errors m,
+    HasState "blocks" (Map.HashMap Name.Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name.Name m
+  ) ⇒
+  Operand.Operand →
+  Operand.Operand →
+  m Operand.Operand
 newPortType node offset = do
-  p2Ptr ← alloca portType
+  newPort ← alloca portType
   -- This is a ptr to a ptr
   nodePtr ← Block.instr nodePointer $
     Instruction.GetElementPtr
       { Instruction.inBounds = False,
-        Instruction.address = p2Ptr,
+        Instruction.address = newPort,
         Instruction.indices =
           [ Operand.ConstantOperand (C.Int 32 0),
             Operand.ConstantOperand (C.Int 32 1)
           ],
         Instruction.metadata = []
       }
-  offsetPtr ← Block.instr nodePointer $
+  offsetPtr ← Block.instr numPorts $
     Instruction.GetElementPtr
       { Instruction.inBounds = False,
-        Instruction.address = p2Ptr,
+        Instruction.address = newPort,
+        Instruction.indices =
+          [ Operand.ConstantOperand (C.Int 32 0),
+            Operand.ConstantOperand (C.Int 32 2)
+          ],
+        Instruction.metadata = []
+      }
+  -- allocate pointer to the node
+  givenNodePtr ← alloca nodePointer
+  placeToStoreNode ← Block.instr nodeType $
+    Instruction.GetElementPtr
+      { Instruction.inBounds = False,
+        Instruction.address = givenNodePtr,
         Instruction.indices =
           [ Operand.ConstantOperand (C.Int 32 0),
             Operand.ConstantOperand (C.Int 32 1)
           ],
         Instruction.metadata = []
       }
-  pure p2Ptr
+  -- Store the node to it
+  store placeToStoreNode node
+  -- now store the pointer to the newPort
+  store nodePtr givenNodePtr
+  -- store the offset
+  store offsetPtr offset
+  pure newPort
