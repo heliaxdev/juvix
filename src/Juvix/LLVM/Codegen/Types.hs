@@ -163,8 +163,8 @@ numPortsSize = 17
 
 -- | Construct a 16 bit port space so we can put many inside a node cheaply
 -- The pointer points to the beginning of a node and an offset
-portPointer ∷ Type
-portPointer = PointerType
+nodePointer ∷ Type
+nodePointer = PointerType
   { pointerReferent = nodeType,
     pointerAddrSpace = AddrSpace 16
   }
@@ -173,7 +173,7 @@ portType ∷ Type
 portType = StructureType
   { isPacked = True,
     elementTypes =
-      [ portPointer, -- the pointer to the other port
+      [ nodePointer, -- the pointer to the other port
         numPorts -- the offset from the base of the node the port is
       ]
   }
@@ -198,3 +198,6 @@ nodeType = StructureType
         ArrayType 0 dataType -- variable size array of data the node stores
       ]
   }
+
+
+portData = ArrayType 0 portType
