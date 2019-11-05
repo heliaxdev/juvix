@@ -113,7 +113,7 @@ test_eval_sub =
 --unit tests for cType
 shouldCheck ∷
   ∀ primTy primVal.
-  (Show primTy, Eq primTy, Show primVal, Eq primVal) ⇒
+  (Show primTy, Show primVal, Eq primTy, Eq primVal) ⇒
   Parameterisation primTy primVal →
   IR.Term primTy primVal →
   IR.Annotation primTy primVal →
@@ -125,7 +125,7 @@ shouldCheck param term ann =
 --unit tests for iType
 shouldInfer ∷
   ∀ primTy primVal.
-  (Show primTy, Eq primTy, Show primVal, Eq primVal) ⇒
+  (Show primTy, Show primVal, Eq primTy, Eq primVal) ⇒
   Parameterisation primTy primVal →
   IR.Elim primTy primVal →
   IR.Annotation primTy primVal →
@@ -136,7 +136,7 @@ shouldInfer param term ann =
 
 shouldEval ∷
   ∀ primTy primVal.
-  (Show primTy, Eq primTy, Show primVal, Eq primVal) ⇒
+  (Show primTy, Show primVal, Eq primTy, Eq primVal) ⇒
   Parameterisation primTy primVal →
   IR.Term primTy primVal →
   IR.Value primTy primVal →
