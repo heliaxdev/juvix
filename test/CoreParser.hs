@@ -1,5 +1,3 @@
-{-# LANGUAGE ExplicitForAll #-}
-
 module CoreParser where
 
 import Juvix.Core.HR

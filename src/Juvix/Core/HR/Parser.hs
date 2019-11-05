@@ -1,5 +1,3 @@
-{-# LANGUAGE ExplicitForAll #-}
-
 module Juvix.Core.HR.Parser where
 
 import Data.Functor.Identity

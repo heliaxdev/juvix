@@ -1,5 +1,3 @@
-{-# LANGUAGE ExplicitForAll #-}
-
 module Juvix.Core.Parameterisations.Naturals where
 
 import Juvix.Core.Types hiding
