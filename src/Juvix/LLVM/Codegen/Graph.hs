@@ -33,20 +33,17 @@ import qualified LLVM.AST.Type as Type
 -- take 4 Operand.Operand
 --
 link ∷
-  ( HasThrow "err" Errors m1,
-    HasState "blockCount" Int m1,
-    HasState "blocks" (Map.HashMap Name.Name BlockState) m1,
-    HasState "count" Word m1,
-    HasState "currentBlock" Name.Name m1,
-    HasState "moduleDefinitions" [AST.Definition] m2,
-    HasState "names" Names m1,
-    HasState "symtab" (Map.HashMap Symbol Operand.Operand) m1
+  ( HasThrow "err" Errors m,
+    HasState "blockCount" Int m,
+    HasState "blocks" (Map.HashMap Name.Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name.Name m,
+    HasState "moduleDefinitions" [AST.Definition] m,
+    HasState "names" Names m,
+    HasState "symtab" (Map.HashMap Symbol Operand.Operand) m
   ) ⇒
-  m1 (m2 Operand.Operand)
-link = do
-  (b ∷ [AST.BasicBlock]) ← body
-  return $
-    define Constants.int "link" args b
+  m Operand.Operand
+link = body >>= define Constants.int "link" args
   where
     args =
       ( [ (nodeType, "node_1"),
