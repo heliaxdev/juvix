@@ -3,13 +3,11 @@ module Juvix.LLVM.Codegen.Graph where
 
 import Juvix.LLVM.Codegen.Block as Block
 import qualified Juvix.LLVM.Codegen.Constants as Constants
-import qualified Juvix.LLVM.Codegen.Shared as Shared
 import Juvix.LLVM.Codegen.Types as Types
 import Juvix.Library hiding (Type, local)
 import qualified Juvix.Utility.HashMap as Map
 import qualified LLVM.AST as AST
 import qualified LLVM.AST.Constant as C
-import qualified LLVM.AST.Instruction as Instruction
 import qualified LLVM.AST.Name as Name
 import qualified LLVM.AST.Operand as Operand
 import qualified LLVM.AST.Type as Type
@@ -17,12 +15,12 @@ import qualified LLVM.AST.Type as Type
 -- TODO ∷ We need to do a few things
 -- 1. getElementPointer the tag
 -- Int ⇒
--- \ 1. times offset by this number
+-- \ 1. times offset by this number (* Don't really have to do it! *)
 -- \ 2. grab the node from here
 -- \ 3. do operation
 -- Int* ⇒
 -- \ 1. deref the Int
--- \ 2. times the offset by this deref
+-- \ 2. times the offset by this deref (* Don't really have to do it! *)
 -- \ 3. grab node from  here
 -- \ 4. do operation
 
@@ -34,6 +32,17 @@ import qualified LLVM.AST.Type as Type
 
 -- take 4 Operand.Operand
 --
+link ∷
+  ( HasThrow "err" Errors m1,
+    HasState "blockCount" Int m1,
+    HasState "blocks" (Map.HashMap Name.Name BlockState) m1,
+    HasState "count" Word m1,
+    HasState "currentBlock" Name.Name m1,
+    HasState "moduleDefinitions" [AST.Definition] m2,
+    HasState "names" Names m1,
+    HasState "symtab" (Map.HashMap Symbol Operand.Operand) m1
+  ) ⇒
+  m1 (m2 Operand.Operand)
 link = do
   (b ∷ [AST.BasicBlock]) ← body
   return $
@@ -107,15 +116,17 @@ setPort (n1, p1) (n2, p2) = do
         Types.indincies' = Block.constant32List [0, 1]
       }
   tag ← load Type.i1 tagPtr
-  let intBranch = do
-        casted ← bitCast po1 (varientToType numPortsSmall)
+  let branchGen variant variantType extraDeref = do
+        casted ← bitCast po1 (varientToType variant)
         valueP ← getElementPtr $
           Types.Minimal
-            { Types.type' = numPortsSmallValue,
+            { Types.type' = variantType,
               Types.address' = casted,
               Types.indincies' = Block.constant32List [0, 1]
             }
-        value ← load numPortsSmallValue valueP
+        value ← load variantType valueP
+        -- Does nothing for the small case
+        value ← extraDeref value
         -- Look into nod1 to set
         portsPtr ← getElementPtr $
           Types.Minimal
@@ -139,9 +150,17 @@ setPort (n1, p1) (n2, p2) = do
             }
         store portLocation p2Ptr
         pure portLocation
-      ptrBranch = do
-        undefined
-  generateIf Type.i1 tag intBranch ptrBranch
+      intBranch = branchGen numPortsSmall numPortsSmallValue return
+      ptrBranch = branchGen numPortsLarge numPortsLargeValuePtr $
+        \vPtr → do
+          deref2 ← Block.getElementPtr $
+            Types.Minimal
+              { Types.type' = numPortsLargeValue,
+                Types.address' = vPtr,
+                Types.indincies' = Block.constant32List [0, 1]
+              }
+          load numPortsLargeValue deref2
+  _ ← generateIf Type.void tag intBranch ptrBranch
   pure ()
 
 newPortType ∷

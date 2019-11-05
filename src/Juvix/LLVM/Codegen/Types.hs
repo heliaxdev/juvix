@@ -139,11 +139,11 @@ numPortsSmall =
     Variant
       { size = 16,
         name = "small",
-        typ' = IntegerType 16
+        typ' = numPortsSmallValue
       }
 
 numPortsSmallValue ∷ Type
-numPortsSmallValue = IntegerType 16
+numPortsSmallValue = Type.i16
 
 -- | 'numPortsLarge' is used for the number of ports that don't fit within 16 bits
 numPortsLarge ∷ VariantInfo
@@ -153,11 +153,18 @@ numPortsLarge =
     Variant
       { size = 16,
         name = "large",
-        typ' = PointerType
-          { pointerReferent = nodeType,
-            pointerAddrSpace = AddrSpace 16
-          }
+        typ' = numPortsLargeValuePtr
       }
+
+numPortsLargeValue ∷ Type
+numPortsLargeValue = Type.i64
+
+numPortsLargeValuePtr ∷ Type
+numPortsLargeValuePtr = PointerType
+  { -- TODO ∷ change to something more variable than i64
+    pointerReferent = numPortsLargeValue,
+    pointerAddrSpace = AddrSpace 16
+  }
 
 -- number of ports on a node or the port offset
 numPorts ∷ Type
@@ -185,8 +192,8 @@ portType ∷ Type
 portType = StructureType
   { isPacked = True,
     elementTypes =
-      [ nodePointer, -- the pointer to the other port
-        numPorts -- the offset from the base of the node the port is
+      [ nodePointer, -- the pointer to the other node
+        numPorts -- the offset from the base of the node where the port is
       ]
   }
 

@@ -451,8 +451,7 @@ getElementPtr (Minimal address indices type') =
         indices = indices
       }
 
-
-constant32List :: Functor f ⇒ f Integer → f Operand
+constant32List ∷ Functor f ⇒ f Integer → f Operand
 constant32List = fmap (ConstantOperand . C.Int 32)
 
 --------------------------------------------------------------------------------
