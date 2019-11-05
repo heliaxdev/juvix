@@ -40,7 +40,7 @@ parseVal lexer = do
   pure Unit
 
 reservedNames ∷ [String]
-reservedNames = ["Unit","()"]
+reservedNames = ["Unit", "()"]
 
 reservedOpNames ∷ [String]
 reservedOpNames = []
