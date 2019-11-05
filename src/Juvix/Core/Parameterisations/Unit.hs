@@ -31,16 +31,16 @@ apply _ _ = Nothing
 
 parseTy ∷ Token.GenTokenParser String () Identity → Parser UnitTy
 parseTy lexer = do
-  Token.reserved lexer "TUnit"
+  Token.reserved lexer "Unit"
   pure TUnit
 
 parseVal ∷ Token.GenTokenParser String () Identity → Parser UnitVal
 parseVal lexer = do
-  Token.reserved lexer "Unit"
+  Token.reserved lexer "()"
   pure Unit
 
 reservedNames ∷ [String]
-reservedNames = ["TUnit", "Unit"]
+reservedNames = ["Unit","()"]
 
 reservedOpNames ∷ [String]
 reservedOpNames = []

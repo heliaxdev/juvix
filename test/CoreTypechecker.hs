@@ -1,5 +1,3 @@
-{-# LANGUAGE ExplicitForAll #-}
-
 -- | Tests for the type checker and evaluator in Core/IR/Typechecker.hs
 module CoreTypechecker where
 

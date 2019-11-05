@@ -48,10 +48,10 @@ test_primitive_type_Nats ∷ T.TestTree
 test_primitive_type_Nats = shouldParsePrim nat "Nat" (PrimTy Nat)
 
 test_primitive_type_unit ∷ T.TestTree
-test_primitive_type_unit = shouldParsePrim unit "TUnit" (PrimTy TUnit)
+test_primitive_type_unit = shouldParsePrim unit "Unit" (PrimTy TUnit)
 
 test_primitive_val_unit ∷ T.TestTree
-test_primitive_val_unit = shouldParsePrim unit "Unit" (Elim (Prim Unit))
+test_primitive_val_unit = shouldParsePrim unit "()" (Elim (Prim Unit))
 
 test_dependent_fun ∷ T.TestTree
 test_dependent_fun = shouldParse "[Π] 1 * 0 * 0" (Pi (SNat 1) (Star 0) (Star 0))
