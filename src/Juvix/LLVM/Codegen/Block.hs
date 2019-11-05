@@ -4,7 +4,7 @@ module Juvix.LLVM.Codegen.Block where
 
 import Data.ByteString.Short
 import Juvix.LLVM.Codegen.Shared
-import Juvix.LLVM.Codegen.Types
+import Juvix.LLVM.Codegen.Types as Types
 import Juvix.Library hiding (Type, local)
 import Juvix.Utility.HashMap as Map
 import LLVM.AST
@@ -489,17 +489,12 @@ createVariant variantName args = do
             throw @"err" (DoesNotHappen ("type " <> show sumName <> "does not exist"))
           Just sumTyp → do
             sum ← alloca sumTyp
-            getEle ←
-              instr sumTyp $
-                GetElementPtr
-                  { inBounds = True,
-                    address = sum,
-                    indices =
-                      [ ConstantOperand (C.Int 32 0),
-                        ConstantOperand (C.Int 32 0)
-                      ],
-                    metadata = []
-                  }
+            getEle ← getElementPtr $
+              Minimal
+                { Types.type' = sumTyp,
+                  Types.address' = sum,
+                  Types.indincies' = constant32List [0, 0]
+                }
             store
               getEle
               (ConstantOperand (C.Int tag (toInteger offset)))
@@ -509,15 +504,11 @@ createVariant variantName args = do
             foldM_
               ( \i inst → do
                   ele ←
-                    instr varType $
-                      GetElementPtr
-                        { inBounds = True,
-                          address = casted,
-                          indices =
-                            [ ConstantOperand (C.Int 32 0),
-                              ConstantOperand (C.Int 32 i)
-                            ],
-                          metadata = []
+                    getElementPtr $
+                      Minimal
+                        { Types.type' = varType,
+                          Types.address' = casted,
+                          Types.indincies' = constant32List [0, i]
                         }
                   store ele inst
                   pure (succ i)

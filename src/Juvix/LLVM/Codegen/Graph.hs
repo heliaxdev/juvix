@@ -2,7 +2,6 @@
 module Juvix.LLVM.Codegen.Graph where
 
 import Juvix.LLVM.Codegen.Block as Block
-import qualified Juvix.LLVM.Codegen.Constants as Constants
 import Juvix.LLVM.Codegen.Types as Types
 import Juvix.Library hiding (Type, local)
 import qualified Juvix.Utility.HashMap as Map
@@ -43,7 +42,7 @@ link ∷
     HasState "symtab" (Map.HashMap Symbol Operand.Operand) m
   ) ⇒
   m Operand.Operand
-link = body >>= define Constants.int "link" args
+link = body >>= define Type.void "link" args
   where
     args =
       ( [ (nodeType, "node_1"),
@@ -62,6 +61,23 @@ link = body >>= define Constants.int "link" args
       createBlocks
 
 -- preform offsets
+
+isBothPrimary = body >>= define Type.i1 "is_both_primary" args
+  where
+    args = [(nodeType, "node")]
+    body = do
+      makeFunction "is_both_primary" args
+      undefined -- TODO call to find_edge
+      createBlocks
+
+findEdge = body >>= define undefined "find_edge" args
+  where
+    args = [(nodeType, "node"), (numPorts, "port")]
+    body = do
+      makeFunction "find_edge" args
+      undefined
+      createBlocks
+
 --------------------------------------------------------------------------------
 -- Helpers
 --------------------------------------------------------------------------------
