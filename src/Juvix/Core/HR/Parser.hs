@@ -120,7 +120,7 @@ generateParser parameterisation =
       elim ∷ Parser (Elim primTy primVal)
       elim = buildExpressionParser ops elim'
       elim' ∷ Parser (Elim primTy primVal)
-      elim' = parens elim <|> try primElim <|> annElim <|> varElim
+      elim' = try primElim <|> annElim <|> varElim <|> parens elim
       parseWhole ∷ Parser a → Parser a
       parseWhole p = do
         whiteSpace
