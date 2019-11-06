@@ -3,6 +3,8 @@ module Juvix.Core.IR.Typechecker where
 import Control.Lens ((^?), ix)
 import Control.Monad.Except (throwError)
 import Juvix.Core.IR.Types
+import Juvix.Core.Parameterisations.Naturals
+import Juvix.Core.Parameterisations.Unit
 import Juvix.Core.Types
 import Juvix.Core.Usage
 import Juvix.Library hiding (show)
@@ -54,7 +56,7 @@ vapp ∷
 vapp _ (VLam f) v = f v
 vapp _ (VNeutral n) v = VNeutral (NApp n v)
 vapp param (VPrim x) (VPrim y) =
-  case apply param x y of
+  case Juvix.Core.Types.apply param x y of
     Just v → VPrim v
     Nothing →
       error
@@ -214,7 +216,7 @@ iType _ ii g (Free x) =
 iType p _ii _g (Prim prim) =
   let arrow [x] = VPrimTy x
       arrow (x : xs) = VPi Omega (VPrimTy x) (const (arrow xs))
-   in case typeOf p arrow prim of
+   in case Juvix.Core.Types.typeOf p arrow prim of
         Right a → return (Omega, VPrimTy a)
         Left f → return (Omega, f)
 -- App, function M applies to N (Elimination rule of dependent function types)
