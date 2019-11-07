@@ -123,31 +123,9 @@ setPort (n1, p1) (n2, p2) = do
   (no1, po1) ← (,) <$> Block.externf n1 <*> Block.externf p1
   (no2, po2) ← (,) <$> Block.externf n2 <*> Block.externf p2
   -- Grab the int value of port 1
-  _ ← intOfNumPorts Type.void po1 $ \value → do
-    -- Sequence begin to get the port Type
-    portsPtr ← getElementPtr $
-      Types.Minimal
-        { Types.type' = portData,
-          Types.address' = no1,
-          Types.indincies' = Block.constant32List [0, 2]
-        }
-    ports ← load portData portsPtr
-    -- allocate the new pointer
-    p2Ptr ← newPortType no2 po2
-    -- Set the port
-    portLocation ← getElementPtr $
-      Types.Minimal
-        { Types.type' = portType,
-          Types.address' = ports,
-          -- TODO ∷ Ι may have to count size here, I don't think so?
-          Types.indincies' =
-            [ Operand.ConstantOperand (C.Int 32 0),
-              value
-            ]
-        }
-    -- Sequence end to get the port Types
-    store portLocation p2Ptr
-    pure portLocation
+  portLocation ← getPort no1 po1
+  p2Ptr ← newPortType no2 po2
+  store portLocation p2Ptr
   pure ()
 
 newPortType ∷
@@ -190,16 +168,37 @@ newPortType node offset = do
   store offsetPtr offset
   pure newPort
 
+getPort ∷
+  ( HasThrow "err" Errors m,
+    HasState "blockCount" Int m,
+    HasState "blocks" (Map.HashMap Name.Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name.Name m,
+    HasState "names" Names m
+  ) ⇒
+  Operand.Operand →
+  Operand.Operand →
+  m Operand.Operand
 getPort node port = do
-  -- get the Port
-  portsPtr ← getElementPtr $
-    Types.Minimal
-      { Types.type' = portData,
-        Types.address' = node,
-        Types.indincies' = Block.constant32List [0, 2]
-      }
-  ports ← load portType portsPtr
-  undefined
+  intOfNumPorts portType port $ \value → do
+    portsPtr ← getElementPtr $
+      Types.Minimal
+        { Types.type' = portData,
+          Types.address' = node,
+          Types.indincies' = Block.constant32List [0, 2]
+        }
+    ports ← load portData portsPtr
+    -- allocate the new pointer
+    getElementPtr $
+      Types.Minimal
+        { Types.type' = portType,
+          Types.address' = ports,
+          -- TODO ∷ Ι may have to count size here, I don't think so?
+          Types.indincies' =
+            [ Operand.ConstantOperand (C.Int 32 0),
+              value
+            ]
+        }
 
 -- | 'intOfNumPorts' generates an int of two different sizes to be used in cont logic
 -- the type referees to the final type in the cont logic
