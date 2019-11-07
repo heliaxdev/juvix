@@ -60,7 +60,7 @@ link = body >>= define Type.void "link" args
       _ ← retNull
       createBlocks
 
--- preform offsets
+-- perform offsets
 
 isBothPrimary = body >>= define Type.i1 "is_both_primary" args
   where

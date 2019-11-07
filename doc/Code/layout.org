@@ -201,7 +201,6 @@
 ** Interactive
 ** Main
 ** Options
->>>>>>> mariari/exposed-hashmap
 * Tests
 ** Bohm
 - Tests all code involved with =Bohm=
