@@ -11,26 +11,13 @@ import qualified LLVM.AST.Name as Name
 import qualified LLVM.AST.Operand as Operand
 import qualified LLVM.AST.Type as Type
 
--- TODO ∷ We need to do a few things
--- 1. getElementPointer the tag
--- Int ⇒
--- \ 1. times offset by this number (* Don't really have to do it! *)
--- \ 2. grab the node from here
--- \ 3. do operation
--- Int* ⇒
--- \ 1. deref the Int
--- \ 2. times the offset by this deref (* Don't really have to do it! *)
--- \ 3. grab node from  here
--- \ 4. do operation
-
--- TODO ∷ Figure out what types to send in… not entirely sure yet
+-- TODO ∷ abstract out getElementPointer and load into a single operation
 
 --------------------------------------------------------------------------------
 -- Main Functions
 --------------------------------------------------------------------------------
 
 -- take 4 Operand.Operand
---
 link ∷
   ( HasThrow "err" Errors m,
     HasState "blockCount" Int m,
@@ -71,12 +58,27 @@ isBothPrimary = body >>= define Type.i1 "is_both_primary" args
       createBlocks
 
 -- The logic assumes that the operation always succeeds
+findEdge ∷
+  ( HasThrow "err" Errors m,
+    HasState "blockCount" Int m,
+    HasState "blocks" (Map.HashMap Name.Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name.Name m,
+    HasState "moduleDefinitions" [AST.Definition] m,
+    HasState "names" Names m,
+    HasState "symtab" (Map.HashMap Symbol Operand.Operand) m
+  ) ⇒
+  m Operand.Operand
 findEdge = body >>= define undefined "find_edge" args
   where
     args = [(nodeType, "node"), (numPorts, "port")]
     body = do
       makeFunction "find_edge" args
-      undefined
+      node ← Block.externf "node"
+      pNum ← Block.externf "port"
+      port ← getPort node pNum
+      other ← portPointsTo port
+      _ ← ret other
       createBlocks
 
 --------------------------------------------------------------------------------
@@ -106,6 +108,19 @@ makeFunction name args = do
         assign (nameToSymbol nam) var
     )
     args
+
+-- Logic for setPort expanded
+
+-- 1. getElementPointer the tag
+-- Int ⇒
+-- \ 1. times offset by this number (* Don't really have to do it! *)
+-- \ 2. grab the node from here
+-- \ 3. do operation
+-- Int* ⇒
+-- \ 1. deref the Int
+-- \ 2. times the offset by this deref (* Don't really have to do it! *)
+-- \ 3. grab node from  here
+-- \ 4. do operation
 
 setPort ∷
   ( HasThrow "err" Errors m,
@@ -214,9 +229,9 @@ intOfNumPorts ∷
   Operand.Operand →
   (Operand.Operand → m Operand.Operand) →
   m Operand.Operand
-intOfNumPorts (typ ∷ Type.Type) (numPort ∷ Operand.Operand) cont = do
+intOfNumPorts typ numPort cont = do
   -- grab the tag from the numPort
-  tagPtr ← getElementPtr $
+  tagPtr ← Block.getElementPtr $
     Types.Minimal
       { Types.type' = Type.i1,
         Types.address' = numPort,
@@ -238,7 +253,7 @@ intOfNumPorts (typ ∷ Type.Type) (numPort ∷ Operand.Operand) cont = do
     -- Generic logic
     branchGen variant variantType extraDeref = do
       casted ← bitCast numPort (varientToType variant)
-      valueP ← getElementPtr $
+      valueP ← Block.getElementPtr $
         Types.Minimal
           { Types.type' = variantType,
             Types.address' = casted,
@@ -248,3 +263,44 @@ intOfNumPorts (typ ∷ Type.Type) (numPort ∷ Operand.Operand) cont = do
       -- Does nothing for the small case
       value ← extraDeref value
       cont value
+
+-- | 'portPointsTo' is a function which grabs the portType of the node a portType points to
+portPointsTo ∷
+  ( HasThrow "err" Errors m,
+    HasState "blockCount" Int m,
+    HasState "blocks" (Map.HashMap Name.Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name.Name m,
+    HasState "names" Names m
+  ) ⇒
+  Operand.Operand →
+  m Operand.Operand
+portPointsTo (portType ∷ Operand.Operand) = do
+  -- TODO ∷ see if there is any special logic for packed Types
+  -- Do I have to index by size?
+  nodePtrPtr ← Block.getElementPtr $
+    Types.Minimal
+      { Types.type' = nodePointer,
+        Types.address' = portType,
+        Types.indincies' = Block.constant32List [0, 1]
+      }
+  -- Finish grabbing the node from the pointer
+  nodePtr ← load nodePointer nodePtrPtr
+  -- get the node which it points to
+  nodeTypePtr ← getElementPtr $
+    Types.Minimal
+      { Types.type' = nodeType,
+        Types.address' = nodePtr,
+        Types.indincies' = Block.constant32List [0, 1]
+      }
+  node ← load nodeType nodeTypePtr
+  -- Get the numPort
+  numPortPtr ← Block.getElementPtr $
+    Types.Minimal
+      { Types.type' = numPorts,
+        Types.address' = portType,
+        -- Index may change due to being packed
+        Types.indincies' = Block.constant32List [0, 2]
+      }
+  numPort ← load numPorts numPortPtr
+  getPort node numPort
