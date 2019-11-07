@@ -69,7 +69,7 @@ findEdge ∷
     HasState "symtab" (Map.HashMap Symbol Operand.Operand) m
   ) ⇒
   m Operand.Operand
-findEdge = body >>= define undefined "find_edge" args
+findEdge = body >>= define portType "find_edge" args
   where
     args = [(nodeType, "node"), (numPorts, "port")]
     body = do
@@ -304,3 +304,13 @@ portPointsTo (portType ∷ Operand.Operand) = do
       }
   numPort ← load numPorts numPortPtr
   getPort node numPort
+
+
+-- | Allocates a 'numPorts'
+allocaNumPorts (isLarge ∷ Bool) (value ∷ Operand.Operand) = do
+  -- Call Block.createVariant
+  -- Issue is that I need to register this sum type in the map
+  -- else it is an error.
+  -- see if this is okay, if not make custom logic just for the
+  -- sums to create the language
+ undefined
