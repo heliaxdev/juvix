@@ -70,6 +70,7 @@ isBothPrimary = body >>= define Type.i1 "is_both_primary" args
       undefined -- TODO call to find_edge
       createBlocks
 
+-- The logic assumes that the operation always succeeds
 findEdge = body >>= define undefined "find_edge" args
   where
     args = [(nodeType, "node"), (numPorts, "port")]
@@ -121,59 +122,32 @@ setPort ∷
 setPort (n1, p1) (n2, p2) = do
   (no1, po1) ← (,) <$> Block.externf n1 <*> Block.externf p1
   (no2, po2) ← (,) <$> Block.externf n2 <*> Block.externf p2
-  -- Is a pointer to tagPtr
-  tagPtr ← getElementPtr $
-    Types.Minimal
-      { Types.type' = Type.i1,
-        Types.address' = po1,
-        Types.indincies' = Block.constant32List [0, 1]
-      }
-  tag ← load Type.i1 tagPtr
-  let branchGen variant variantType extraDeref = do
-        casted ← bitCast po1 (varientToType variant)
-        valueP ← getElementPtr $
-          Types.Minimal
-            { Types.type' = variantType,
-              Types.address' = casted,
-              Types.indincies' = Block.constant32List [0, 1]
-            }
-        value ← load variantType valueP
-        -- Does nothing for the small case
-        value ← extraDeref value
-        -- Look into nod1 to set
-        portsPtr ← getElementPtr $
-          Types.Minimal
-            { Types.type' = portData,
-              Types.address' = no1,
-              Types.indincies' = Block.constant32List [0, 2]
-            }
-        ports ← load portType portsPtr
-        -- allocate the new pointer
-        p2Ptr ← newPortType no2 po2
-        -- Set the port
-        portLocation ← getElementPtr $
-          Types.Minimal
-            { Types.type' = portData,
-              Types.address' = ports,
-              -- TODO ∷ Ι may have to count size here, I don't think so?
-              Types.indincies' =
-                [ Operand.ConstantOperand (C.Int 32 0),
-                  value
-                ]
-            }
-        store portLocation p2Ptr
-        pure portLocation
-      intBranch = branchGen numPortsSmall numPortsSmallValue return
-      ptrBranch = branchGen numPortsLarge numPortsLargeValuePtr $
-        \vPtr → do
-          deref2 ← Block.getElementPtr $
-            Types.Minimal
-              { Types.type' = numPortsLargeValue,
-                Types.address' = vPtr,
-                Types.indincies' = Block.constant32List [0, 1]
-              }
-          load numPortsLargeValue deref2
-  _ ← generateIf Type.void tag intBranch ptrBranch
+  -- Grab the int value of port 1
+  _ ← intOfNumPorts Type.void po1 $ \value → do
+    -- Sequence begin to get the port Type
+    portsPtr ← getElementPtr $
+      Types.Minimal
+        { Types.type' = portData,
+          Types.address' = no1,
+          Types.indincies' = Block.constant32List [0, 2]
+        }
+    ports ← load portData portsPtr
+    -- allocate the new pointer
+    p2Ptr ← newPortType no2 po2
+    -- Set the port
+    portLocation ← getElementPtr $
+      Types.Minimal
+        { Types.type' = portType,
+          Types.address' = ports,
+          -- TODO ∷ Ι may have to count size here, I don't think so?
+          Types.indincies' =
+            [ Operand.ConstantOperand (C.Int 32 0),
+              value
+            ]
+        }
+    -- Sequence end to get the port Types
+    store portLocation p2Ptr
+    pure portLocation
   pure ()
 
 newPortType ∷
@@ -215,3 +189,63 @@ newPortType node offset = do
   -- store the offset
   store offsetPtr offset
   pure newPort
+
+getPort node port = do
+  -- get the Port
+  portsPtr ← getElementPtr $
+    Types.Minimal
+      { Types.type' = portData,
+        Types.address' = node,
+        Types.indincies' = Block.constant32List [0, 2]
+      }
+  ports ← load portType portsPtr
+  undefined
+
+-- | 'intOfNumPorts' generates an int of two different sizes to be used in cont logic
+-- the type referees to the final type in the cont logic
+intOfNumPorts ∷
+  ( HasThrow "err" Errors m,
+    HasState "blockCount" Int m,
+    HasState "blocks" (Map.HashMap Name.Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name.Name m,
+    HasState "names" Names m
+  ) ⇒
+  Type.Type →
+  Operand.Operand →
+  (Operand.Operand → m Operand.Operand) →
+  m Operand.Operand
+intOfNumPorts (typ ∷ Type.Type) (numPort ∷ Operand.Operand) cont = do
+  -- grab the tag from the numPort
+  tagPtr ← getElementPtr $
+    Types.Minimal
+      { Types.type' = Type.i1,
+        Types.address' = numPort,
+        Types.indincies' = Block.constant32List [0, 1]
+      }
+  tag ← load Type.i1 tagPtr
+  generateIf typ tag smallBranch largeBranch
+  where
+    smallBranch = branchGen numPortsSmall numPortsSmallValue return
+    largeBranch = branchGen numPortsLarge numPortsLargeValuePtr $
+      \vPtr → do
+        deref2 ← Block.getElementPtr $
+          Types.Minimal
+            { Types.type' = numPortsLargeValue,
+              Types.address' = vPtr,
+              Types.indincies' = Block.constant32List [0, 1]
+            }
+        load numPortsLargeValue deref2
+    -- Generic logic
+    branchGen variant variantType extraDeref = do
+      casted ← bitCast numPort (varientToType variant)
+      valueP ← getElementPtr $
+        Types.Minimal
+          { Types.type' = variantType,
+            Types.address' = casted,
+            Types.indincies' = Block.constant32List [0, 1]
+          }
+      value ← load variantType valueP
+      -- Does nothing for the small case
+      value ← extraDeref value
+      cont value
