@@ -93,37 +93,38 @@ library:
     - Juvix.Core.EAC.Parser
     - Juvix.Core.EAC.Erasure
     - Juvix.Core.Parameterisations.Unit
-    - Juvix.Utility
-    - Juvix.Utility.HashMap
-    - Juvix.Nets.Bohm
-    - Juvix.Nets.Combinators
-    - Juvix.Backends.Interface
-    - Juvix.Backends.Env
-    - Juvix.Backends.Graph
-    - Juvix.Backends.Maps
-    - Juvix.Bohm.Parser
-    - Juvix.Bohm.Translation
-    - Juvix.Bohm.Type
-    - Juvix.Bohm.Shared
-    - Juvix.Bohm.Default
-    - Juvix.Bohm
+    - Juvix.Interpreter
+    - Juvix.Interpreter.InteractionNet
+    - Juvix.Interpreter.InteractionNet.Nets.Default
+    - Juvix.Interpreter.InteractionNet.Nets.Combinators
+    - Juvix.Interpreter.InteractionNet.Backends.Interface
+    - Juvix.Interpreter.InteractionNet.Backends.Env
+    - Juvix.Interpreter.InteractionNet.Backends.Graph
+    - Juvix.Interpreter.InteractionNet.Backends.Maps
+    - Juvix.Interpreter.InteractionNet.Parser
+    - Juvix.Interpreter.InteractionNet.Translation
+    - Juvix.Interpreter.InteractionNet.Type
+    - Juvix.Interpreter.InteractionNet.Shared
+    - Juvix.Interpreter.InteractionNet.Default
     - Juvix.Library
+    - Juvix.Library.HashMap
+    - Juvix.Library.PrettyPrint
     - Juvix.Visualize.Dot
     - Juvix.Visualize.Graph
     - Juvix.Encoding.Encoding
     - Juvix.Encoding.Mendler
     - Juvix.Encoding.Scott
     - Juvix.Encoding.Types
-    - Juvix.LLVM.Codegen.Constants
-    - Juvix.LLVM.Codegen.Sum
-    - Juvix.LLVM.Codegen.Types
-    - Juvix.LLVM.Codegen.Shared
-    - Juvix.LLVM.Codegen.Block
-    - Juvix.LLVM.Codegen.Graph
+    - Juvix.Backends
+    - Juvix.Backends.LLVM
+    - Juvix.Backends.LLVM.Codegen.Constants
+    - Juvix.Backends.LLVM.Codegen.Sum
+    - Juvix.Backends.LLVM.Codegen.Types
+    - Juvix.Backends.LLVM.Codegen.Shared
+    - Juvix.Backends.LLVM.Codegen.Block
+    - Juvix.Backends.LLVM.Codegen.Graph
   other-modules:
-    - Juvix.NodeInterface
-    - Juvix.Utility.Helper
-    - Juvix.Utility.PrettyPrint
+    - Juvix.Interpreter.InteractionNet.NodeInterface
     - Juvix.Core.Translate
     - Juvix.Core.Pipeline
     - Juvix.Core.Utility

@@ -1,12 +1,11 @@
 module Nets.Combinators where
 
 import Data.Graph.Inductive
-import Juvix.Backends.Env
-import Juvix.Backends.Graph
-import Juvix.Backends.Interface
+import Juvix.Interpreter.InteractionNet.Backends.Env
+import Juvix.Interpreter.InteractionNet.Backends.Graph
+import Juvix.Interpreter.InteractionNet.Backends.Interface
+import Juvix.Interpreter.InteractionNet.Nets.Combinators
 import Juvix.Library
-import Juvix.Nets.Combinators
-import Juvix.Utility
 
 -- Example Graphs --------------------------------------------------------------
 commute1 ∷ Net Lang

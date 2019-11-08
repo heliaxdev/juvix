@@ -2,15 +2,14 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Juvix.Nets.Bohm where
+module Juvix.Interpreter.InteractionNet.Nets.Default where
 
 import Control.Lens
-import Juvix.Backends.Env
-import Juvix.Backends.Interface
-import Juvix.Bohm.Shared
+import Juvix.Interpreter.InteractionNet.Backends.Env
+import Juvix.Interpreter.InteractionNet.Backends.Interface
+import Juvix.Interpreter.InteractionNet.NodeInterface
+import Juvix.Interpreter.InteractionNet.Shared
 import Juvix.Library hiding (link, reduce)
-import Juvix.NodeInterface
-import qualified Juvix.Utility.Helper as H
 import Prelude (Show (..))
 
 data Lang
@@ -90,7 +89,7 @@ reduceAll ∷
   (InfoNetworkDiff net Lang m) ⇒
   Int →
   m ()
-reduceAll = H.untilNothingNTimesM reduce
+reduceAll = untilNothingNTimesM reduce
 
 reduce ∷ (InfoNetworkDiff net Lang m) ⇒ m Bool
 reduce = do

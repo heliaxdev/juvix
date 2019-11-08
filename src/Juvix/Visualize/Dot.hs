@@ -2,16 +2,15 @@ module Juvix.Visualize.Dot where
 
 import Control.Exception hiding ()
 import qualified Data.Text as T
-import Juvix.Backends.Env
-import Juvix.Backends.Graph
+import Juvix.Interpreter.InteractionNet.Backends.Env
+import Juvix.Interpreter.InteractionNet.Backends.Graph
+import Juvix.Interpreter.InteractionNet.Nets.Default
 import Juvix.Library hiding
   ( catch,
     reduce,
     throwIO,
     writeFile,
   )
-import Juvix.Nets.Bohm
-import Juvix.Utility.Helper as H
 import Juvix.Visualize.Graph
 import System.Directory
 import System.IO.Error
@@ -50,7 +49,7 @@ reducePrint ∷
   FilePath →
   Int →
   f ()
-reducePrint name num = flip H.untilNothingNTimesM num $ do
+reducePrint name num = flip untilNothingNTimesM num $ do
   info ← get @"info"
   ctxt ← get @"net"
   liftIO (showNet (name <> show (parallelSteps info)) (runFlip ctxt))

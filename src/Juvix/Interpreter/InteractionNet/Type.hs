@@ -1,33 +1,33 @@
-module Juvix.Bohm.Type where
+module Juvix.Interpreter.InteractionNet.Type where
 
-import Juvix.Bohm.Shared
+import Juvix.Interpreter.InteractionNet.Shared
 import Juvix.Library
 
 -- TODO ∷ Investigate if it would be advantageous to promote this to a well typed gadt
-data Bohm
+data AST
   = IntLit Int
-  | Lambda Symbol Bohm
-  | Application Bohm Bohm
-  | Not Bohm
+  | Lambda Symbol AST
+  | Application AST AST
+  | Not AST
   | True'
   | False'
-  | Letrec Symbol Bohm
-  | Let Symbol Bohm Bohm
-  | If Bohm Bohm Bohm
-  | Cons Bohm Bohm
-  | Or Bohm Bohm
-  | And Bohm Bohm
+  | Letrec Symbol AST
+  | Let Symbol AST AST
+  | If AST AST AST
+  | Cons AST AST
+  | Or AST AST
+  | And AST AST
   | Nil
-  | Car Bohm
-  | Cdr Bohm
-  | IsNil Bohm
+  | Car AST
+  | Cdr AST
+  | IsNil AST
   | Symbol' Symbol
   | -- Not valid syntax but for read back of a graph
     Erase
   | -- Not valid syntax but for read back of a graph
-    Curried3 (Primitive → Primitive → Primitive → Maybe Primitive) Bohm Bohm Bohm
-  | Curried2 (Primitive → Primitive → Maybe Primitive) Bohm Bohm
-  | Curried1 (Primitive → Maybe Primitive) Bohm
+    Curried3 (Primitive → Primitive → Primitive → Maybe Primitive) AST AST AST
+  | Curried2 (Primitive → Primitive → Maybe Primitive) AST AST
+  | Curried1 (Primitive → Maybe Primitive) AST
   deriving (Show)
 
 -- | Constructs a Function from a primitive
