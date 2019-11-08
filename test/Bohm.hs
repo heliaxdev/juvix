@@ -10,17 +10,21 @@ import Juvix.Backends.Env
 import Juvix.Backends.Graph
 import Juvix.Backends.Interface
 import Juvix.Backends.Maps
+import Juvix.Bohm
 import Juvix.Bohm.Default
 import Juvix.Bohm.Parser
 import Juvix.Bohm.Translation
 import Juvix.Bohm.Type
-import Juvix.EAC
+import Juvix.Core.EAC
 import Juvix.Library
 import Juvix.Nets.Bohm
 import Juvix.Utility
 import Juvix.Visualize.Dot
 import Juvix.Visualize.Graph
 import Text.Parsec
+
+ealToBohm ∷ ∀ primVal. RPTO primVal → Bohm
+ealToBohm = erasedCoreToBohm . erase
 
 astToNetDefault ∷ Network net ⇒ Bohm → net Lang
 astToNetDefault net = astToNet net defaultEnv
