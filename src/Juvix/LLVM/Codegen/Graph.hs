@@ -54,7 +54,20 @@ isBothPrimary = body >>= define Type.i1 "is_both_primary" args
     args = [(nodeType, "node")]
     body = do
       makeFunction "is_both_primary" args
-      undefined -- TODO call to find_edge
+      mainPort ← allocaNumPorts False (Operand.ConstantOperand (C.Int 32 0))
+      -- TODO ∷ Maybe bad, we should have an environemnt of edges that I can just call
+      edge ← findEdge
+      port ← call portType edge (Block.emptyArgs [mainPort])
+      nodePtr ← getElementPtr $
+        Types.Minimal
+          { Types.type' = nodePointer,
+            Types.address' = port,
+            Types.indincies' = Block.constant32List [0, 1]
+          }
+      node ← load nodePointer nodePtr
+      -- run compare function
+      cmp ← undefined
+      _ ← ret cmp
       createBlocks
 
 -- The logic assumes that the operation always succeeds
@@ -305,12 +318,31 @@ portPointsTo (portType ∷ Operand.Operand) = do
   numPort ← load numPorts numPortPtr
   getPort node numPort
 
-
 -- | Allocates a 'numPorts'
-allocaNumPorts (isLarge ∷ Bool) (value ∷ Operand.Operand) = do
+allocaNumPorts ∷
+  ( HasThrow "err" Errors m,
+    HasState "blocks" (Map.HashMap Name.Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name.Name m,
+    HasState "typTab" TypeTable m,
+    HasState "varTab" VariantToType m
+  ) ⇒
+  Bool →
+  Operand.Operand →
+  m Operand.Operand
+allocaNumPorts (isLarge ∷ Bool) (value ∷ Operand.Operand) =
   -- Call Block.createVariant
   -- Issue is that I need to register this sum type in the map
   -- else it is an error.
   -- see if this is okay, if not make custom logic just for the
   -- sums to create the language
- undefined
+  case isLarge of
+    False →
+      -- TODO ∷ register this variant
+      Block.createVariant "numPorts_large" [value]
+    True → do
+      -- Allocate a pointer to the value
+      ptr ← alloca nodePointer
+      store ptr value
+      -- TODO ∷ register this variant
+      Block.createVariant "numPorts_small" [ptr]

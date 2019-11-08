@@ -14,6 +14,7 @@ import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Global as Global
 import qualified LLVM.AST.IntegerPredicate as IntPred
+import qualified LLVM.AST.ParameterAttribute as ParameterAttribute
 import qualified LLVM.AST.Type as Type
 
 --------------------------------------------------------------------------------
@@ -386,6 +387,30 @@ generateIf ty cond tr fl = do
 --------------------------------------------------------------------------------
 -- Effects
 --------------------------------------------------------------------------------
+
+emptyArgs = fmap (\x → (x, []))
+
+call ∷
+  ( HasThrow "err" Errors m,
+    HasState "blocks" (HashMap Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name m
+  ) ⇒
+  Type →
+  Operand →
+  [(Operand, [ParameterAttribute.ParameterAttribute])] →
+  m Operand
+call typ fn args = instr typ $
+  Call
+    { functionAttributes = [],
+      tailCallKind = Nothing,
+      callingConvention = CC.GHC,
+      returnAttributes = [],
+      function = Right fn,
+      arguments = args,
+      metadata = []
+    }
+
 alloca ∷
   ( HasThrow "err" Errors m,
     HasState "blocks" (HashMap Name BlockState) m,
