@@ -1,15 +1,15 @@
-module Juvix.EAC.Solve where
+module Juvix.Core.EAC.Solve where
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import GHC.Base (String)
-import Juvix.EAC.Types
+import Juvix.Core.EAC.Types
 import Juvix.Library hiding (link, reduce)
 import qualified Z3.Monad as Z3
 
 -- TODO ∷ handle RPrim
 
-runMultipleConstraints ∷ Int → [Constraint] → RPT → IO ()
+runMultipleConstraints ∷ ∀ a. Int → [Constraint] → RPT a → IO ()
 runMultipleConstraints numRepeat constraints syntax = do
   let numset = grabTermNumbers syntax mempty
       recGen _ _ _ 0 = pure ()

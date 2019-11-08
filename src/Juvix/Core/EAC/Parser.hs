@@ -1,8 +1,15 @@
 {-# LANGUAGE ApplicativeDo #-}
 
-module Juvix.EAC.Parser where
+module Juvix.Core.EAC.Parser
+  ( parseEal,
+    parseEal',
+    parseBohmFile,
+    types,
+  )
+where
 
-import Juvix.EAC.Types
+import Juvix.Core.EAC.Types hiding (PType, RPT, RPTI, RPTO)
+import qualified Juvix.Core.EAC.Types as EAC
 import Juvix.Library hiding
   ( (<|>),
     Type,
@@ -18,6 +25,12 @@ import Text.Parsec.String
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as T
 import Prelude (String, error)
+
+type PType = EAC.PType ()
+
+type RPTO = EAC.RPTO ()
+
+type RPTI = EAC.RPTI ()
 
 langaugeDef ∷ Stream s m Char ⇒ GenLanguageDef s u m
 langaugeDef = LanguageDef

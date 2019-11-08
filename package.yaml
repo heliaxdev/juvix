@@ -29,6 +29,8 @@ dependencies:
   - enummapset
   - turtle
   - directory
+  - time
+  - morley
 
 default-extensions:
   - NoImplicitPrelude
@@ -71,17 +73,23 @@ library:
     - Juvix.Core
     - Juvix.Core.HR
     - Juvix.Core.IR
+    - Juvix.Core.Erased
+    - Juvix.Core.Erased.Evaluator
+    - Juvix.Core.Erased.Types
     - Juvix.Core.Erasure
+    - Juvix.Core.Erasure.Algorithm
+    - Juvix.Core.Erasure.Types
     - Juvix.Core.Usage
     - Juvix.Core.Types
     - Juvix.Core.Parameterisations.Naturals
+    - Juvix.Core.EAC
+    - Juvix.Core.EAC.Check
+    - Juvix.Core.EAC.ConstraintGen
+    - Juvix.Core.EAC.Solve
+    - Juvix.Core.EAC.Types
+    - Juvix.Core.EAC.Parser
+    - Juvix.Core.EAC.Erasure
     - Juvix.Core.Parameterisations.Unit
-    - Juvix.EAC
-    - Juvix.EAC.Check
-    - Juvix.EAC.EAC
-    - Juvix.EAC.Solve
-    - Juvix.EAC.Types
-    - Juvix.EAC.Parser
     - Juvix.Utility
     - Juvix.Utility.HashMap
     - Juvix.Nets.Bohm
@@ -108,6 +116,7 @@ library:
     - Juvix.Utility.Helper
     - Juvix.Utility.PrettyPrint
     - Juvix.Core.Translate
+    - Juvix.Core.Pipeline
     - Juvix.Core.Utility
     - Juvix.Core.IR.Types
     - Juvix.Core.IR.Typechecker
