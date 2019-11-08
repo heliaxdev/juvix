@@ -106,6 +106,9 @@ test67Gen =
     (netToGif "tmp/" "boo" 1000 . astToNetDefault)
     (parseBohm "( (lambda x. (x + y + y)) 2)")
 
+testGen ∷ IO (Either ParseError (InfoNet (FlipNet Lang)))
+testGen = traverse (netToGif "tmp/" "boo" 1000 . astToNetDefault) (parseBohm "((lambda x. (x x)) 2)")
+
 -- run these on any of the tests above
 -- gives back a term for all except for Omega, but that is reasonable
 testAst ∷ DifferentRep net ⇒ Either a (InfoNet (net Lang)) → Maybe Bohm

@@ -29,6 +29,9 @@ dependencies:
   - enummapset
   - turtle
   - directory
+  - llvm-hs
+  - llvm-hs-pure
+  - bytestring
   - time
   - morley
 
@@ -111,6 +114,12 @@ library:
     - Juvix.Encoding.Mendler
     - Juvix.Encoding.Scott
     - Juvix.Encoding.Types
+    - Juvix.LLVM.Codegen.Constants
+    - Juvix.LLVM.Codegen.Sum
+    - Juvix.LLVM.Codegen.Types
+    - Juvix.LLVM.Codegen.Shared
+    - Juvix.LLVM.Codegen.Block
+    - Juvix.LLVM.Codegen.Graph
   other-modules:
     - Juvix.NodeInterface
     - Juvix.Utility.Helper

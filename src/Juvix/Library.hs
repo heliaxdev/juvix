@@ -45,6 +45,7 @@ import Protolude hiding
     gets,
     local,
     modify,
+    moduleName,
     pass,
     put,
     reader,
@@ -87,7 +88,7 @@ traverseM f = fmap join . traverse f
 instance Show (a → b) where
   show _ = "fun"
 
-newtype Symbol = Sym Text deriving (Eq, Hashable)
+newtype Symbol = Sym Text deriving (Eq, Hashable, Semigroup)
 
 instance Show Symbol where
   show (Sym t) = T.unpack t
