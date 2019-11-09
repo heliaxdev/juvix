@@ -1,6 +1,4 @@
-FROM fpco/stack-build:lts-13.30
-
-RUN ln -s /usr/bin/g++-7 /usr/bin/g++
+FROM fpco/stack-build:lts-14.12
 
 RUN git clone https://github.com/Z3Prover/z3.git && cd z3 && python scripts/mk_make.py && cd build && make && make install
 
@@ -11,3 +9,7 @@ ENV LLVM_VERSION 9.0.0
 # Install Clang and LLVM
 COPY llvm-install.sh .
 RUN ./llvm-install.sh
+
+# Install libff
+COPY ./build-libff.sh .
+RUN ./build-libff.sh
