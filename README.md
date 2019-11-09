@@ -42,19 +42,26 @@ See [CONTRIBUTING.md](./doc/CONTRIBUTING.md).
 
 ## Installation
 
-Requirements for installing:
+### Requirements
+
+The following are required:
 
 - [Stack](https://haskellstack.org)
 - [z3](https://github.com/Z3Prover/z3) (this can be installed with `make build-z3`)
 - [libff](https://github.com/scipr-lab/libff) (this can be installed with `make build-libff`)
-- [LLVM9](https://llvm.org/)
+- [LLVM9](https://llvm.org/) (you can likely install this with your package manager)
 
+### Building
+
+Build Juvix and install the binary to the local path with:
 
 ```bash
 make
 ```
 
-For full optimizations (but slower compile times):
+### Building with optimisations
+
+For full optimisations (but slower compile times):
 
 ```bash
 make build-opt
@@ -62,7 +69,7 @@ make build-opt
 
 ## Usage
 
-Juvix is not yet production-ready; however, you can play around with some functionality in an interactive REPL:
+Juvix is not yet production-ready. You can play around with some functionality in an interactive REPL:
 
 ```bash
 juvix interactive
