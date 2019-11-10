@@ -14,4 +14,4 @@ RUN ./llvm-install.sh
 COPY ./build-libff.sh .
 RUN ./build-libff.sh
 
-RUN apt-get update && apt-get -y install libsecp256k1-dev
+RUN mv /usr/local/lib/libLLVM* /usr/lib
