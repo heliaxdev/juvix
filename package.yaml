@@ -60,6 +60,7 @@ default-extensions:
   - TypeInType
   - DerivingVia
   - TypeApplications
+  - StandaloneDeriving
 
 ghc-options:
   - -ferror-spans
@@ -119,6 +120,12 @@ library:
     - Juvix.Encoding.Types
     - Juvix.Backends
     - Juvix.Backends.Michelson
+    - Juvix.Backends.Michelson.Parameterisation
+    - Juvix.Backends.Michelson.Compilation
+    - Juvix.Backends.Michelson.Compilation.Term
+    - Juvix.Backends.Michelson.Compilation.Type
+    - Juvix.Backends.Michelson.Compilation.Types
+    - Juvix.Backends.Michelson.Compilation.Util
     - Juvix.Backends.Michelson.Optimisation
     - Juvix.Backends.LLVM
     - Juvix.Backends.LLVM.Codegen.Constants
