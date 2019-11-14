@@ -53,7 +53,7 @@ The following are required:
 - [Openssl Libssl API](https://wiki.openssl.org/index.php/Libssl_API)
 - [LLVM9](https://llvm.org/)
 
-#### Insturctions For Linux
+#### Instructions for Linux
 
 - **Stack**
   - For Ubuntu/Debian : `apt install stack`
