@@ -1,5 +1,17 @@
 * Juvix
 ** Backends
+*** ArithmeticCircuit
+**** Parameterisation <<ArithmeticCircuit/Parameterisation>>
+- _Relies on_
+  + [[Library]]
+**** Compilation <<ArithmeticCircuit/Compilation>>
+- _Relies on_
+  + [[ArithmeticCircuit/Compilation/Types]]
+  + [[ArithmeticCircuit/Parameterisation]]
+  + [[Library]]
+***** Types <<ArithmeticCircuit/Compilation/Types>>
+- _Relies on_
+  + [[Library]]
 *** LLVM
 - Serves as the LLVM backend compiler to Juvix.
 - This is an alternative to the interpreter provided.
@@ -58,37 +70,37 @@ Provides a mechanism for defining Sum types
 **** Optimisation
 - _Relies on_
   + [[Library]]
-  + [[Compilation/Types]]
-**** Parameterisation
+  + [[Michelson/Compilation/Types]]
+**** Parameterisation <<Michelson/Parameterisation>>
 - _Relies on_
   + [[Library]]
-**** Compilation
+**** Compilation <<Michelson/Compilation>>
 - _Relies on_
   + [[Term]]
   + [[Compilation/Type]]
-  + [[Compilation/Types]]
+  + [[Michelson/Compilation/Types]]
   + [[Util]]
   + [[Optimisation]]
-  + [[Parameterisation]]
+  + [[Michelson/Parameterisation]]
   + [[Library]]
 ***** Term
 - _Relies on_
-  + [[Compilation/Types]]
+  + [[Michelson/Compilation/Types]]
   + [[Util]]
-  + [[Parameterisation]]
+  + [[Michelson/Parameterisation]]
   + [[Library]]
 ***** Type <<Compilation/Type>>
 - _Relies on_
-  + [[Compilation/Types]]
-  + [[Parameterisation]]
+  + [[Michelson/Compilation/Types]]
+  + [[Michelson/Parameterisation]]
   + [[Library]]
-***** Types <<Compilation/Types>>
+***** Types <<Michelson/Compilation/Types>>
 - _Relies on_
-  + [[Parameterisation]]
+  + [[Michelson/Parameterisation]]
   + [[Library]]
 ***** Util
 - _Relies on_
-  + [[Compilation/Types]]
+  + [[Michelson/Compilation/Types]]
   + [[Library]]
 ** Core
 - _Relies on_
