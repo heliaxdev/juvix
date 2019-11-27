@@ -17,9 +17,9 @@ termToMichelson ∷
   Term →
   M.Type →
   m Op
-termToMichelson term argTy = do
-  modify @"stack" ((FuncResultE, argTy) :)
-  instr ← termToInstr term
+termToMichelson term paramTy = do
+  modify @"stack" ((FuncResultE, paramTy) :)
+  instr ← termToInstr term paramTy
   tell @"compilationLog" [TermToInstr term instr]
   pure instr
 
@@ -29,16 +29,18 @@ stackGuard ∷
     HasThrow "compilationError" CompilationError m
   ) ⇒
   Term →
+  M.Type →
   (Term → m Op) →
   m Op
-stackGuard term func = do
+stackGuard term paramTy func = do
   start ← get @"stack"
   instr ← func term
   end ← get @"stack"
   case stackToStack start of
     M.SomeHST startStack → do
-      -- TODO: Should use M.runTypeCheck instead.
-      case M.runTypeCheckTest (M.typeCheckList [instr] startStack) of
+      -- TODO: Real originated contracts.
+      let originatedContracts = mempty
+      case M.runTypeCheck paramTy originatedContracts (M.typeCheckList [instr] startStack) of
         Left err → throw @"compilationError" (DidNotTypecheck err)
         Right (_ M.:/ (M.AnyOutInstr _)) → throw @"compilationError" (NotYetImplemented "any out instr")
         Right (_ M.:/ (_ M.::: endType)) → do
@@ -71,8 +73,9 @@ termToInstr ∷
     HasWriter "compilationLog" [CompilationLog] m
   ) ⇒
   Term →
+  M.Type →
   m Op
-termToInstr term = stackGuard term $ \term → do
+termToInstr term paramTy = stackGuard term paramTy $ \term → do
   let notYetImplemented ∷ m Op
       notYetImplemented = throw @"compilationError" (NotYetImplemented ("termToInstr: " <> show term))
 
@@ -93,12 +96,15 @@ termToInstr term = stackGuard term $ \term → do
         case prim of
           -- :: \x -> y ~ (x, s) => (y, s)
           PrimFst → stackCheck (lambda 1) $ do
+            -- TODO: return lambda (pair x y) x CAR
             genReturn (M.PrimEx (M.CAR "" ""))
           -- :: \x -> y ~ (x, s) => (y, s)
           PrimSnd → stackCheck (lambda 1) $ do
+            -- TODO: return lambda (pair x y) y CDR
             genReturn (M.PrimEx (M.CDR "" ""))
           -- :: \x y -> a ~ (x, (y, s)) => (a, s)
           PrimPair → stackCheck (lambda 2) $ do
+            -- TODO: return lambda (x, y) (x, y)
             modify @"stack" (\((_, xT) : (_, yT) : xs) → (FuncResultE, M.Type (M.TPair "" "" xT yT) "") : xs)
             pure (M.PrimEx (M.PAIR "" "" "" ""))
           -- :: a ~ s => (a, s)
@@ -133,28 +139,32 @@ termToInstr term = stackGuard term $ \term → do
     J.Lam arg body →
       stackCheck (lambda 1) $ do
         modify @"stack" (\((_, t) : xs) → (VarE arg, t) : xs)
-        inner ← termToInstr body
+        inner ← termToInstr body paramTy
         after ← genReturn (foldDrop 1)
         pure (M.SeqEx [inner, after])
-    -- TODO (maybe): Multi-arg lambdas.
-    -- Ordering: Treat as \a b -> c ~= \a -> \b -> c, e.g. reverse stack order.
-    -- forM_ args (\a -> modify ((:) (M.VarE (prettyPrintValue a), M.PairT M.BoolT M.BoolT)))
-
-    -- TODO: This is a hack.
-    -- :: (\a b -> c) a b ~ (a, (b, s)) => (c, s)
-    J.App (J.App func arg1) arg2 →
+    {-
+    -- TODO: Will this work in all cases?
+    -- Consider app, e.g. (\f -> f 1 2) pair, seems problematic.
+    -- :: (\a ... {n} b -> c) a ... {n} b ~ (a, ... {n} (b, s)) => (c, s)
+    J.App func arg →
       stackCheck addsOne $ do
-        arg2 ← termToInstr arg2
-        arg1 ← termToInstr arg1
-        func ← termToInstr func
-        pure (M.SeqEx [arg2, arg1, func])
+        let rec f args =
+              case f of
+                J.App f a → rec f (a : args)
+                _ → (f, args)
+            (fn, args) = rec func [arg]
+        args ← mapM (flip termToInstr paramTy) (reverse args)
+        func ← termToInstr fn paramTy
+        pure (M.SeqEx (args <> [func]))
+    -}
+
     -- :: (\a -> b) a ~ (a, s) => (b, s)
     -- Call-by-value (evaluate argument first).
     J.App func arg →
       stackCheck addsOne $ do
-        arg ← termToInstr arg
-        func ← termToInstr func
-        pure (M.SeqEx [arg, func])
+        func ← termToInstr func paramTy -- :: Lam a b
+        arg ← termToInstr arg paramTy -- :: a
+        pure (M.SeqEx [func, arg, M.PrimEx (M.EXEC "")])
 
 takesOne ∷ Stack → Stack → Bool
 takesOne post pre = post == drop 1 pre

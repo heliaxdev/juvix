@@ -80,8 +80,11 @@ library:
     - Juvix
     - Juvix.Core
     - Juvix.Core.HR
+    - Juvix.Core.HRAnn
     - Juvix.Core.IR
+    - Juvix.Core.IRAnn
     - Juvix.Core.Erased
+    - Juvix.Core.ErasedAnn
     - Juvix.Core.Erased.Evaluator
     - Juvix.Core.Erased.Types
     - Juvix.Core.Erasure
@@ -157,6 +160,12 @@ library:
     - Juvix.Core.IR.Typechecker
     - Juvix.Core.HR.Parser
     - Juvix.Core.HR.Types
+    - Juvix.Core.HRAnn.Types
+    - Juvix.Core.HRAnn.Erasure
+    - Juvix.Core.IRAnn.Types
+    - Juvix.Core.IRAnn.Erasure
+    - Juvix.Core.ErasedAnn.Types
+    - Juvix.Core.ErasedAnn.Erasure
 
 executables:
   juvix:
