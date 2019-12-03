@@ -8,6 +8,8 @@ module Juvix.Backends.LLVM.Net.EAC where
 -- TODO ∷ abstract all all imports to LLVM
 
 import qualified Juvix.Backends.LLVM.Codegen as Codegen
+import qualified Juvix.Backends.LLVM.DSL as DSL
+import qualified Juvix.Backends.LLVM.Net.EAC.Defs as Defs
 import qualified Juvix.Backends.LLVM.Net.EAC.Types as Types
 import Juvix.Library hiding (reduce)
 import qualified Juvix.Library.HashMap as Map
@@ -39,7 +41,6 @@ reduce = Codegen.defineFunction Type.void "reduce" args $
   do
     -- recursive function, properly register
     reduce ← Codegen.externf "reduce"
-    isBothPrimary ← Codegen.externf "is_both_primary"
     anihilateRewireAux ← Codegen.externf "anihilate_rewire_aux"
     -- switch creations
     eacList ← Codegen.externf "eac_list"
@@ -72,7 +73,7 @@ reduce = Codegen.defineFunction Type.void "reduce" args $
     -- TODO ∷ Prove this branch is unnecessary
     appContCase ← Codegen.addBlock "switch.app.continue"
     nodePtr ← nodeOf car
-    tagNode ← Codegen.call Codegen.bothPrimary isBothPrimary (Codegen.emptyArgs [nodePtr])
+    tagNode ← Defs.isBothPrimary [nodePtr]
     isPrimary ← Codegen.loadIsPrimaryEle tagNode
     -- TODO ∷ Prove this branch is unnecessary
     test ←
@@ -85,7 +86,7 @@ reduce = Codegen.defineFunction Type.void "reduce" args $
     ---------------------------------------------
     -- TODO ∷ fix the type of this.... need the rules to work on eac!!!
     Codegen.setBlock appContCase
-    nodeOther ← Codegen.loadPrimaryNode isPrimary >>= Codegen.load Codegen.nodeType
+    nodeOther ← Defs.loadPrimaryNode isPrimary >>= Codegen.load Defs.nodeType
     tagOther ← tagOf nodeOther
     _ ←
       Codegen.switch
@@ -98,8 +99,8 @@ reduce = Codegen.defineFunction Type.void "reduce" args $
     -- %switch.app.lam
     ---------------------------------------------
     Codegen.setBlock appLamCase
-    nodeOther ← Codegen.loadPrimaryNode isPrimary >>= Codegen.load Codegen.nodeType
-    node ← Codegen.load Codegen.nodeType nodePtr
+    nodeOther ← Defs.loadPrimaryNode isPrimary >>= Codegen.load Defs.nodeType
+    node ← Codegen.load Defs.nodeType nodePtr
     -- No new nodes are made
     _ ← Codegen.call Type.void anihilateRewireAux (Codegen.emptyArgs [node, nodeOther])
     aCdr ← pure cdr
@@ -186,17 +187,16 @@ anihilateRewireAux ∷
 anihilateRewireAux = Codegen.defineFunction Type.void "anihilate_rewire_aux" args $
   do
     -- TODO remove these explicit allocations
-    aux1 ← Codegen.auxiliary1
-    aux2 ← Codegen.auxiliary2
-    rewire ← Codegen.externf "rewire"
+    aux1 ← Defs.auxiliary1
+    aux2 ← Defs.auxiliary2
     node1 ← Codegen.externf "node_1"
     node2 ← Codegen.externf "node_2"
-    _ ← Codegen.call Type.void rewire (Codegen.emptyArgs [node1, aux1, node2, aux1])
-    _ ← Codegen.call Type.void rewire (Codegen.emptyArgs [node1, aux2, node2, aux2])
+    Codegen.rewire [node1, aux1, node2, aux1]
+    Codegen.rewire [node1, aux2, node2, aux2]
     _ ← Codegen.delNode node1
     Codegen.delNode node2
   where
-    args = [(Codegen.nodeType, "node_1"), (Codegen.nodeType, "node_2")]
+    args = [(Defs.nodeType, "node_1"), (Defs.nodeType, "node_2")]
 
 -- TODO ∷ make fast fanInAux and slow fanInAux
 
@@ -224,32 +224,20 @@ fanInAux0 allocF = Codegen.defineFunction Type.void "fan_in_aux_0" args $
     node ← Codegen.externf "node"
     era1 ← allocF >>= nodeOf
     era2 ← allocF >>= nodeOf
-    aux1 ← Codegen.auxiliary1
-    aux2 ← Codegen.auxiliary2
-    mainPort ← Codegen.mainPort
+    aux1 ← Defs.auxiliary1
+    aux2 ← Defs.auxiliary2
+    mainPort ← Defs.mainPort
     -- abstract out this string!
-    linkConnectedPort ← Codegen.externf "link_connected_port"
-    _ ←
-      Codegen.call
-        Type.void
-        linkConnectedPort
-        (Codegen.emptyArgs [fanIn, aux1, era1, mainPort])
-    _ ←
-      Codegen.call
-        Type.void
-        linkConnectedPort
-        (Codegen.emptyArgs [fanIn, aux2, era2, mainPort])
+    Codegen.linkConnectedPort [fanIn, aux1, era1, mainPort]
+    Codegen.linkConnectedPort [fanIn, aux2, era2, mainPort]
     Codegen.retNull
   where
     args =
-      [ (Codegen.nodeType, "node"), -- we send in the alloc function for it. Do case before
-        (Codegen.nodeType, "fan_in") -- we know this must be a fanIn so no need for tag
+      [ (Defs.nodeType, "node"), -- we send in the alloc function for it. Do case before
+        (Defs.nodeType, "fan_in") -- we know this must be a fanIn so no need for tag
       ]
 
 fanInAux1 allocF = undefined
-
--- TODO ∷ change interface for link and linkOtherNode to be more like
--- the interpreter
 
 fanInAux2 ∷
   ( HasThrow "err" Codegen.Errors m,
@@ -275,58 +263,35 @@ fanInAux2 allocF = Codegen.defineFunction Type.void "fan_in_aux_2" args $
     fan2 ← allocaFanIn >>= nodeOf
     nod1 ← allocF >>= nodeOf
     nod2 ← allocF >>= nodeOf
-    -- ports and functions
-    mainPort ← Codegen.mainPort
-    auxiliary1 ← Codegen.auxiliary1
-    auxiliary2 ← Codegen.auxiliary2
-    linkConnectedPort ← Codegen.externf "link_connected_port"
-    link ← Codegen.externf "link"
-    -- TODO ∷ Abstract
-    _ ←
-      Codegen.call
-        Type.void
-        linkConnectedPort
-        (Codegen.emptyArgs [fanIn, auxiliary1, nod1, mainPort])
-    _ ←
-      Codegen.call
-        Type.void
-        link
-        (Codegen.emptyArgs [nod1, auxiliary1, fan2, auxiliary1])
-    _ ←
-      Codegen.call
-        Type.void
-        link
-        (Codegen.emptyArgs [nod1, auxiliary2, fan1, auxiliary1])
-    _ ←
-      Codegen.call
-        Type.void
-        linkConnectedPort
-        (Codegen.emptyArgs [fanIn, auxiliary2, nod2, mainPort])
-    _ ←
-      Codegen.call
-        Type.void
-        link
-        (Codegen.emptyArgs [nod2, auxiliary1, fan2, auxiliary2])
-    _ ←
-      Codegen.call
-        Type.void
-        link
-        (Codegen.emptyArgs [nod2, auxiliary2, fan1, auxiliary2])
-    _ ←
-      Codegen.call
-        Type.void
-        linkConnectedPort
-        (Codegen.emptyArgs [node, auxiliary2, fan1, mainPort])
-    _ ←
-      Codegen.call
-        Type.void
-        linkConnectedPort
-        (Codegen.emptyArgs [node, auxiliary1, fan2, mainPort])
+    Defs.linkAll
+      DSL.defRel
+        { DSL.node = nod1,
+          DSL.primary = DSL.LinkConnected fanIn DSL.Aux1,
+          DSL.auxiliary1 = DSL.Link fan2 DSL.Aux1,
+          DSL.auxiliary2 = DSL.Link fan1 DSL.Aux1
+        }
+    Defs.linkAll
+      DSL.defRel
+        { DSL.node = nod2,
+          DSL.primary = DSL.LinkConnected fanIn DSL.Aux2,
+          DSL.auxiliary1 = DSL.Link fan2 DSL.Aux2,
+          DSL.auxiliary2 = DSL.Link fan1 DSL.Aux2
+        }
+    Defs.linkAll
+      DSL.defRel
+        { DSL.node = fan1,
+          DSL.primary = DSL.LinkConnected node DSL.Aux2
+        }
+    Defs.linkAll
+      DSL.defRel
+        { DSL.node = fan2,
+          DSL.primary = DSL.LinkConnected node DSL.Aux1
+        }
     Codegen.retNull
   where
     args =
-      [ (Codegen.nodeType, "node"),
-        (Codegen.nodeType, "fan_in")
+      [ (Defs.nodeType, "node"),
+        (Defs.nodeType, "fan_in")
       ]
 
 fanInAux3 allocF = undefined
@@ -348,7 +313,7 @@ allocaGen ∷
   m Operand.Operand
 allocaGen type' portLen dataLen = do
   eac ← Codegen.alloca Types.eac
-  node ← Codegen.allocaNodeH (replicate portLen Nothing) (replicate dataLen Nothing)
+  node ← Defs.allocaNodeH (replicate portLen Nothing) (replicate dataLen Nothing)
   tagPtr ← Codegen.getElementPtr $
     Codegen.Minimal
       { Codegen.type' = Types.tag,
@@ -358,7 +323,7 @@ allocaGen type' portLen dataLen = do
   Codegen.store tagPtr (Operand.ConstantOperand type')
   nodePtr ← Codegen.getElementPtr $
     Codegen.Minimal
-      { Codegen.type' = Codegen.nodeType,
+      { Codegen.type' = Defs.nodeType,
         Codegen.address' = eac,
         Codegen.indincies' = Codegen.constant32List [0, 1]
       }
@@ -393,7 +358,7 @@ nodeOf ∷
 nodeOf eac = do
   Codegen.loadElementPtr $
     Codegen.Minimal
-      { Codegen.type' = Codegen.nodeType,
+      { Codegen.type' = Defs.nodeType,
         Codegen.address' = eac,
         Codegen.indincies' = Codegen.constant32List [0, 1]
       }
