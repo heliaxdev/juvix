@@ -139,8 +139,14 @@ defineFunctionGen ∷
   [(Type, Name)] →
   m a →
   m Operand
-defineFunctionGen bool retty name args body =
-  (makeFunction name args >> body >> createBlocks) >>= defineGen bool retty name args
+defineFunctionGen bool retty name args body = do
+  oldSymTab ← get @"symtab"
+  functionOperand ←
+    (makeFunction name args >> body >> createBlocks) >>= defineGen bool retty name args
+  -- TODO ∷ figure out if LLVM functions can leak out of their local scope
+  put @"symtab" oldSymTab
+  assign name functionOperand
+  pure functionOperand
 
 defineFunction,
   defineFunctionVarArgs ∷
@@ -306,26 +312,53 @@ external retty label argtys = do
 defineMalloc ∷
   ∀ m.
   ( HasState "moduleDefinitions" [Definition] m,
-    HasState "symtab" (HashMap Symbol Operand) m
+    HasState "symtab" SymbolTable m
   ) ⇒
   m ()
 defineMalloc = do
   let name = "malloc"
   op ← external voidStarTy name [(size_t, "size")]
-  modify @"symtab" (Map.insert name op)
-  pure ()
+  assign name op
 
 defineFree ∷
   ∀ m.
   ( HasState "moduleDefinitions" [Definition] m,
-    HasState "symtab" (HashMap Symbol Operand) m
+    HasState "symtab" SymbolTable m
   ) ⇒
   m ()
 defineFree = do
   let name = "free"
-  op ← external voidTy name []
-  modify @"symtab" (Map.insert name op)
-  pure ()
+  op ← external voidTy name [(Types.voidStarTy, "type")]
+  assign name op
+
+mallocType ∷
+  ( HasThrow "err" Errors m,
+    HasState "blocks" (HashMap Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name m,
+    HasState "symtab" SymbolTable m
+  ) ⇒
+  Integer →
+  Type →
+  m Operand
+mallocType size type' = do
+  malloc ← externf "malloc"
+  voidPtr ← call Types.voidStarTy malloc (emptyArgs [Operand.ConstantOperand (C.Int 32 size)])
+  bitCast voidPtr type'
+
+free ∷
+  ( HasThrow "err" Errors m,
+    HasState "blocks" (HashMap Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name m,
+    HasState "symtab" SymbolTable m
+  ) ⇒
+  Operand →
+  m Operand
+free thing = do
+  free ← externf "free"
+  casted ← bitCast thing Types.voidStarTy
+  call Types.voidTy free (emptyArgs [casted])
 
 --------------------------------------------------------------------------------
 -- Integer Operations
@@ -660,9 +693,9 @@ createVariantAllocaFunction ∷
     HasState "currentBlock" Name m,
     HasState "moduleDefinitions" [Definition] m,
     HasState "names" Names m,
-    HasState "symtab" (HashMap Symbol Operand) m,
-    HasState "typTab" (HashMap Symbol Type) m,
-    HasState "varTab" (HashMap Symbol SumInfo) m
+    HasState "symtab" SymbolTable m,
+    HasState "typTab" TypeTable m,
+    HasState "varTab" VariantToType m
   ) ⇒
   Symbol →
   [Type] →
@@ -726,8 +759,7 @@ createVariantAllocaFunction variantName argTypes = do
 
 -- TODO ∷ Remove repeat code!!!
 
--- | creates a variant
-createVariant ∷
+createVariantGen ∷
   ( HasThrow "err" Errors m,
     HasState "blocks" (HashMap Name BlockState) m,
     HasState "count" Word m,
@@ -738,8 +770,9 @@ createVariant ∷
   ) ⇒
   Symbol →
   t Operand →
+  (Type → m Operand) →
   m Operand
-createVariant variantName args = do
+createVariantGen variantName args allocFn = do
   varTable ← get @"varTab"
   typTable ← get @"typTab"
   case Map.lookup variantName varTable of
@@ -756,7 +789,7 @@ createVariant variantName args = do
           Nothing →
             throw @"err" (DoesNotHappen ("type " <> show sumName <> "does not exist"))
           Just sumTyp → do
-            sum ← alloca sumTyp
+            sum ← allocFn sumTyp
             getEle ← getElementPtr $
               Minimal
                 { Types.type' = sumTyp,
@@ -784,6 +817,38 @@ createVariant variantName args = do
               1 -- not 0, as 0 is reserved for the tag that was set
               args
             pure casted
+
+-- | Creates a variant by calling alloca
+allocaVariant ∷
+  ( HasThrow "err" Errors m,
+    HasState "blocks" (HashMap Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name m,
+    HasState "typTab" TypeTable m,
+    HasState "varTab" VariantToType m,
+    Foldable t
+  ) ⇒
+  Symbol →
+  t Operand →
+  m Operand
+allocaVariant variantName args = createVariantGen variantName args alloca
+
+-- | Creates a variant by calling malloc
+mallocVariant ∷
+  ( HasThrow "err" Errors m,
+    HasState "blocks" (HashMap Name BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name m,
+    HasState "typTab" TypeTable m,
+    HasState "varTab" VariantToType m,
+    HasState "symtab" SymbolTable m,
+    Foldable t
+  ) ⇒
+  Symbol →
+  t Operand →
+  Integer →
+  m Operand
+mallocVariant variantName args size = createVariantGen variantName args (mallocType size)
 
 -------------------------------------------------------------------------------
 -- Symbol Table
