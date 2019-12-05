@@ -39,6 +39,7 @@ Serves as a mini DSL layer above LLVM
   + [[Constants]]
   + [[Codegen/Default]]
   + [[Codegen/Graph]]
+  + [[Codegen/Shared]]
   + [[Codegen/Types]]
 ***** Block
 - Has the code necessary to generate LLVM Code
@@ -138,14 +139,15 @@ Provides a mechanism for defining Sum types
   + [[Term]]
   + [[Compilation/Type]]
   + [[Michelson/Compilation/Types]]
-  + [[Util]]
+  + [[Compilation/Util]]
   + [[Optimisation]]
   + [[Michelson/Parameterisation]]
   + [[Library]]
 ***** Term
 - _Relies on_
+  + [[Compilation/Type]]
   + [[Michelson/Compilation/Types]]
-  + [[Util]]
+  + [[Compilation/Util]]
   + [[Michelson/Parameterisation]]
   + [[Library]]
 ***** Type <<Compilation/Type>>
@@ -157,7 +159,7 @@ Provides a mechanism for defining Sum types
 - _Relies on_
   + [[Michelson/Parameterisation]]
   + [[Library]]
-***** Util
+***** Util <<Compilation/Util>>
 - _Relies on_
   + [[Michelson/Compilation/Types]]
   + [[Library]]
@@ -237,6 +239,7 @@ Provides a mechanism for defining Sum types
 - _Relies on_
   + [[Erased/Evaluator]]
   + [[Erased/Types]]
+  + [[Erased/Util]]
 **** Evaluator <<Erased/Evaluator>>
 - _Relies on_
   + [[Erased/Types]]
@@ -244,6 +247,10 @@ Provides a mechanism for defining Sum types
 **** Types <<Erased/Types>>
 - _Relies on_
   + [[Usage]]
+  + [[Library]]
+**** Util <<Erased/Util>>
+- _Relies on_
+  + [[Erased/Types]]
   + [[Library]]
 *** ErasedAnn
 - _Relies on_
