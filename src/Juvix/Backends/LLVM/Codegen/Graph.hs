@@ -3,7 +3,7 @@ module Juvix.Backends.LLVM.Codegen.Graph where
 
 import Juvix.Backends.LLVM.Codegen.Block as Block
 import Juvix.Backends.LLVM.Codegen.Types as Types
-import Juvix.Library hiding (Type, local, link)
+import Juvix.Library hiding (Type, link, local)
 import qualified Juvix.Library.HashMap as Map
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.IntegerPredicate as IntPred
@@ -281,7 +281,7 @@ delNode = undefined
 setPort ∷
   ( HasThrow "err" Errors m,
     HasState "blockCount" Int m,
-    HasState "blocks" (Map.HashMap Name.Name BlockState) m,
+    HasState "blocks" (Map.T Name.Name BlockState) m,
     HasState "count" Word m,
     HasState "currentBlock" Name.Name m,
     HasState "names" Names m,
