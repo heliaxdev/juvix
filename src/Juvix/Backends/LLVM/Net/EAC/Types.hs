@@ -18,6 +18,9 @@ tag = Codegen.i4
 tagInt ∷ Num p ⇒ p
 tagInt = 4
 
+eacSize ∷ Num p ⇒ p
+eacSize = tagInt + Codegen.nodePointerSize
+
 eac ∷ Type.Type
 eac = Type.StructureType
   { Type.isPacked = True,
@@ -28,7 +31,7 @@ eac = Type.StructureType
   }
 
 eacPointer ∷ Type.Type
-eacPointer = Type.PointerType eac (Addr.AddrSpace 32)
+eacPointer = Type.PointerType eac (Addr.AddrSpace Codegen.nodePointerSize)
 
 app, dup, lam, era ∷ C.Constant
 app = C.Int {C.integerBits = tagInt, C.integerValue = 0}

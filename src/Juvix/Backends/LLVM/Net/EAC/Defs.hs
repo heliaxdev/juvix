@@ -46,6 +46,9 @@ linkAll = DSL.linkAll
 nodeType ∷ Type.Type
 nodeType = Codegen.nodeType Types.eacPointer
 
+nodePointer ∷ Type.Type
+nodePointer = Codegen.nodePointer Types.eacPointer
+
 mallocNodeH ∷
   ( Codegen.RetInstruction m,
     HasState "typTab" Codegen.TypeTable m,
@@ -56,7 +59,7 @@ mallocNodeH ∷
   [Maybe Operand.Operand] →
   m Operand.Operand
 mallocNodeH xs ys =
-  Codegen.mallocNodeH xs ys Types.eacPointer (Types.tagInt + Codegen.nodePointerSize)
+  Codegen.mallocNodeH xs ys Types.eacPointer
 
 loadPrimaryNode ∷ Codegen.RetInstruction m ⇒ Operand.Operand → m Operand.Operand
 loadPrimaryNode = Codegen.loadPrimaryNode Types.eacPointer
@@ -75,7 +78,22 @@ defineLink ∷ Codegen.Define m ⇒ m Operand.Operand
 defineLink = Codegen.defineLink Types.eacPointer
 
 defineRewire ∷ Codegen.Define m ⇒ m Operand.Operand
-defineRewire = Codegen.defineRewire Types.eacPointer
+defineRewire = loadPtrGen Codegen.defineRewire
 
 defineLinkConnectedPort ∷ Codegen.Define m ⇒ m Operand.Operand
-defineLinkConnectedPort = Codegen.defineLinkConnectedPort Types.eacPointer
+defineLinkConnectedPort = loadPtrGen Codegen.defineLinkConnectedPort
+
+deAllocateNode ∷ Codegen.Define m ⇒ Operand.Operand → m Operand.Operand
+deAllocateNode nodePtr = Codegen.deAllocateNode nodePtr
+
+loadPtrGen ∷ Codegen.Define m ⇒ (Type.Type → (Operand.Operand → m Operand.Operand) → t) → t
+loadPtrGen f =
+  f
+    Types.eacPointer
+    $ \eac → do
+      Codegen.loadElementPtr $
+        Codegen.Minimal
+          { Codegen.type' = nodePointer,
+            Codegen.address' = eac,
+            Codegen.indincies' = Codegen.constant32List [0, 0]
+          }

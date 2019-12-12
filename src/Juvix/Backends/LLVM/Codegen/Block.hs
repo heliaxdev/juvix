@@ -446,9 +446,11 @@ call typ fn args = instr typ $
       metadata = []
     }
 
-alloca ∷
-  RetInstruction m ⇒ Type → m Operand
-alloca ty = instr ty $ Alloca ty Nothing 0 []
+-- TODO :: is the pointerOf on the ty needed
+-- the LLVM8 testing on newKledi shows it being the same type back
+-- however that would be incorrect?!
+alloca ∷ RetInstruction m ⇒ Type → m Operand
+alloca ty = instr (pointerOf ty) $ Alloca ty Nothing 0 []
 
 load ∷ RetInstruction m ⇒ Type → Operand → m Operand
 load typ ptr = instr typ $ Load False ptr Nothing 0 []
@@ -484,7 +486,9 @@ getElementPtr (Minimal address indices type') =
 
 loadElementPtr ∷ RetInstruction m ⇒ MinimalPtr → m Operand
 loadElementPtr minimal = do
-  ptr ← getElementPtr minimal
+  ptr ←
+    getElementPtr
+      (minimal {Types.type' = pointerOf (Types.type' minimal)})
   load (Types.type' minimal) ptr
 
 constant32List ∷ Functor f ⇒ f Integer → f Operand
@@ -518,8 +522,9 @@ variantCreation sumTyp variantName tag args offset allocFn = do
   typTable ← get @"typTab"
   sum ← allocFn sumTyp
   getEle ← getElementPtr $
+    -- Verify my pointerOf is correct here
     Minimal
-      { Types.type' = sumTyp,
+      { Types.type' = Types.pointerOf sumTyp,
         Types.address' = sum,
         Types.indincies' = constant32List [0, 0]
       }
@@ -533,8 +538,9 @@ variantCreation sumTyp variantName tag args offset allocFn = do
     ( \i inst → do
         ele ←
           getElementPtr $
+            -- Verify my pointerOf is correct here
             Minimal
-              { Types.type' = varType,
+              { Types.type' = Types.pointerOf varType,
                 Types.address' = casted,
                 Types.indincies' = constant32List [0, i]
               }

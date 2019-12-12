@@ -3,6 +3,27 @@
 --   EAC layer gets run
 -- - The form given to =EAC= is not the base EAC AST, but instead a
 --   pre processed =EAC= graph that the initial graph will be made on
+--
+-- - _Allocation_
+--   + layout :
+--     eac{tag | NodePtr*[portSize | PortArray[portLocation | NodePtr] | DataArray[Data]]}
+--     * Similar to the one in Graph, however it also has the eac tag
+--
+--    | Part         | Alloca Or Malloc                   |
+--    |--------------+------------------------------------|
+--    | eac          | Malloc                             |
+--    | tag          | Stored on Eac Malloc               |
+--    | NodePtr*     | Malloc from =mallocNode=           |
+--    | portSize     | Stored on Node Malloc              |
+--    | PortArray    | Stored on Node Malloc              |
+--    | DataArray    | Stored on Node Malloc              |
+--    | PortLocation | (Null) Allocad from PortArray Call |
+--    | NodePtr      | (Null) Allocad from PortArray Call |
+--    | Data         | (Null) Allocad from DataArray Call |
+--
+-- - Node Pointers are allocated at node creation time, so not the
+--   responsibility of the node to de-allocate, but instead uses the
+--   default strategy laid out in [[Codegen/Graph]]
 module Juvix.Backends.LLVM.Net.EAC where
 
 -- TODO ∷ abstract all all imports to LLVM
@@ -12,7 +33,6 @@ import qualified Juvix.Backends.LLVM.DSL as DSL
 import qualified Juvix.Backends.LLVM.Net.EAC.Defs as Defs
 import qualified Juvix.Backends.LLVM.Net.EAC.Types as Types
 import Juvix.Library hiding (reduce)
-import qualified Juvix.Library.HashMap as Map
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.IntegerPredicate as IntPred
 import qualified LLVM.AST.Name as Name
@@ -82,7 +102,7 @@ reduce = Codegen.defineFunction Type.void "reduce" args $
           -- %switch.*.continue
           Codegen.setBlock conCase
 
-        genContinueCaseD = genContinueCase tagNode nodePtr cdr defCase
+        genContinueCaseD = genContinueCase tagNode (nodePtr, car) cdr defCase
 
         swapArgs (x : y : xs) = y : x : xs
         swapArgs xs = xs
@@ -162,22 +182,17 @@ reduce = Codegen.defineFunction Type.void "reduce" args $
 --------------------------------------------------------------------------------
 
 genContinueCase ∷
-  ( HasThrow "err" Codegen.Errors m,
-    HasState "blockCount" Int m,
-    HasState "blocks" (Map.T Name.Name Codegen.BlockState) m,
-    HasState "count" Word m,
-    HasState "currentBlock" Name.Name m,
-    HasState "names" Codegen.Names m
-  ) ⇒
+  Codegen.Define m ⇒
   Operand.Operand →
-  Operand.Operand →
+  (Operand.Operand, Operand.Operand) →
   Operand.Operand →
   Name.Name →
   Symbol →
   [(C.Constant, Symbol, [Operand.Operand] → m Operand.Operand)] →
   m (Operand.Operand, Name.Name)
-genContinueCase tagNode nodePtr cdr defCase prefix cases = do
-  nodeEac ← Defs.loadPrimaryNode tagNode >>= Codegen.load Types.eac
+genContinueCase tagNode (mainNodePtr, mainEac) cdr defCase prefix cases = do
+  nodeEacPtr ← Defs.loadPrimaryNode tagNode
+  nodeEac ← Codegen.load Types.eac nodeEacPtr
   tagOther ← tagOf nodeEac
   blocksGeneratedList ← genBlockNames
   extBranch ← Codegen.addBlock (prefix <> "switch.exit")
@@ -185,10 +200,16 @@ genContinueCase tagNode nodePtr cdr defCase prefix cases = do
         -- %prefix.branch case
         ------------------------------------------------------
         _ ← Codegen.setBlock branch
-        -- node Types in which to do operations on
-        nodeOther' ← nodeOf nodeEac >>= Codegen.load Defs.nodeType
-        nodePrimar ← Codegen.load Defs.nodeType nodePtr
-        updateList ← rule [nodePrimar, nodeOther', cdr]
+        -- node Pointer in which to do operations on
+        nodeOtherPtr ← nodeOf nodeEac
+        updateList ←
+          rule
+            [ mainNodePtr,
+              nodeEacPtr,
+              nodeOtherPtr,
+              mainEac,
+              cdr
+            ]
         _ ← Codegen.br extBranch
         pure (updateList, branch)
       -- remove the rule as it's not needed in the switch
@@ -220,6 +241,16 @@ genContinueCase tagNode nodePtr cdr defCase prefix cases = do
 -- Reduction rules
 --------------------------------------------------------------------------------
 
+-- | args is the argument for all rules that get called
+args ∷ IsString b ⇒ [(Type.Type, b)]
+args =
+  [ (Defs.nodePointer, "node_1"),
+    (Types.eacPointer, "eac_ptr_1"),
+    (Defs.nodePointer, "node_2"),
+    (Types.eacPointer, "eac_ptr_2"),
+    (Types.eacList, "eac_list")
+  ]
+
 -- TODO ∷ modify these functions to return Types.eacLPointer type
 
 -- TODO ∷ Maybe add metadata at some point?
@@ -232,22 +263,31 @@ annihilateRewireAux args = do
   _ ← Codegen.call Type.void annihilate (Codegen.emptyArgs args)
   pure ()
 
+-- TODO ∷ send in eac Pointers and deallocate them as well
+-- TODO ∷ fixup node type being sent in!
+
 -- mimic rules from the interpreter
 -- This rule applies to Application ↔ Lambda
-annihilateRewireAux' ∷ Codegen.Define m ⇒ m Operand.Operand
-annihilateRewireAux' = Codegen.defineFunction Type.void "annihilate_rewire_aux" args $
-  do
-    -- TODO remove these explicit allocations
-    aux1 ← Defs.auxiliary1
-    aux2 ← Defs.auxiliary2
-    node1 ← Codegen.externf "node_1"
-    node2 ← Codegen.externf "node_2"
-    Codegen.rewire [node1, aux1, node2, aux1]
-    Codegen.rewire [node1, aux2, node2, aux2]
-    _ ← Codegen.delNode node1
-    Codegen.delNode node2
-  where
-    args = [(Defs.nodeType, "node_1"), (Defs.nodeType, "node_2")]
+defineAnnihilateRewireAux ∷ Codegen.Define m ⇒ m Operand.Operand
+defineAnnihilateRewireAux =
+  Codegen.defineFunction Types.eacList "annihilate_rewire_aux" args $
+    do
+      aux1 ← Defs.auxiliary1
+      aux2 ← Defs.auxiliary2
+      node1P ← Codegen.externf "node_1"
+      node2P ← Codegen.externf "node_2"
+      node1 ← Codegen.load Defs.nodeType node1P
+      node2 ← Codegen.load Defs.nodeType node2P
+      -- TODO :: check if these calls create more main nodes to put back
+      Codegen.rewire [node1, aux1, node2, aux1]
+      Codegen.rewire [node1, aux2, node2, aux2]
+      _ ← Defs.deAllocateNode node1P
+      _ ← Defs.deAllocateNode node2P
+      eacPtr1 ← Codegen.externf "eac_ptr_1"
+      eacPtr2 ← Codegen.externf "eac_ptr_2"
+      _ ← Codegen.free eacPtr1
+      _ ← Codegen.free eacPtr2
+      Codegen.externf "eac_list" >>= Codegen.ret
 
 -- TODO ∷ make fast fanInAux and slow fanInAux
 
@@ -256,23 +296,19 @@ annihilateRewireAux' = Codegen.defineFunction Type.void "annihilate_rewire_aux" 
 fanInAuxStar = undefined
 
 fanInAux0 ∷ Codegen.Define m ⇒ m Operand.Operand → m Operand.Operand
-fanInAux0 allocF = Codegen.defineFunction Type.void "fan_in_aux_0" args $
+fanInAux0 allocF = Codegen.defineFunction Types.eacList "fan_in_aux_0" args $
   do
-    fanIn ← Codegen.externf "fan_in"
+    fanIn ← Codegen.externf "node_2" >>= Codegen.load Defs.nodeType
     era1 ← allocF >>= nodeOf
     era2 ← allocF >>= nodeOf
     aux1 ← Defs.auxiliary1
     aux2 ← Defs.auxiliary2
     mainPort ← Defs.mainPort
-    -- abstract out this string!
+    -- TODO :: determine if these create a new main port which we must append
+    -- to the eac_list
     Codegen.linkConnectedPort [fanIn, aux1, era1, mainPort]
     Codegen.linkConnectedPort [fanIn, aux2, era2, mainPort]
-    Codegen.retNull
-  where
-    args =
-      [ (Defs.nodeType, "node"), -- we send in the alloc function for it. Do case before
-        (Defs.nodeType, "fan_in") -- we know this must be a fanIn so no need for tag
-      ]
+    Codegen.externf "eac_list" >>= Codegen.ret
 
 fanInAux1' ∷
   ( Codegen.Define m,
@@ -292,16 +328,18 @@ defineFanInAux2 ∷
   Symbol →
   m Operand.Operand →
   m Operand.Operand
-defineFanInAux2 name allocF = Codegen.defineFunction Type.void name args $
+defineFanInAux2 name allocF = Codegen.defineFunction Types.eacList name args $
   do
     -- Nodes in env
-    fanIn ← Codegen.externf "fan_in"
-    node ← Codegen.externf "node"
+    fanIn ← Codegen.externf "node_2" >>= Codegen.load Defs.nodeType
+    node ← Codegen.externf "node_1" >>= Codegen.load Defs.nodeType
     -- new nodes
     fan1 ← mallocFanIn >>= nodeOf
     fan2 ← mallocFanIn >>= nodeOf
     nod1 ← allocF >>= nodeOf
     nod2 ← allocF >>= nodeOf
+    -- TODO :: determine if these create a new main port which we must append
+    -- to the eac_list
     Defs.linkAll
       DSL.defRel
         { DSL.node = nod1,
@@ -326,12 +364,7 @@ defineFanInAux2 name allocF = Codegen.defineFunction Type.void name args $
         { DSL.node = fan2,
           DSL.primary = DSL.LinkConnected node DSL.Aux1
         }
-    Codegen.retNull
-  where
-    args =
-      [ (Defs.nodeType, "node"),
-        (Defs.nodeType, "fan_in")
-      ]
+    Codegen.externf "eac_list" >>= Codegen.ret
 
 -- TODO ∷ remove, put these in the environment with some kind of decalarative
 -- dispatch system that can handle dynamic node addition
@@ -364,6 +397,7 @@ fanInAux2Lambda args = Codegen.callGen Type.void args "fan_in_aux_2_fan_in"
 --------------------------------------------------------------------------------
 -- Allocations
 --------------------------------------------------------------------------------
+
 mallocGen ∷
   ( Codegen.Call m,
     HasState "typTab" Codegen.TypeTable m,
@@ -374,18 +408,20 @@ mallocGen ∷
   Int →
   m Operand.Operand
 mallocGen type' portLen dataLen = do
-  eac ← Codegen.malloc Types.tagInt Types.eac
+  -- malloc call
+  eac ← Codegen.malloc Types.eacSize Types.eac
+  -- malloc call
   node ← Defs.mallocNodeH (replicate portLen Nothing) (replicate dataLen Nothing)
   tagPtr ← Codegen.getElementPtr $
     Codegen.Minimal
-      { Codegen.type' = Types.tag,
+      { Codegen.type' = Codegen.pointerOf Types.tag,
         Codegen.address' = eac,
         Codegen.indincies' = Codegen.constant32List [0, 0]
       }
   Codegen.store tagPtr (Operand.ConstantOperand type')
   nodePtr ← Codegen.getElementPtr $
     Codegen.Minimal
-      { Codegen.type' = Defs.nodeType,
+      { Codegen.type' = Codegen.pointerOf Defs.nodePointer,
         Codegen.address' = eac,
         Codegen.indincies' = Codegen.constant32List [0, 1]
       }
@@ -410,7 +446,7 @@ nodeOf ∷ Codegen.RetInstruction m ⇒ Operand.Operand → m Operand.Operand
 nodeOf eac =
   Codegen.loadElementPtr $
     Codegen.Minimal
-      { Codegen.type' = Defs.nodeType,
+      { Codegen.type' = Defs.nodePointer,
         Codegen.address' = eac,
         Codegen.indincies' = Codegen.constant32List [0, 1]
       }
