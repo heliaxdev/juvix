@@ -5,6 +5,9 @@ import Juvix.Backends.LLVM.Codegen.Types as Types
 import Juvix.Backends.LLVM.JIT as JIT
 import Juvix.Backends.LLVM.Net.EAC.Types as Types
 import Juvix.Backends.LLVM.Net.Environment
+import Juvix.Backends.LLVM.Translation
+import qualified Juvix.Core.Erased as E
+import Juvix.Core.Parameterisations.Unit
 import Juvix.Library
 import LLVM.AST
 import LLVM.AST.AddrSpace
@@ -28,14 +31,22 @@ backendLLVM ∷ T.TestTree
 backendLLVM =
   T.testGroup
     "Backend LLVM"
-    [ test_malloc_free_jit,
+    [ --test_eval_jit,
+      test_malloc_free_jit,
       test_example_jit
     ]
 
+test_eval_jit ∷ T.TestTree
+test_eval_jit = T.testCase "x should evaluate to x" $ do
+  let term ∷ E.Term UnitVal
+      term = E.Var "x"
+  res ← evalErasedCoreInLLVM unit term
+  term T.@=? res
+
 test_malloc_free_jit ∷ T.TestTree
 test_malloc_free_jit = T.testCase "malloc free module should jit" $ do
-  (imp, kill) ← jitWith (Config None) mallocFreeModule dynamicImport
-  Just fn ← importAs imp "test" (Proxy ∷ Proxy Word32) (Proxy ∷ Proxy Word32)
+  (imp, kill) ← mcJitWith (Config None) mallocFreeModule dynamicImport
+  Just fn ← importAs imp "test" (Proxy ∷ Proxy (Word32 → IO Word32)) (Proxy ∷ Proxy Word32) (Proxy ∷ Proxy Word32)
   res ← fn 7
   kill
   43 T.@=? res
@@ -114,8 +125,8 @@ mallocFreeModule =
 
 test_example_jit ∷ T.TestTree
 test_example_jit = T.testCase "example module should jit function" $ do
-  (imp, kill) ← jitWith (Config None) exampleModule dynamicImport
-  Just fn ← importAs imp "_foo" (Proxy ∷ Proxy Word32) (Proxy ∷ Proxy Word32)
+  (imp, kill) ← mcJitWith (Config None) exampleModule dynamicImport
+  Just fn ← importAs imp "_foo" (Proxy ∷ Proxy (Word32 → IO Word32)) (Proxy ∷ Proxy Word32) (Proxy ∷ Proxy Word32)
   res ← fn 7
   kill
   42 T.@=? res
@@ -233,8 +244,8 @@ test_example_jit' = T.testCase "example module should jit function" $ do
   let module' = Codegen.moduleAST runInitModule
   let newModule = module' {LLVM.AST.moduleDefinitions = LLVM.AST.moduleDefinitions module' <> LLVM.AST.moduleDefinitions exampleModule2}
   -- (link :: Word32 -> IO Word32, kill) <- JIT.jit (JIT.Config JIT.None) newModule "malloc"
-  (imp, kill) ← jitWith (Config None) newModule dynamicImport
-  Just fn ← importAs imp "test" (Proxy ∷ Proxy Word32) (Proxy ∷ Proxy Word32)
+  (imp, kill) ← mcJitWith (Config None) newModule dynamicImport
+  Just fn ← importAs imp "test" (Proxy ∷ Proxy (Word32 → IO Word32)) (Proxy ∷ Proxy Word32) (Proxy ∷ Proxy Word32)
   res ← fn 7
   kill
   43 T.@=? res
