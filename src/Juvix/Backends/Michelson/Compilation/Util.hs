@@ -141,8 +141,8 @@ genFunc instr =
         _ → throw @"compilationError" (NotYetImplemented ("genFunc: " <> show p))
     _ → throw @"compilationError" (NotYetImplemented ("genFunc: " <> show instr))
 
-oneArgPrim ∷ [ExpandedOp] → Type → ExpandedOp
-oneArgPrim ops retTy = PrimEx (PUSH "" retTy (ValuePair ValueUnit (ValueLambda (PrimEx (CAR "" "") :| ops))))
+oneArgPrim ∷ NonEmpty ExpandedOp → Type → ExpandedOp
+oneArgPrim ops retTy = PrimEx (PUSH "" retTy (ValueLambda ops))
 
 packClosure ∷
   ∀ m.
@@ -164,6 +164,7 @@ unpackClosure ∷
   (HasState "stack" Stack m) ⇒
   [(Symbol, Type)] →
   m ExpandedOp
+unpackClosure [] = pure (PrimEx DROP)
 unpackClosure env = do
   let count = length env
   modify @"stack" ((<>) (map (\(s, t) → (VarE s, t)) env))

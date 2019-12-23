@@ -102,20 +102,20 @@ termToInstr ann@(term, _, ty) paramTy = stackGuard ann paramTy $ do
           -- :: \x -> y ~ s => (f, s)
           PrimFst → stackCheck addsOne $ do
             let J.Pi _ (J.PrimTy (PrimTy pairTy@(M.Type (M.TPair _ _ xT _) _))) _ = ty
-                (_, retTy) = lamRetTy [] pairTy xT
+                retTy = M.Type (M.TLambda pairTy xT) ""
             modify @"stack" ((:) (FuncResultE, retTy))
-            pure (oneArgPrim [M.PrimEx (M.CAR "" "")] retTy)
+            pure (oneArgPrim (M.PrimEx (M.CAR "" "") :| []) retTy)
           -- :: \x -> y ~ s => (f, s)
           PrimSnd → stackCheck addsOne $ do
             let J.Pi _ (J.PrimTy (PrimTy pairTy@(M.Type (M.TPair _ _ _ yT) _))) _ = ty
-                (_, retTy) = lamRetTy [] pairTy yT
+                retTy = M.Type (M.TLambda pairTy yT) ""
             modify @"stack" ((:) (FuncResultE, retTy))
-            pure (oneArgPrim [M.PrimEx (M.CDR "" "")] retTy)
+            pure (oneArgPrim (M.PrimEx (M.CDR "" "") :| []) retTy)
           -- :: \x y -> a ~ (x, (y, s)) => (a, s)
           PrimPair → stackCheck addsOne $ do
             let J.Pi _ firstArgTy (J.Pi _ secondArgTy _) = ty
-            firstArgTy ← typeToTypeForClosure firstArgTy
-            secondArgTy ← typeToTypeForClosure secondArgTy
+            firstArgTy ← typeToType firstArgTy
+            secondArgTy ← typeToType secondArgTy
             -- TODO: Clean this up.
             let mkPair x y = M.Type (M.TPair "" "" x y) ""
 
@@ -123,40 +123,35 @@ termToInstr ann@(term, _, ty) paramTy = stackGuard ann paramTy $ do
 
                 mkLam x y = M.Type (M.TLambda x y) ""
 
-                secondLamTy = mkLam (mkPair secondArgTy (mkPair firstArgTy mkUnit)) (mkPair firstArgTy secondArgTy)
+                secondLamTy = mkLam (mkPair firstArgTy secondArgTy) (mkPair firstArgTy secondArgTy) -- ??
 
-                firstLamTy = mkLam (mkPair firstArgTy mkUnit) (mkPair (mkPair firstArgTy mkUnit) secondLamTy)
+                firstLamTy = mkLam firstArgTy (mkLam secondArgTy (mkPair firstArgTy secondArgTy))
 
-                retTy = mkPair mkUnit firstLamTy
-
-            modify @"stack" ((:) (FuncResultE, retTy))
+            modify @"stack" ((:) (FuncResultE, firstLamTy))
             pure
               ( M.PrimEx
                   ( M.PUSH
                       ""
-                      retTy
-                      ( M.ValuePair
-                          M.ValueUnit
-                          ( M.ValueLambda
-                              ( M.SeqEx
-                                  [ M.PrimEx
-                                      ( M.DIP
-                                          [ M.PrimEx
-                                              ( M.PUSH
-                                                  ""
-                                                  secondLamTy
-                                                  ( M.ValueLambda
-                                                      ( M.SeqEx [M.PrimEx (M.DUP ""), M.PrimEx (M.CAR "" ""), M.PrimEx (M.DIP [M.PrimEx (M.CDR "" ""), M.PrimEx (M.CAR "" "")]), M.PrimEx M.SWAP, M.PrimEx (M.PAIR "" "" "" "")]
-                                                          :| []
-                                                      )
+                      firstLamTy
+                      ( M.ValueLambda
+                          ( M.SeqEx
+                              [ M.PrimEx
+                                  ( M.DIP
+                                      [ M.PrimEx
+                                          ( M.PUSH
+                                              ""
+                                              secondLamTy
+                                              ( M.ValueLambda
+                                                  ( M.SeqEx [M.PrimEx (M.DUP ""), M.PrimEx M.DROP]
+                                                      :| []
                                                   )
                                               )
-                                          ]
-                                      ),
-                                    M.PrimEx (M.PAIR "" "" "" "")
-                                  ]
-                                  :| []
-                              )
+                                          )
+                                      ]
+                                  ),
+                                M.PrimEx (M.APPLY "")
+                              ]
+                              :| []
                           )
                       )
                   )
@@ -193,20 +188,22 @@ termToInstr ann@(term, _, ty) paramTy = stackGuard ann paramTy $ do
     -- :: (varies)
     J.Prim prim →
       primToInstr prim
-    -- :: \a -> b ~ s => ((vars, Lam a b), s)
+    -- :: \a -> b ~ s => (Lam a b, s)
     J.Lam arg body →
       stackCheck addsOne $ do
         let J.Pi _ argTy retTy = ty
-        -- TODO: How to deal with packed lambdas here? For now, we don't.
-        -- If the argument is a lambda, we don't know what its closure type is.
-        argTy ← typeToTypeForClosure argTy
+        argTy ← typeToType argTy
         stack ← get @"stack"
         let free = J.free (J.eraseTerm term)
             freeWithTypes = map (\v → let Just t = lookupType v stack in (v, t)) free
+        --_ <- if length freeWithTypes > 0 then failWith ("free: " <> show freeWithTypes) else pure (M.PrimEx M.DROP)
+        modify @"stack" ((<>) [(FuncResultE, M.Type M.TUnit ""), (FuncResultE, M.Type M.TUnit "")]) -- TODO: second is a lambda, but it doesn't matter, this just needs to be positionally accurate for var lookup
         vars ← mapM (\f → termToInstr (J.Var f, undefined, undefined) paramTy) free
         packOp ← packClosure free
         put @"stack" []
-        unpackOp ← unpackClosure ((arg, argTy) : freeWithTypes)
+        let argUnpack = M.SeqEx [M.PrimEx (M.DUP ""), M.PrimEx (M.CDR "" "")]
+        unpackOp ← unpackClosure freeWithTypes
+        modify @"stack" ((:) (VarE arg, argTy))
         inner ← termToInstr body paramTy
         dropOp ← dropClosure ((arg, argTy) : freeWithTypes)
         post ← get @"stack"
@@ -215,32 +212,29 @@ termToInstr ann@(term, _, ty) paramTy = stackGuard ann paramTy $ do
         put @"stack" ((FuncResultE, rTy) : stack)
         pure
           ( M.SeqEx
-              [ M.PrimEx (M.PUSH "" lTy (M.ValueLambda (unpackOp :| [inner, dropOp]))),
+              [ M.PrimEx (M.PUSH "" lTy (M.ValueLambda (argUnpack :| [M.PrimEx (M.DIP [M.PrimEx (M.CAR "" ""), unpackOp]), inner, dropOp]))),
                 M.PrimEx (M.PUSH "" (M.Type M.TUnit "") M.ValueUnit),
+                -- Evaluate everything in the closure.
                 M.SeqEx vars,
+                -- Pack the closure.
                 packOp,
-                M.PrimEx (M.PAIR "" "" "" "") -- pair the env & lambda
+                -- Partially apply the function.
+                M.PrimEx (M.APPLY "")
               ]
           )
     -- :: (\a -> b) a ~ (a, s) => (b, s)
     -- Call-by-value (evaluate argument first).
     J.App func arg →
       stackCheck addsOne $ do
-        func ← termToInstr func paramTy -- :: (vars, Lam (a, vars) b)
+        func ← termToInstr func paramTy -- :: Lam a b
         arg ← termToInstr arg paramTy -- :: a
         stack ← get @"stack"
-        modify @"stack" (\(_ : (_, M.Type (M.TPair _ _ _ (M.Type (M.TLambda _ retTy) _)) _) : xs) → (FuncResultE, retTy) : xs)
-        -- Then pair up (a) with (vars) and execute the function.
+        modify @"stack" (\(_ : (_, (M.Type (M.TLambda _ retTy) _)) : xs) → (FuncResultE, retTy) : xs)
         pure
           ( M.SeqEx
-              [ func,
-                arg,
-                M.PrimEx (M.DIP [M.SeqEx [M.PrimEx (M.DUP ""), M.PrimEx (M.CAR "" ""), M.PrimEx (M.DIP [M.PrimEx (M.CDR "" "")])]]),
-                -- Unpacked, now arg : env : lambda
-                M.PrimEx (M.PAIR "" "" "" ""),
-                -- Paired, now (arg, env) : lambda
-                M.PrimEx (M.EXEC "")
-                -- Then execute the function.
+              [ func, -- Evaluate the function.
+                arg, -- Evaluate the argument.
+                M.PrimEx (M.EXEC "") -- Execute the function.
               ]
           )
 
@@ -263,6 +257,6 @@ genSwitch ∷
   m (Op → Op → Op)
 genSwitch M.Tbool = pure (\x y → M.PrimEx (M.IF [y] [x])) -- TODO: Why flipped?
 genSwitch (M.TOr _ _ _ _) = pure (\x y → M.PrimEx (M.IF_LEFT [x] [y]))
-genSwitch (M.TOption _ _) = pure (\x y → M.PrimEx (M.IF_NONE [x] [y]))
+genSwitch (M.TOption _) = pure (\x y → M.PrimEx (M.IF_NONE [x] [y]))
 genSwitch (M.TList _) = pure (\x y → M.PrimEx (M.IF_CONS [x] [y]))
 genSwitch ty = throw @"compilationError" (NotYetImplemented ("genSwitch: " <> show ty))
