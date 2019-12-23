@@ -128,6 +128,15 @@ define,
 define = defineGen False
 defineVarArgs = defineGen True
 
+-- | registerFunction is useful for making functions properly recursive
+registerFunction ∷ HasState "symTab" SymbolTable m ⇒ Type → [(Type, b)] → Name → m ()
+registerFunction retty argtys label =
+  assign (nameToSymbol label)
+    $ ConstantOperand
+    $ C.GlobalReference
+      (Types.pointerOf (FunctionType retty (fst <$> argtys) False))
+      label
+
 makeFunction ∷
   ( HasThrow "err" Errors m,
     HasState "blockCount" Int m,
@@ -155,7 +164,8 @@ defineFunctionGen bool retty name args body = do
   put @"blocks" Map.empty
   resetCount
   functionOperand ←
-    (makeFunction name args >> body >> createBlocks) >>= defineGen bool retty name args
+    (makeFunction name args >> registerFunction retty args (internName name) >> body >> createBlocks)
+      >>= defineGen bool retty name args
   -- TODO ∷ figure out if LLVM functions can leak out of their local scope
   put @"symTab" oldSymTab
   -- flush out blocks after functions
@@ -180,6 +190,21 @@ entry = get @"currentBlock"
 
 getBlock ∷ (HasState "currentBlock" Name m) ⇒ m Name
 getBlock = entry
+
+-- TODO ∷ hack make a proper algorithm later!
+addBlockNumber ∷ NewBlock m ⇒ Symbol → Int → m Name
+addBlockNumber bname number = do
+  bls ← get @"blocks"
+  nms ← get @"names"
+  let new = emptyBlock number
+
+      (qname, supply) = uniqueName bname nms
+
+      name = internName qname
+
+  put @"blocks" (Map.insert name new bls)
+  put @"names" supply
+  return name
 
 addBlock ∷ NewBlock m ⇒ Symbol → m Name
 addBlock bname = do

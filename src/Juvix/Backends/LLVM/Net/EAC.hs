@@ -48,8 +48,6 @@ import qualified LLVM.AST.Type as Type
 defineReduce ∷ Codegen.Define m ⇒ m Operand.Operand
 defineReduce = Codegen.defineFunction Type.void "reduce" args $
   do
-    -- recursive function, properly register
-    reduce ← Codegen.externf "reduce"
     -- switch creations
     eacLPtr ← Codegen.externf "eac_list"
     appCase ← Codegen.addBlock "switch.app"
@@ -57,9 +55,9 @@ defineReduce = Codegen.defineFunction Type.void "reduce" args $
     eraCase ← Codegen.addBlock "switch.era"
     dupCase ← Codegen.addBlock "switch.dup"
     defCase ← Codegen.addBlock "switch.default"
-    extCase ← Codegen.addBlock "switch.exit"
     nullCase ← Codegen.addBlock "empty.list"
     carExists ← Codegen.addBlock "car.check"
+    extCase ← Codegen.addBlockNumber "switch.exit" 1000
     nullCheck ← Types.checkNull eacLPtr
     _ ← Codegen.cbr nullCheck carExists nullCase
     -- %empty.list branch
@@ -69,10 +67,9 @@ defineReduce = Codegen.defineFunction Type.void "reduce" args $
     -- %car.check branch
     ------------------------------------------------------
     Codegen.setBlock carExists
-    eacList ← Types.loadList eacLPtr
-    car ← Types.loadCar eacList
+    car ← Types.loadCar eacLPtr
     -- TODO ∷ cdr may still be unsafe!??!?!
-    cdr ← Types.loadCdr eacList
+    cdr ← Types.loadCdr eacLPtr
     -- moved from %app case.
     -- Should not do extra work being here----
     nodePtr ← nodeOf car
@@ -84,7 +81,8 @@ defineReduce = Codegen.defineFunction Type.void "reduce" args $
         isPrimary
         (Operand.ConstantOperand (C.Int 2 1))
     -- end of moved code----------------------
-    tag ← tagOf car
+    tagP ← tagOf car
+    tag ← Codegen.load Types.tag tagP
     _term ←
       Codegen.switch
         tag
@@ -102,7 +100,7 @@ defineReduce = Codegen.defineFunction Type.void "reduce" args $
           -- %switch.*.continue
           Codegen.setBlock conCase
 
-        genContinueCaseD = genContinueCase tagNode (nodePtr, car) cdr defCase
+        genContinueCaseD = genContinueCase tagNode car cdr defCase
 
         swapArgs (x : y : xs) = y : x : xs
         swapArgs xs = xs
@@ -113,7 +111,7 @@ defineReduce = Codegen.defineFunction Type.void "reduce" args $
     (aCdr, aExit) ←
       genContinueCaseD
         "app"
-        [ (Types.lam, "switch.lam", (\x → annihilateRewireAux x >> pure cdr)),
+        [ (Types.lam, "switch.lam", annihilateRewireAux),
           (Types.dup, "switch.dup", fanInAux2App),
           (Types.era, "switch.era", eraseNodes)
         ]
@@ -124,33 +122,33 @@ defineReduce = Codegen.defineFunction Type.void "reduce" args $
     (lCdr, lExit) ←
       genContinueCaseD
         "lam"
-        [ (Types.app, "switch.app", (\x → annihilateRewireAux (swapArgs x) >> pure cdr)),
+        [ (Types.app, "switch.app", (\x → annihilateRewireAux (swapArgs x))),
           (Types.dup, "switch.dup", fanInAux2Lambda),
           (Types.era, "switch.era", eraseNodes)
         ]
     _ ← Codegen.br extCase
     -- %era case
     ------------------------------------------------------
-    contCase lamCase "switch.era.continue"
+    contCase eraCase "switch.era.continue"
     (eCdr, eExit) ←
       genContinueCaseD
         "fan_in"
         [ (Types.app, "switch.app", eraseNodes),
           (Types.lam, "switch.lam", eraseNodes),
-          (Types.dup, "switch.dup", fanInAux2Era),
+          (Types.dup, "switch.dup", fanInAux0Era),
           (Types.era, "switch.era", eraseNodes)
         ]
     _ ← Codegen.br extCase
     -- %dup case
     ------------------------------------------------------
-    contCase lamCase "switch.fan_in.continue"
+    contCase dupCase "switch.fan_in.continue"
     (fCdr, fExit) ←
       genContinueCaseD
         "fan_in"
         [ (Types.app, "switch.app", fanInAux2App . swapArgs),
           (Types.lam, "switch.lam", fanInAux2Lambda . swapArgs),
           (Types.dup, "switch.dup", fanInFanIn),
-          (Types.era, "switch.era", fanInAux2Era . swapArgs)
+          (Types.era, "switch.era", fanInAux0Era . swapArgs)
         ]
     _ ← Codegen.br extCase
     -- %default case
@@ -162,7 +160,7 @@ defineReduce = Codegen.defineFunction Type.void "reduce" args $
     Codegen.setBlock extCase
     cdr ←
       Codegen.phi
-        Types.eacList
+        Types.eacLPointer
         [ (cdr, defCase),
           (cdr, dupCase),
           (cdr, appCase),
@@ -174,9 +172,12 @@ defineReduce = Codegen.defineFunction Type.void "reduce" args $
           (eCdr, eExit)
         ]
     _ ← Codegen.free eacLPtr
-    Codegen.call Type.void reduce (Codegen.emptyArgs [cdr])
+    -- recursive function, properly register
+    reduce ← Codegen.externf "reduce"
+    Codegen.callVoid reduce (Codegen.emptyArgs [cdr])
+    Codegen.retNull
   where
-    args = [(Types.eacPointer, "eac_list")]
+    args = [(Types.eacLPointer, "eac_list")]
 
 --------------------------------------------------------------------------------
 -- Code generation rules
@@ -185,30 +186,25 @@ defineReduce = Codegen.defineFunction Type.void "reduce" args $
 genContinueCase ∷
   Codegen.Define m ⇒
   Operand.Operand →
-  (Operand.Operand, Operand.Operand) →
+  Operand.Operand →
   Operand.Operand →
   Name.Name →
   Symbol →
   [(C.Constant, Symbol, [Operand.Operand] → m Operand.Operand)] →
   m (Operand.Operand, Name.Name)
-genContinueCase tagNode (mainNodePtr, mainEac) cdr defCase prefix cases = do
+genContinueCase tagNode mainEac cdr defCase prefix cases = do
   nodeEacPtr ← Defs.loadPrimaryNode tagNode
-  nodeEac ← Codegen.load Types.eac nodeEacPtr
-  tagOther ← tagOf nodeEac
+  tagOther ← tagOf nodeEacPtr >>= Codegen.load Types.tag
   blocksGeneratedList ← genBlockNames
   extBranch ← Codegen.addBlock (prefix <> "switch.exit")
   let generateBody (_, branch, rule) = do
         -- %prefix.branch case
         ------------------------------------------------------
         _ ← Codegen.setBlock branch
-        -- node Pointer in which to do operations on
-        nodeOtherPtr ← nodeOf nodeEac
         updateList ←
           rule
-            [ mainNodePtr,
+            [ mainEac,
               nodeEacPtr,
-              nodeOtherPtr,
-              mainEac,
               cdr
             ]
         _ ← Codegen.br extBranch
@@ -223,7 +219,7 @@ genContinueCase tagNode (mainNodePtr, mainEac) cdr defCase prefix cases = do
   _ ← Codegen.setBlock extBranch
   newList ←
     Codegen.phi
-      Types.eacList
+      Types.eacLPointer
       phiList
   pure (newList, extBranch)
   where
@@ -246,10 +242,8 @@ genContinueCase tagNode (mainNodePtr, mainEac) cdr defCase prefix cases = do
 args ∷ IsString b ⇒ [(Type.Type, b)]
 args =
   [ (Codegen.nodePointer, "node_1"),
-    (Types.eacPointer, "eac_ptr_1"),
     (Codegen.nodePointer, "node_2"),
-    (Types.eacPointer, "eac_ptr_2"),
-    (Types.eacList, "eac_list")
+    (Types.eacLPointer, "eac_list")
   ]
 
 -- TODO ∷ modify these functions to return Types.eacLPointer type
@@ -260,7 +254,7 @@ args =
 
 annihilateRewireAux ∷ Codegen.Call m ⇒ [Operand.Operand] → m Operand.Operand
 annihilateRewireAux args =
-  Codegen.callGen Types.eacList args "annihilate_rewire_aux"
+  Codegen.callGen Types.eacLPointer args "annihilate_rewire_aux"
 
 -- TODO ∷ send in eac Pointers and deallocate them as well
 -- TODO ∷ fixup node type being sent in!
@@ -269,34 +263,30 @@ annihilateRewireAux args =
 -- This rule applies to Application ↔ Lambda
 defineAnnihilateRewireAux ∷ Codegen.Define m ⇒ m Operand.Operand
 defineAnnihilateRewireAux =
-  Codegen.defineFunction Types.eacList "annihilate_rewire_aux" args $
+  Codegen.defineFunction Types.eacLPointer "annihilate_rewire_aux" args $
     do
       aux1 ← Defs.auxiliary1
       aux2 ← Defs.auxiliary2
       node1P ← Codegen.externf "node_1"
       node2P ← Codegen.externf "node_2"
-      node1 ← Codegen.load Codegen.nodeTypeNameRef node1P
-      node2 ← Codegen.load Codegen.nodeTypeNameRef node2P
       -- TODO :: check if these calls create more main nodes to put back
-      Codegen.rewire [node1, aux1, node2, aux1]
-      Codegen.rewire [node1, aux2, node2, aux2]
+      Codegen.rewire [node1P, aux1, node2P, aux1]
+      Codegen.rewire [node1P, aux2, node2P, aux2]
       _ ← Codegen.deAllocateNode node1P
       _ ← Codegen.deAllocateNode node2P
-      eacPtr1 ← Codegen.externf "eac_ptr_1"
-      eacPtr2 ← Codegen.externf "eac_ptr_2"
-      _ ← freeEac eacPtr1
-      _ ← freeEac eacPtr2
+      _ ← freeEac node1P
+      _ ← freeEac node2P
       Codegen.externf "eac_list" >>= Codegen.ret
 
 -- TODO ∷ fully generalize fanIn Logic and generate them dynamically
 
-fanInAux0 ∷ Codegen.Define m ⇒ m Operand.Operand → m Operand.Operand
-fanInAux0 allocF = Codegen.defineFunction Types.eacList "fan_in_aux_0" args $
+defineFanInAux0 ∷ Codegen.Define m ⇒ Symbol → m Operand.Operand → m Operand.Operand
+defineFanInAux0 name allocF = Codegen.defineFunction Types.eacLPointer name args $
   do
     node ← Codegen.externf "node_1"
     fanIn ← Codegen.externf "node_2"
-    era1 ← allocF >>= nodeOf
-    era2 ← allocF >>= nodeOf
+    era1 ← allocF
+    era2 ← allocF
     aux1 ← Defs.auxiliary1
     aux2 ← Defs.auxiliary2
     mainPort ← Defs.mainPort
@@ -304,10 +294,8 @@ fanInAux0 allocF = Codegen.defineFunction Types.eacList "fan_in_aux_0" args $
     -- to the eac_list
     Codegen.linkConnectedPort [fanIn, aux1, era1, mainPort]
     Codegen.linkConnectedPort [fanIn, aux2, era2, mainPort]
-    eacPtr1 ← Codegen.externf "eac_ptr_1"
-    eacPtr2 ← Codegen.externf "eac_ptr_2"
     eacList ← Codegen.externf "eac_list"
-    _ ← eraseNodes [node, eacPtr1, fanIn, eacPtr2, eacList]
+    _ ← eraseNodes [node, fanIn, eacList]
     Codegen.ret eacList
 
 aux2Gen ∷
@@ -315,13 +303,13 @@ aux2Gen ∷
     Codegen.Define m
   ) ⇒
   m Operand.Operand →
-  (Operand.Operand, Operand.Operand) →
-  (Operand.Operand, Operand.Operand) →
+  Operand.Operand →
+  Operand.Operand →
   Operand.Operand →
   (Operand.Operand → Operand.Operand → m ()) →
   (Operand.Operand → Operand.Operand → m ()) →
   m Operand.Operand
-aux2Gen allocF (node, eacPtr1) (fanIn, eacPtr2) eacList copyFanData copyNodeData = do
+aux2Gen allocF node fanIn eacList copyFanData copyNodeData = do
   -- new nodes
   fan1Eac ← mallocFanIn
   fan2Eac ← mallocFanIn
@@ -369,7 +357,7 @@ aux2Gen allocF (node, eacPtr1) (fanIn, eacPtr2) eacList copyFanData copyNodeData
   copyNodeData node nod2 -- for one that already grabs data to save some
   copyFanData fanIn fan1 -- operations as to get here we may have already
   copyFanData fanIn fan2 -- gotten it
-  eraseNodes [node, eacPtr1, fanIn, eacPtr2, eacList]
+  eraseNodes [node, fanIn, eacList]
 
 defineFanInAux2 ∷
   ( Codegen.MallocNode m,
@@ -378,36 +366,32 @@ defineFanInAux2 ∷
   Symbol →
   m Operand.Operand →
   m Operand.Operand
-defineFanInAux2 name allocF = Codegen.defineFunction Types.eacList name args $
+defineFanInAux2 name allocF = Codegen.defineFunction Types.eacLPointer name args $
   do
     -- Nodes in env
-    fanIn ← Codegen.externf "node_2"
     node ← Codegen.externf "node_1"
+    fanIn ← Codegen.externf "node_2"
     eacList ← Codegen.externf "eac_list"
-    eacPtr1 ← Codegen.externf "eac_ptr_1"
-    eacPtr2 ← Codegen.externf "eac_ptr_2"
     eacList ←
       aux2Gen
         allocF
-        (node, eacPtr1)
-        (fanIn, eacPtr2)
+        node
+        fanIn
         eacList
-        (\oldF newF → dataPortLookup oldF >>= addData newF)
+        (\oldF newF → dataPortLookup oldF >>= addDataWhole newF)
         (\_ _ → pure ()) -- no data on node for now!
     Codegen.ret eacList
 
 fanInFanIn ∷ Codegen.Call m ⇒ [Operand.Operand] → m Operand.Operand
-fanInFanIn args = Codegen.callGen Types.eacList args "fan_in_rule"
+fanInFanIn args = Codegen.callGen Types.eacLPointer args "fan_in_rule"
 
 defineFanInFanIn ∷
   ( Codegen.MallocNode m,
     Codegen.Define m
   ) ⇒
   m Operand.Operand
-defineFanInFanIn = Codegen.defineFunction Types.eacList "fan_in_rule" args $
+defineFanInFanIn = Codegen.defineFunction Types.eacLPointer "fan_in_rule" args $
   do
-    eacPtr1 ← Codegen.externf "eac_ptr_1"
-    eacPtr2 ← Codegen.externf "eac_ptr_2"
     eacList ← Codegen.externf "eac_list"
     fanIn1 ← Codegen.externf "node_1"
     fanIn2 ← Codegen.externf "node_2"
@@ -418,7 +402,6 @@ defineFanInFanIn = Codegen.defineFunction Types.eacList "fan_in_rule" args $
     test ← Codegen.icmp IntPred.EQ label1 label2
     sameFan ← Codegen.addBlock "same.fan"
     diffFan ← Codegen.addBlock "diff.fan"
-    continue ← Codegen.addBlock "continue.fan"
     _ ← Codegen.cbr test sameFan diffFan
     -- %same.fan
     ------------------------------------------------------
@@ -428,26 +411,33 @@ defineFanInFanIn = Codegen.defineFunction Types.eacList "fan_in_rule" args $
     Codegen.rewire [fanIn1, aux1, fanIn2, aux2]
     Codegen.rewire [fanIn1, aux2, fanIn2, aux1]
     let sameList = eacList
-    _ ← eraseNodes [fanIn1, eacPtr1, fanIn2, eacPtr2, eacList]
-    _ ← Codegen.br continue
+    _ ← eraseNodes [fanIn1, fanIn2, eacList]
     -- %diff.fan
     ------------------------------------------------------
     Codegen.setBlock diffFan
     diffList ←
       aux2Gen
         mallocFanIn
-        (fanIn1, eacPtr1)
-        (fanIn2, eacPtr2)
+        fanIn1
+        fanIn2
         eacList
-        (\_ newF → addData newF data2)
-        (\_ newN → addData newN data1)
+        (\_ newF → addData newF label2)
+        (\_ newN → addData newN label1)
+    lastDiff ← Codegen.getBlock
+    -- weird ordering to get continue.fan to be last!
+    continue ← Codegen.addBlock "continue.fan"
+    _ ← Codegen.br continue
+    -- %same.fan
+    ------------------------------------------------------
+    Codegen.setBlock sameFan
     _ ← Codegen.br continue
     -- %continue.fan
     ------------------------------------------------------
+    Codegen.setBlock continue
     finalList ←
       Codegen.phi
-        Types.eacList
-        [(sameList, sameFan), (diffList, diffFan)]
+        Types.eacLPointer
+        [(sameList, sameFan), (diffList, lastDiff)]
     Codegen.ret finalList
 
 -- TODO ∷ remove, put these in the environment with some kind of decalarative
@@ -457,40 +447,36 @@ defineFanInFanIn = Codegen.defineFunction Types.eacList "fan_in_rule" args $
 defineFanInAux2F,
   defineFanInAux2A,
   defineFanInAux2L,
-  defineFanInAux2E ∷
+  defineFanInAux0E ∷
     ( Codegen.MallocNode m,
       Codegen.Define m
     ) ⇒
     m Operand.Operand
 defineFanInAux2A = defineFanInAux2 "fan_in_aux_2_app" mallocApp
 defineFanInAux2F = defineFanInAux2 "fan_in_aux_2_fan_in" mallocFanIn
-defineFanInAux2L = defineFanInAux2 "fan_in_aux_2_fan_in" mallocFanIn
-defineFanInAux2E = defineFanInAux2 "fan_in_aux_2_era" mallocEra
+defineFanInAux2L = defineFanInAux2 "fan_in_aux_2_lambda" mallocLam
+defineFanInAux0E = defineFanInAux0 "fan_in_aux_0_era" mallocEra
 
 fanInAux2App,
   fanInAux2FanIn,
   fanInAux2Lambda,
-  fanInAux2Era ∷
+  fanInAux0Era ∷
     Codegen.Call m ⇒ [Operand.Operand] → m Operand.Operand
-fanInAux2App args = Codegen.callGen Type.void args "fan_in_aux_2_app"
-fanInAux2Era args = Codegen.callGen Type.void args "fan_in_aux_2_era"
-fanInAux2FanIn args = Codegen.callGen Type.void args "fan_in_aux_2_fan_in"
-fanInAux2Lambda args = Codegen.callGen Type.void args "fan_in_aux_2_fan_in"
+fanInAux2App args = Codegen.callGen Types.eacLPointer args "fan_in_aux_2_app"
+fanInAux2FanIn args = Codegen.callGen Types.eacLPointer args "fan_in_aux_2_fan_in"
+fanInAux2Lambda args = Codegen.callGen Types.eacLPointer args "fan_in_aux_2_lambda"
+fanInAux0Era args = Codegen.callGen Types.eacLPointer args "fan_in_aux_0_era"
 
 eraseNodes ∷ Codegen.Call m ⇒ [Operand.Operand] → m Operand.Operand
-eraseNodes args = Codegen.callGen Types.eacList args "erase_nodes"
+eraseNodes args = Codegen.callGen Types.eacLPointer args "erase_nodes"
 
 defineEraseNodes ∷ Codegen.Define m ⇒ m Operand.Operand
-defineEraseNodes = Codegen.defineFunction Types.eacList "erase_nodes" args $
+defineEraseNodes = Codegen.defineFunction Types.eacLPointer "erase_nodes" args $
   do
     nodePtr1 ← Codegen.externf "node_1"
     nodePtr2 ← Codegen.externf "node_2"
-    eacPtr1 ← Codegen.externf "eac_ptr_1"
-    eacPtr2 ← Codegen.externf "eac_ptr_2"
     _ ← Codegen.deAllocateNode nodePtr1
     _ ← Codegen.deAllocateNode nodePtr2
-    _ ← freeEac eacPtr1
-    _ ← freeEac eacPtr2
     Codegen.externf "eac_list" >>= Codegen.ret
 
 --------------------------------------------------------------------------------
@@ -534,6 +520,13 @@ tagOf eac =
 --------------------------------------------------------------------------------
 -- Helper functions
 --------------------------------------------------------------------------------
+dataPortLookupNoLoad ∷ Codegen.RetInstruction m ⇒ Operand.Operand → m Operand.Operand
+dataPortLookupNoLoad addr = Codegen.getElementPtr $
+  Codegen.Minimal
+    { Codegen.type' = Codegen.pointerOf Codegen.dataArray,
+      Codegen.address' = addr,
+      Codegen.indincies' = Codegen.constant32List [0, 2]
+    }
 
 dataPortLookup ∷ Codegen.RetInstruction m ⇒ Operand.Operand → m Operand.Operand
 dataPortLookup addr = Codegen.loadElementPtr $
@@ -553,6 +546,11 @@ addData addr data' = do
         Codegen.indincies' = Codegen.constant32List [0, 0]
       }
   Codegen.store labPtr data'
+
+addDataWhole ∷ Codegen.RetInstruction m ⇒ Operand.Operand → Operand.Operand → m ()
+addDataWhole addr data' = do
+  arr ← dataPortLookupNoLoad addr
+  Codegen.store arr data'
 
 fanLabelLookup ∷ Codegen.RetInstruction m ⇒ Operand.Operand → m Operand.Operand
 fanLabelLookup addr = Codegen.loadElementPtr $
