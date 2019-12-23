@@ -44,9 +44,13 @@ abstract: Juvix synthesises a high-level frontend syntax, dependent-linearly-typ
 
 !include src/prior-work.pdc
 
-# Reasoning
+# Desiderata
 
-!include src/reasoning.pdc
+!include src/desiderata.pdc
+
+# Ingredients
+
+!include src/ingredients.pdc
 
 # Theoretical background
 
@@ -118,9 +122,9 @@ abstract: Juvix synthesises a high-level frontend syntax, dependent-linearly-typ
 
 !include src/cost-accounting.pdc
 
-# Machine targets
+# Backends
 
-!include src/machine-targets.pdc
+!include src/backends.pdc
 
 # Distributed ledger integration
 
@@ -130,11 +134,9 @@ abstract: Juvix synthesises a high-level frontend syntax, dependent-linearly-typ
 
 !include src/future-directions.pdc
 
-# Appendices
+# Examples
 
-## Examples
-
-!include src/appendices/examples.pdc
+!include src/examples.pdc
 
 \pagebreak
 
