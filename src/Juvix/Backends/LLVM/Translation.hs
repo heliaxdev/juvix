@@ -55,29 +55,35 @@ evalErasedCoreInLLVM parameterisation term = do
         INIR.Node
           { INIR.nodeAddress = ind,
             INIR.nodeKind = case l of
-              Primar Erase → INIR.Eraser
-              Auxiliary2 Lambda → INIR.Constructor 0
-              Auxiliary2 App → INIR.Constructor 1
-              Auxiliary2 (FanIn i) → INIR.Constructor (fromIntegral i),
-            INIR.nodePorts = map (\(_, toNode, toPort) → INIR.Port toNode (portTypeToIndex toPort)) edges
+              Primar Erase → 0
+              Auxiliary2 Lambda → 1
+              Auxiliary2 App → 2
+              Auxiliary2 (FanIn i) → i
+            --INIR.nodePorts = map (\(_, toNode, toPort) → INIR.Port toNode (portTypeToIndex toPort)) edges
           }
+  liftIO (putText ("Appending nodes..."))
+  liftIO (putText ("Nodes: " <> show nodes))
   liftIO (appendToNet net nodes)
   -- Reduce it.
+  liftIO (putText "Reducing...")
   liftIO (reduceUntilComplete net)
   -- Read-back the nodes
+  liftIO (putText "Reading-back...")
   nodes ← liftIO (readNet net)
+  liftIO (putText ("Read-back nodes: " <> show nodes))
   -- Translate into a native graph.
-  let graph ∷ Graph.FlipNet (Lang primVal)
-      graph = flip evalEnvState (Env 0 empty Map.empty) $ do
+  let retGraph ∷ Graph.FlipNet (Lang primVal)
+      retGraph = flip evalEnvState (Env 0 empty Map.empty) $ do
         ns ← flip mapM nodes $ \node →
           newNode $ case INIR.nodeKind node of
-            INIR.Eraser → Primar Erase
-            INIR.Constructor 0 → Auxiliary2 Lambda
-            INIR.Constructor 1 → Auxiliary2 App
-            INIR.Constructor n → Auxiliary2 (FanIn (fromIntegral n))
+            0 → Primar Erase
+            1 → Auxiliary2 Lambda
+            2 → Auxiliary2 App
+            n → Auxiliary2 (FanIn (fromIntegral n))
         flip mapM_ nodes $ \node → do
           let addr = ns !! INIR.nodeAddress node
-          flip mapM_ (zip [0 ..] $ INIR.nodePorts node) $ \(slot, (INIR.Port otherAddr' otherSlot)) → do
+          -- TODO: Ports
+          flip mapM_ (zip [0 ..] $ []) $ \(slot, (INIR.Port otherAddr' otherSlot)) → do
             let otherAddr = ns !! otherAddr'
             -- TODO: Double-linkage?
             link (addr, indexToPortType slot) (otherAddr, indexToPortType otherSlot)
@@ -85,7 +91,7 @@ evalErasedCoreInLLVM parameterisation term = do
         pure net
   -- Read-back the graph.
   let res ∷ Erased.Term primVal
-      Just res = interactionNetASTToErasedCore |<< netToAst graph
+      Just res = interactionNetASTToErasedCore |<< netToAst retGraph
   -- Free the module.
   liftIO kill
   -- Return the resulting term.
