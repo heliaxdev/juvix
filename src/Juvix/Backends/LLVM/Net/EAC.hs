@@ -31,6 +31,7 @@ module Juvix.Backends.LLVM.Net.EAC where
 import qualified Juvix.Backends.LLVM.Codegen as Codegen
 import qualified Juvix.Backends.LLVM.DSL as DSL
 import qualified Juvix.Backends.LLVM.Net.EAC.Defs as Defs
+import Juvix.Backends.LLVM.Net.EAC.MonadEnvironment
 import qualified Juvix.Backends.LLVM.Net.EAC.Types as Types
 import Juvix.Library hiding (reduce)
 import qualified LLVM.AST.Constant as C
@@ -552,6 +553,38 @@ defineTest = Codegen.defineFunction Types.eacPointer "test_function" [] $ do
   era ← mallocEra
   app ← mallocApp
   main ← Codegen.mainPort
+  debugLevelOne $ do
+    tag ← tagOf era >>= Codegen.load Types.tag
+    _ ← Codegen.printCString "eraTag %i \n" [tag]
+    _ ← Codegen.printCString "eraPtr %p \n" [era]
+    pure ()
   Codegen.link [era, main, app, main]
   _ ← Codegen.free app
   Codegen.ret era
+
+-- TODO ∷ remove when the segfault in LLVM2 is over!
+testLink = Codegen.defineFunction Type.void "test_link" [] $ do
+  era ← mallocEra
+  app ← mallocApp
+  main ← Codegen.mainPort
+  Codegen.link [era, main, app, main]
+  debugLevelOne $ do
+    portEra ← Codegen.getPort era main
+    hpefullyAppNode ← Codegen.loadElementPtr $
+      Codegen.Minimal
+      { Codegen.type' = Codegen.nodePointer,
+        Codegen.address' = portEra,
+        Codegen.indincies' = Codegen.constant32List [0,0]
+      }
+    hopefullyMainPort ← Codegen.loadElementPtr $
+      Codegen.Minimal
+      { Codegen.type' = Codegen.numPortsNameRef,
+        Codegen.address' = portEra,
+        Codegen.indincies' = Codegen.constant32List [0,1]
+      }
+    _ ← Codegen.printCString "appPointer %p \n" [app]
+    _ ← Codegen.printCString "mainPortEra: port %i, node %p \n" [hopefullyMainPort, hpefullyAppNode]
+    pure ()
+  _ ← Codegen.free app
+  _ ← Codegen.free era
+  Codegen.retNull

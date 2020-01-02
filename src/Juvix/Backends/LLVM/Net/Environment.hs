@@ -16,7 +16,8 @@ import qualified Juvix.Library.HashMap as Map
 initialModule ∷
   ( Codegen.Define m,
     HasState "typTab" Codegen.TypeTable m,
-    HasState "varTab" Codegen.VariantToType m
+    HasState "varTab" Codegen.VariantToType m,
+    HasReader "debug" Int m
   ) ⇒
   m ()
 initialModule = do
@@ -45,6 +46,7 @@ initialModule = do
   Codegen.addType Types.eacListName Types.eacList
   -- ---------------------------------------------------------------
   Codegen.addBlock "bad" >>= Codegen.setBlock
+  Codegen.definePrintf
   Codegen.defineMalloc
   Codegen.defineFree
   Codegen.defineMainPort
@@ -67,14 +69,22 @@ initialModule = do
   _ ← EAC.defineAnnihilateRewireAux
   _ ← EAC.defineFanInFanIn
   _ ← EAC.defineReduce
+  _ ← EAC.testLink
   -- begin API definitions
-  Codegen.addType "node" API.node
-  _ ← API.defineCreateNet
-  _ ← API.defineReadNet
-  _ ← API.defineAppendToNet
-  _ ← API.defineReduceUntilComplete
+  -- Codegen.addType "node" API.node
+  -- _ ← API.defineCreateNet
+  -- _ ← API.defineReadNet
+  -- _ ← API.defineAppendToNet
+  -- _ ← API.defineReduceUntilComplete
   -- end API definitions
   pure ()
+
+runModule ∷ EAC.EAC () → EAC.EACState
+runModule mod = EAC.execEACStateLevel1 mod Map.empty
+
+runModule' ∷ EAC.EAC () → Either Codegen.Errors ()
+runModule' mod = EAC.evalEACStateLevel1 mod Map.empty
+
 
 runInitModule ∷ EAC.EACState
 runInitModule = EAC.execEACStateLevel1 initialModule Map.empty
