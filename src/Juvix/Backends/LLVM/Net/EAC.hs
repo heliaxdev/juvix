@@ -30,10 +30,13 @@ module Juvix.Backends.LLVM.Net.EAC where
 
 import qualified Juvix.Backends.LLVM.Codegen as Codegen
 import qualified Juvix.Backends.LLVM.DSL as DSL
+import qualified Juvix.Backends.LLVM.Net.EAC.Debug as Debug
 import qualified Juvix.Backends.LLVM.Net.EAC.Defs as Defs
 import Juvix.Backends.LLVM.Net.EAC.MonadEnvironment
 import qualified Juvix.Backends.LLVM.Net.EAC.Types as Types
 import Juvix.Library hiding (reduce)
+import qualified Juvix.Library.HashMap as Map
+import qualified LLVM.AST as AST
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.IntegerPredicate as IntPred
 import qualified LLVM.AST.Name as Name
@@ -82,7 +85,7 @@ defineReduce = Codegen.defineFunction Type.void "reduce" args $
         isPrimary
         (Operand.ConstantOperand (C.Int 1 1))
     -- end of moved code----------------------
-    tagP ← tagOf car
+    tagP ← Types.tagOf car
     tag ← Codegen.load Types.tag tagP
     _term ←
       Codegen.switch
@@ -195,7 +198,7 @@ genContinueCase ∷
   m (Operand.Operand, Name.Name)
 genContinueCase tagNode mainEac cdr defCase prefix cases = do
   nodeEacPtr ← Defs.loadPrimaryNode tagNode
-  tagOther ← tagOf nodeEacPtr >>= Codegen.load Types.tag
+  tagOther ← Types.tagOf nodeEacPtr >>= Codegen.load Types.tag
   blocksGeneratedList ← genBlockNames
   extBranch ← Codegen.addBlock (prefix <> "switch.exit")
   let generateBody (_, branch, rule) = do
@@ -262,16 +265,33 @@ annihilateRewireAux args =
 
 -- mimic rules from the interpreter
 -- This rule applies to Application ↔ Lambda
-defineAnnihilateRewireAux ∷ Codegen.Define m ⇒ m Operand.Operand
+defineAnnihilateRewireAux ∷ (Codegen.Define m, HasReader "debug" Int m) ⇒ m Operand.Operand
 defineAnnihilateRewireAux =
   Codegen.defineFunction Types.eacLPointer "annihilate_rewire_aux" args $
     do
-      aux1 ← Defs.auxiliary1
-      aux2 ← Defs.auxiliary2
       node1P ← Codegen.externf "node_1"
       node2P ← Codegen.externf "node_2"
+      debugLevelOne $ do
+        _ ←
+          Codegen.printCString
+            "rule annihilate_rewire_aux: node_1 %p | node_2 %p \n"
+            [node1P, node2P]
+        pure ()
+      aux1 ← Defs.auxiliary1
+      aux2 ← Defs.auxiliary2
       -- TODO :: check if these calls create more main nodes to put back
+      debugLevelOne $ do
+        _ ← Codegen.printCString " firing off rewire 1\n" []
+        Debug.printNodePort node1P aux1
+        Debug.printNodePort node2P aux1
+      --
       Codegen.rewire [node1P, aux1, node2P, aux1]
+      --
+      debugLevelOne $ do
+        _ ← Codegen.printCString " firing off rewire 2\n" []
+        Debug.printNodePort node1P aux2
+        Debug.printNodePort node2P aux2
+      --
       Codegen.rewire [node1P, aux2, node2P, aux2]
       _ ← Codegen.deAllocateNode node1P
       _ ← Codegen.deAllocateNode node2P
@@ -281,21 +301,50 @@ defineAnnihilateRewireAux =
 
 -- TODO ∷ fully generalize fanIn Logic and generate them dynamically
 
-defineFanInAux0 ∷ Codegen.Define m ⇒ Symbol → m Operand.Operand → m Operand.Operand
+defineFanInAux0 ∷
+  (Codegen.Define m, HasReader "debug" Int m, Codegen.MallocNode m) ⇒
+  Symbol →
+  m Operand.Operand →
+  m Operand.Operand
 defineFanInAux0 name allocF = Codegen.defineFunction Types.eacLPointer name args $
   do
     node ← Codegen.externf "node_1"
     fanIn ← Codegen.externf "node_2"
+    debugLevelOne $ do
+      -- TODO ∷ print fan label as well
+      _ ←
+        Codegen.printCString
+          "rule fan_in_aux_0: node_1 %p | fan_in %p \n"
+          [node, fanIn]
+      pure ()
+    eacList ← Codegen.externf "eac_list"
     era1 ← allocF
     era2 ← allocF
     aux1 ← Defs.auxiliary1
     aux2 ← Defs.auxiliary2
-    mainPort ← Defs.mainPort
+    debugLevelOne $ do
+      -- TODO ∷ print fan label as well
+      _ ← Codegen.printCString "Connecting new Node 1 main port to \n" []
+      Debug.printNodePort fanIn aux1
+      _ ← Codegen.printCString "Connecting new Node 2 main port to \n" []
+      Debug.printNodePort fanIn aux2
+      pure ()
     -- TODO :: determine if these create a new main port which we must append
     -- to the eac_list
-    Codegen.linkConnectedPort [fanIn, aux1, era1, mainPort]
-    Codegen.linkConnectedPort [fanIn, aux2, era2, mainPort]
-    eacList ← Codegen.externf "eac_list"
+    eacList ←
+      Defs.linkAllCons
+        eacList
+        DSL.defRel
+          { DSL.node = DSL.Node {DSL.tagNode = era1, DSL.node' = era1},
+            DSL.primary = DSL.LinkConnected fanIn DSL.Aux1
+          }
+    eacList ←
+      Defs.linkAllCons
+        eacList
+        DSL.defRel
+          { DSL.node = DSL.Node {DSL.tagNode = era2, DSL.node' = era2},
+            DSL.primary = DSL.LinkConnected fanIn DSL.Aux2
+          }
     _ ← eraseNodes [node, fanIn, eacList]
     Codegen.ret eacList
 
@@ -362,7 +411,8 @@ aux2Gen allocF node fanIn eacList copyFanData copyNodeData = do
 
 defineFanInAux2 ∷
   ( Codegen.MallocNode m,
-    Codegen.Define m
+    Codegen.Define m,
+    HasReader "debug" Int m
   ) ⇒
   Symbol →
   m Operand.Operand →
@@ -373,6 +423,12 @@ defineFanInAux2 name allocF = Codegen.defineFunction Types.eacLPointer name args
     node ← Codegen.externf "node_1"
     fanIn ← Codegen.externf "node_2"
     eacList ← Codegen.externf "eac_list"
+    debugLevelOne $ do
+      _ ←
+        Codegen.printCString
+          (unintern name <> ": node_1 %p | node_2 %p \n")
+          [node, fanIn]
+      pure ()
     eacList ←
       aux2Gen
         allocF
@@ -388,7 +444,8 @@ fanInFanIn args = Codegen.callGen Types.eacLPointer args "fan_in_rule"
 
 defineFanInFanIn ∷
   ( Codegen.MallocNode m,
-    Codegen.Define m
+    Codegen.Define m,
+    HasReader "debug" Int m
   ) ⇒
   m Operand.Operand
 defineFanInFanIn = Codegen.defineFunction Types.eacLPointer "fan_in_rule" args $
@@ -396,6 +453,11 @@ defineFanInFanIn = Codegen.defineFunction Types.eacLPointer "fan_in_rule" args $
     eacList ← Codegen.externf "eac_list"
     fanIn1 ← Codegen.externf "node_1"
     fanIn2 ← Codegen.externf "node_2"
+    -- TODO ∷ Print the fanIn number
+    debugLevelOne $ do
+      _ ←
+        Codegen.printCString "fan_in_rule: node_1 %p | node_2 %p \n" [fanIn1, fanIn2]
+      pure ()
     data1 ← Codegen.loadDataArray fanIn1
     data2 ← Codegen.loadDataArray fanIn2
     label1 ← fanLabelLookup data1
@@ -409,13 +471,37 @@ defineFanInFanIn = Codegen.defineFunction Types.eacLPointer "fan_in_rule" args $
     Codegen.setBlock sameFan
     aux1 ← Defs.auxiliary1
     aux2 ← Defs.auxiliary2
+    debugLevelOne $ do
+      _ ←
+        Codegen.printCString
+          "The FanIns have the same label, firing rewires"
+          []
+      pure ()
+    -- TODO ∷ add checked rewrire
+    debugLevelOne $ do
+      _ ← Codegen.printCString " firing off rewire 1\n" []
+      Debug.printNodePort fanIn1 aux1
+      Debug.printNodePort fanIn2 aux2
+    --
     Codegen.rewire [fanIn1, aux1, fanIn2, aux2]
+    --
+    debugLevelOne $ do
+      _ ← Codegen.printCString " firing off rewire 2\n" []
+      Debug.printNodePort fanIn1 aux2
+      Debug.printNodePort fanIn2 aux1
+    --
     Codegen.rewire [fanIn1, aux2, fanIn2, aux1]
     let sameList = eacList
     _ ← eraseNodes [fanIn1, fanIn2, eacList]
     -- %diff.fan
     ------------------------------------------------------
     Codegen.setBlock diffFan
+    debugLevelOne $ do
+      _ ←
+        Codegen.printCString
+          "The FanIns have a different label, firing rewires"
+          []
+      pure ()
     diffList ←
       aux2Gen
         mallocFanIn
@@ -450,7 +536,8 @@ defineFanInAux2F,
   defineFanInAux2L,
   defineFanInAux0E ∷
     ( Codegen.MallocNode m,
-      Codegen.Define m
+      Codegen.Define m,
+      HasReader "debug" Int m
     ) ⇒
     m Operand.Operand
 defineFanInAux2A = defineFanInAux2 "fan_in_aux_2_app" mallocApp
@@ -471,11 +558,17 @@ fanInAux0Era args = Codegen.callGen Types.eacLPointer args "fan_in_aux_0_era"
 eraseNodes ∷ Codegen.Call m ⇒ [Operand.Operand] → m Operand.Operand
 eraseNodes args = Codegen.callGen Types.eacLPointer args "erase_nodes"
 
-defineEraseNodes ∷ Codegen.Define m ⇒ m Operand.Operand
+defineEraseNodes ∷ (Codegen.Define m, HasReader "debug" Int m) ⇒ m Operand.Operand
 defineEraseNodes = Codegen.defineFunction Types.eacLPointer "erase_nodes" args $
   do
     nodePtr1 ← Codegen.externf "node_1"
     nodePtr2 ← Codegen.externf "node_2"
+    debugLevelOne $ do
+      _ ←
+        Codegen.printCString
+          "rule erase_nodes: node_1 %p | node_2 %p \n"
+          [nodePtr1, nodePtr1]
+      pure ()
     _ ← Codegen.deAllocateNode nodePtr1
     _ ← Codegen.deAllocateNode nodePtr2
     Codegen.externf "eac_list" >>= Codegen.ret
@@ -492,7 +585,7 @@ mallocGen ∷
 mallocGen type' portLen dataLen = do
   -- malloc call
   node ← Defs.mallocNodeH (replicate portLen Nothing) (replicate dataLen Nothing)
-  tagPtr ← tagOf node
+  tagPtr ← Types.tagOf node
   Codegen.store tagPtr (Operand.ConstantOperand type')
   pure node
 
@@ -510,15 +603,6 @@ mallocFanIn = mallocGen Types.dup 3 1
 
 nodeOf ∷ Codegen.RetInstruction m ⇒ Operand.Operand → m Operand.Operand
 nodeOf eac = pure eac
-
-tagOf ∷ Codegen.RetInstruction m ⇒ Operand.Operand → m Operand.Operand
-tagOf eac =
-  Codegen.getElementPtr $
-    Codegen.Minimal
-      { Codegen.type' = Codegen.pointerOf Types.tag,
-        Codegen.address' = eac,
-        Codegen.indincies' = Codegen.constant32List [0, 0]
-      }
 
 --------------------------------------------------------------------------------
 -- Helper functions
@@ -549,12 +633,26 @@ fanLabelLookup addr = Codegen.loadElementPtr $
     }
 
 -- dumb define test
+defineTest ∷
+  ( HasThrow "err" Codegen.Errors m,
+    HasState "blockCount" Int m,
+    HasState "blocks" (Map.T Name.Name Codegen.BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name.Name m,
+    HasState "moduleDefinitions" [AST.Definition] m,
+    HasState "names" Codegen.Names m,
+    HasState "symTab" Codegen.SymbolTable m,
+    HasState "typTab" Codegen.TypeTable m,
+    HasState "varTab" Codegen.VariantToType m,
+    HasReader "debug" Int m
+  ) ⇒
+  m Operand.Operand
 defineTest = Codegen.defineFunction Types.eacPointer "test_function" [] $ do
   era ← mallocEra
   app ← mallocApp
   main ← Codegen.mainPort
   debugLevelOne $ do
-    tag ← tagOf era >>= Codegen.load Types.tag
+    tag ← Types.tagOf era >>= Codegen.load Types.tag
     _ ← Codegen.printCString "eraTag %i \n" [tag]
     _ ← Codegen.printCString "eraPtr %p \n" [era]
     pure ()
@@ -563,6 +661,20 @@ defineTest = Codegen.defineFunction Types.eacPointer "test_function" [] $ do
   Codegen.ret era
 
 -- TODO ∷ remove when the segfault in LLVM2 is over!
+testLink ∷
+  ( HasThrow "err" Codegen.Errors m,
+    HasState "blockCount" Int m,
+    HasState "blocks" (Map.T Name.Name Codegen.BlockState) m,
+    HasState "count" Word m,
+    HasState "currentBlock" Name.Name m,
+    HasState "moduleDefinitions" [AST.Definition] m,
+    HasState "names" Codegen.Names m,
+    HasState "symTab" Codegen.SymbolTable m,
+    HasState "typTab" Codegen.TypeTable m,
+    HasState "varTab" Codegen.VariantToType m,
+    HasReader "debug" Int m
+  ) ⇒
+  m Operand.Operand
 testLink = Codegen.defineFunction Type.void "test_link" [] $ do
   era ← mallocEra
   app ← mallocApp
@@ -572,16 +684,16 @@ testLink = Codegen.defineFunction Type.void "test_link" [] $ do
     portEra ← Codegen.getPort era main
     hpefullyAppNode ← Codegen.loadElementPtr $
       Codegen.Minimal
-      { Codegen.type' = Codegen.nodePointer,
-        Codegen.address' = portEra,
-        Codegen.indincies' = Codegen.constant32List [0,0]
-      }
+        { Codegen.type' = Codegen.nodePointer,
+          Codegen.address' = portEra,
+          Codegen.indincies' = Codegen.constant32List [0, 0]
+        }
     hopefullyMainPort ← Codegen.loadElementPtr $
       Codegen.Minimal
-      { Codegen.type' = Codegen.numPortsNameRef,
-        Codegen.address' = portEra,
-        Codegen.indincies' = Codegen.constant32List [0,1]
-      }
+        { Codegen.type' = Codegen.numPortsNameRef,
+          Codegen.address' = portEra,
+          Codegen.indincies' = Codegen.constant32List [0, 1]
+        }
     _ ← Codegen.printCString "appPointer %p \n" [app]
     _ ← Codegen.printCString "mainPortEra: port %i, node %p \n" [hopefullyMainPort, hpefullyAppNode]
     pure ()
