@@ -39,7 +39,8 @@ initialModule = do
           }
     )
   -- registering types----------------------------------------------
-  Codegen.addType Codegen.numPortsName Codegen.numPorts
+  when Codegen.bitSizeEncodingPoint $
+    Codegen.addType Codegen.numPortsName Codegen.numPorts
   Codegen.addType Codegen.portTypeName Defs.portType
   Codegen.addType Types.eacName Types.eac
   Codegen.addType Types.eacListName Types.eacList
@@ -75,6 +76,7 @@ initialModule = do
   _ ← API.defineReadNet
   _ ← API.defineAppendToNet
   _ ← API.defineReduceUntilComplete
+  _ ← API.defineTest
   -- end API definitions
   pure ()
 
