@@ -71,7 +71,40 @@ Module for predefined constants
   + [[Library]]
 ***** Default <<Codegen/Default>>
 This module provides the default environment to run LLVM code in
+***** Shared <<Codegen/Shared>>
+Shared between Types and Sum
+- _Relies on_
+  + [[Library]]
+  + [[HashMap]]
+***** Sum
+Provides a mechanism for defining Sum types
+- Has the code to encode a sum type via what is defined by the user or
+  what is defined to create the interaction net system.
+- _Relies on_
+  + [[Constants]]
+  + [[Codegen/Shared]]
+  + [[Library]]
+  + [[HashMap]]
+***** Types <<Codegen/Types>>
+- _Relies on_
+  + [[Codegen/Shared]]
+  + [[Sum]]
+  + [[Library]]
+  + [[HashMap]]
 ***** Graph <<Codegen/Graph>>
+Serves as a front end for the Graph folder
+- _Relies on_
+  + [[Graph/Debug]]
+  + [[Definitons]]
+  + [[Operations]]
+****** Debug <<Graph/Debug>>
+Serves as a module for various debugging functions
+- _Relies on_
+  + [[Block]]
+  + [[Operations]]
+  + [[Codegen/Types]]
+  + [[Library]]
+****** Definitons
 Operations necessary to update nodes
 - =mainPort=, =auxiliary1= \dots =auxiliary4= allocation
   | Part       | Alloca Or Malloc |
@@ -128,28 +161,16 @@ Operations necessary to update nodes
       thus should modify the default deallocate node functionality
 - _Relies on_
   + [[Block]]
+  + [[Graph/Debug]]
+  + [[Operations]]
   + [[Codegen/Types]]
   + [[Library]]
-***** Shared <<Codegen/Shared>>
-Shared between Types and Sum
+****** Operations
+Functions that help with more complex Graph operations
 - _Relies on_
+  + [[Block]]
+  + [[Codegen/Types]]
   + [[Library]]
-  + [[HashMap]]
-***** Sum
-Provides a mechanism for defining Sum types
-- Has the code to encode a sum type via what is defined by the user or
-  what is defined to create the interaction net system.
-- _Relies on_
-  + [[Constants]]
-  + [[Codegen/Shared]]
-  + [[Library]]
-  + [[HashMap]]
-***** Types <<Codegen/Types>>
-- _Relies on_
-  + [[Codegen/Shared]]
-  + [[Sum]]
-  + [[Library]]
-  + [[HashMap]]
 **** JIT
 - _Relies on_
   + [[Execution]]
@@ -207,23 +228,22 @@ Provides a mechanism for defining Sum types
 - _Relies on_
   + [[Codegen]]
   + [[DSL]]
-  + [[Debug]]
+  + [[EAC/Debug]]
   + [[Defs]]
   + [[MonadEnvironment]]
   + [[Net/EAC/Types]]
   + [[Library]]
   + [[HashMap]]
-****** Debug
+****** Debug <<EAC/Debug>>
 Serves as a module for various debugging functions
 - _Relies on_
   + [[Codegen]]
-  + [[Library]]
-  + [[HashMap]]
 ****** Defs
 - Specializes the functions in Graph to fit [[Net/EAC/Types]]
   + Later in the DSL Layer!
 - Generates the =find_edge= and =isBothPrimary= function with the =eal= type.
 - Also generates the proper types associated with them
+- Also has some miscellaneous debug information
 - _Relies on_
   + [[Codegen]]
   + [[DSL]]
