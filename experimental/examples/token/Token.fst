@@ -33,9 +33,15 @@ let string_cmp = string_cmp_total (); string_cmp'
 (*** Begin Type Definitions *)
 (*******************************************************************)
 
-type address = a : string {String.length a == 36 }
+type address = a : string {String.length a == 36}
 
 type accounts = Map.ordmap address nat string_cmp
+
+
+
+val add_account_values_acc : accounts → nat -> nat
+let add_account_values_acc accounts n  =
+ MapProp.fold (fun _key (v : nat) (acc : nat) -> v + acc) accounts n
 
 // we have to specify they are nats :(
 val add_account_values : accounts -> nat
@@ -122,7 +128,6 @@ let transfer_sub acc add num =
     let remaining : nat = balance - num in
     admit ()
 
-
 val account_add : acc : accounts
                 -> add : address
                 -> num : nat
@@ -132,6 +137,31 @@ let account_add acc add num =
   | Some b' -> Map.update add (b' + num) acc
   | None    -> Map.update add num        acc
 
+(*******************************************************************)
+(**** Experimental Proofs on Transfer *)
+(*******************************************************************)
+
+val transfer_add_lemma : acc : accounts
+                       -> add : address
+                       -> num : nat
+                       -> Lemma
+                       (ensures
+                         (let i =
+                           match Map.select add acc with
+                           | None   -> 0
+                           | Some v -> v
+                          in i + num = Some?.v (Map.select add (account_add acc add num))))
+let transfer_add_lemma acc add num = ()
+
+val transfer_add_unaffect : acc : accounts
+                          -> add : address
+                          -> num : nat
+                          -> Lemma
+                          (ensures
+                            (forall x. Map.contains x acc /\ x <> add
+                              ==> Map.select x acc = Map.select x (account_add acc add num)))
+let transfer_add_unaffect acc add num = ()
+
 // No feedback given, so don't know next move :(
 val transfer_add : acc : accounts
                  -> add : address
@@ -140,9 +170,13 @@ val transfer_add : acc : accounts
                   (ensures ( add_account_values acc + num
                            == add_account_values (account_add acc add num)))
 let transfer_add acc add num =
-  match Map.select add acc with
-  | Some balance -> admit ()
-  | None         -> admit ()
+  admit ();
+  transfer_add_unaffect acc add num;
+  transfer_add_lemma acc add num
+
+(*******************************************************************)
+(**** Failed Experimental Proofs Over *)
+(*******************************************************************)
 
 
 val transfer_acc : acc     : accounts
