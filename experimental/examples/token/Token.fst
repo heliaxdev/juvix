@@ -162,6 +162,19 @@ val transfer_add_unaffect : acc : accounts
                               ==> Map.select x acc = Map.select x (account_add acc add num)))
 let transfer_add_unaffect acc add num = ()
 
+
+val transfer_same_when_remove : acc : accounts
+                              -> add : address
+                              -> num : nat
+                              -> Lemma
+                              (ensures
+                                (let new_account = account_add acc add num in
+                                    add_account_values (Map.remove add acc)
+                                 == add_account_values (Map.remove add new_account)))
+let transfer_same_when_remove acc add num =
+  let new_account = account_add acc add num in
+  assert (Map.equal (Map.remove add acc) (Map.remove add new_account))
+
 // No feedback given, so don't know next move :(
 val transfer_add : acc : accounts
                  -> add : address
@@ -171,6 +184,7 @@ val transfer_add : acc : accounts
                            == add_account_values (account_add acc add num)))
 let transfer_add acc add num =
   admit ();
+  transfer_same_when_remove acc add num;
   transfer_add_unaffect acc add num;
   transfer_add_lemma acc add num
 
