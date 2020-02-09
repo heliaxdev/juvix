@@ -175,6 +175,21 @@ let transfer_same_when_remove acc add num =
   let new_account = account_add acc add num in
   assert (Map.equal (Map.remove add acc) (Map.remove add new_account))
 
+// Useful stepping stone to the real answer!
+// sadly admitted for now
+val transfer_acc_behavior : acc : accounts
+                          -> add : address
+                          -> Lemma
+                            (ensures
+                              (let i =
+                                match Map.select add acc with
+                                | None   -> 0
+                                | Some v -> v
+                                in add_account_values_acc (Map.remove add acc) i
+                                  == add_account_values acc))
+let transfer_acc_behavior acc add =
+  admit ()
+
 // No feedback given, so don't know next move :(
 val transfer_add : acc : accounts
                  -> add : address
