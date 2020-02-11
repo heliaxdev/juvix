@@ -301,7 +301,6 @@ This module provides a default contract environment
   + [[Compilation/Environment]]
   + [[Lambda]]
   + [[Compilation/Type]]
-  + [[Michelson/Compilation/Types]]
   + [[Compilation/Util]]
   + [[VirtualStack]]
   + [[Optimisation]]
@@ -314,7 +313,7 @@ This module provides a default contract environment
   + [[VirtualStack]]
   + [[Library]]
 ***** Datatypes
-Datatypes & pattern matching.
+Datatypes and pattern matching.
 - _Relies on_
   + [[Michelson/Compilation/Types]]
   + [[Compilation/Util]]
@@ -333,7 +332,6 @@ Datatypes & pattern matching.
   + [[Michelson/Compilation/Types]]
   + [[Compilation/Util]]
   + [[VirtualStack]]
-  + [[Michelson/Parameterisation]]
   + [[ErasedAnn]]
   + [[Library]]
 ***** Prim
@@ -341,7 +339,6 @@ Datatypes & pattern matching.
 - _Relies on_
   + [[Compilation/Environment]]
   + [[Compilation/Type]]
-  + [[Michelson/Compilation/Types]]
   + [[VirtualStack]]
   + [[ErasedAnn]]
   + [[Library]]
@@ -352,7 +349,6 @@ Datatypes & pattern matching.
   + [[Compilation/Environment]]
   + [[Prim]]
   + [[Compilation/Type]]
-  + [[Michelson/Compilation/Types]]
   + [[Compilation/Util]]
   + [[VirtualStack]]
   + [[Michelson/Parameterisation]]

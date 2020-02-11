@@ -3,47 +3,46 @@
 module Juvix.Backends.Michelson.Compilation.Lambda where
 
 import Data.Maybe (fromJust) -- bad remove!
-import Juvix.Backends.Michelson.Compilation.Term -- TODO fixme
-import Juvix.Backends.Michelson.Compilation.Type
-import Juvix.Backends.Michelson.Compilation.Types
-import Juvix.Backends.Michelson.Compilation.Util
+import qualified Juvix.Backends.Michelson.Compilation.Term as Term -- TODO fixme
+import qualified Juvix.Backends.Michelson.Compilation.Type as Type
+import qualified Juvix.Backends.Michelson.Compilation.Types as Types
+import qualified Juvix.Backends.Michelson.Compilation.Util as Util
 import qualified Juvix.Backends.Michelson.Compilation.VirtualStack as VStack
-import Juvix.Backends.Michelson.Parameterisation
-import qualified Juvix.Core.ErasedAnn as J
+import qualified Juvix.Core.ErasedAnn as ErasedAnn
 import Juvix.Library
 import qualified Michelson.Untyped as M
 
 termToMichelson ∷
   ∀ m.
   ( HasState "stack" VStack.T m,
-    HasThrow "compilationError" CompilationError m,
-    HasWriter "compilationLog" [CompilationLog] m
+    HasThrow "compilationError" Types.CompilationError m,
+    HasWriter "compilationLog" [Types.CompilationLog] m
   ) ⇒
-  Term →
+  Types.Term →
   M.Type →
-  m Op
+  m Types.Op
 termToMichelson term paramTy = do
   case term of
-    (J.Lam arg body, _, _) → do
+    (ErasedAnn.Lam arg body, _, _) → do
       modify @"stack" (VStack.cons (VStack.varE arg Nothing, paramTy))
       instr' ← termToInstrOuter body paramTy
       let instr = M.SeqEx [instr', M.PrimEx (M.DIP [M.PrimEx M.DROP])]
       modify @"stack" (\xs → VStack.cons (VStack.car xs) (VStack.cdr (VStack.cdr xs)))
-      tell @"compilationLog" [TermToInstr body instr]
+      tell @"compilationLog" [Types.TermToInstr body instr]
       pure instr
-    _ → throw @"compilationError" (NotYetImplemented "must be a lambda function")
+    _ → throw @"compilationError" (Types.NotYetImplemented "must be a lambda function")
 
 termToInstrOuter ∷
   ∀ m.
   ( HasState "stack" VStack.T m,
-    HasThrow "compilationError" CompilationError m,
-    HasWriter "compilationLog" [CompilationLog] m
+    HasThrow "compilationError" Types.CompilationError m,
+    HasWriter "compilationLog" [Types.CompilationLog] m
   ) ⇒
-  Term →
+  Types.Term →
   M.Type →
-  m Op
+  m Types.Op
 termToInstrOuter term ty = do
-  maybeOp ← termToInstr term ty
+  maybeOp ← Term.termToInstr term ty
   case maybeOp of
     Right op → pure op
     Left (VStack.LamPartial _ops _captures _args _body _) → do
@@ -60,8 +59,8 @@ termToInstrOuter term ty = do
 funcToLambda ∷
   ∀ m.
   ( HasState "stack" VStack.T m,
-    HasThrow "compilationError" CompilationError m,
-    HasWriter "compilationLog" [CompilationLog] m
+    HasThrow "compilationError" Types.CompilationError m,
+    HasWriter "compilationLog" [Types.CompilationLog] m
   ) ⇒
   VStack.LamPartial →
   M.Type →
@@ -86,7 +85,7 @@ funcToLambda (VStack.LamPartial ops captures args body lamTy) paramTy = do
           currentStack ← get @"stack"
           case VStack.lookup x currentStack of
             Nothing →
-              failWith
+              Util.failWith
                 ( "free variable in lambda"
                     <> " doesn't exist"
                 )
@@ -104,7 +103,7 @@ funcToLambda (VStack.LamPartial ops captures args body lamTy) paramTy = do
               pure (M.SeqEx [])
             Just (VStack.Position p) → do
               let (Just type') = VStack.lookupType x currentStack
-              let inst = dupToFront (fromIntegral p)
+              let inst = Util.dupToFront (fromIntegral p)
               modify @"stack" (VStack.cons (VStack.varE x Nothing, type'))
               pure inst
       )
@@ -120,7 +119,7 @@ funcToLambda (VStack.LamPartial ops captures args body lamTy) paramTy = do
 
       numVarsInClosure = (length (captures <> args))
 
-  extraArgsWithTypes ← zip args . drop (length args) <$> typesFromPi lamTy
+  extraArgsWithTypes ← zip args . drop (length args) <$> Type.typesFromPi lamTy
   let createExtraArgs =
         (\(extra, extraType) → (VStack.varE extra Nothing, extraType))
           <$> extraArgsWithTypes
@@ -130,19 +129,19 @@ funcToLambda (VStack.LamPartial ops captures args body lamTy) paramTy = do
   body ← termToInstrOuter body paramTy
   put @"stack" current
   -- Step 4: Pack up the captures.
-  packInstrs ← genReturn (pairN (realValues - 1))
+  packInstrs ← Util.genReturn (Util.pairN (realValues - 1))
   -- Step 5: Determine the type of the lambda.
   let capturesTypes =
         (\x → (x, fromJust (VStack.lookupType x current)))
           <$> VStack.symbolsInT captures current
   lTy ←
-    lamType capturesTypes extraArgsWithTypes
-      <$> returnTypeFromPi lamTy
+    Type.lamType capturesTypes extraArgsWithTypes
+      <$> Type.returnTypeFromPi lamTy
   -- Step 6: Return the sequence of Michelson instructions, ending in `APPLY`.
   let dipGen x =
         case length (VStack.symbolsInT x current) of
           0 → M.SeqEx []
-          i → M.PrimEx (M.DIP [unpackTupleN (pred i)])
+          i → M.PrimEx (M.DIP [Util.unpackTupleN (pred i)])
 
       dipArgs = dipGen args
 
@@ -157,7 +156,7 @@ funcToLambda (VStack.LamPartial ops captures args body lamTy) paramTy = do
               lTy
               ( M.ValueLambda
                   ( M.SeqEx
-                      [ unpackTuple,
+                      [ Util.unpackTuple,
                         dipArgs,
                         dipCurr
                       ]
