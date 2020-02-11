@@ -1,21 +1,32 @@
 -- |
 -- - Types used internally by the Michelson backend.
-module Juvix.Backends.Michelson.Compilation.Types
-  ( module Juvix.Backends.Michelson.Compilation.Types,
-    VStack.car,
-    VStack.cdr,
-    VStack.cons,
-    VStack.LamPartial (..),
-  )
-where
+module Juvix.Backends.Michelson.Compilation.Types where
 
-import qualified Juvix.Backends.Michelson.Compilation.VirtualStack as VStack
-import Juvix.Backends.Michelson.Parameterisation
+import qualified Juvix.Core.ErasedAnn.Types as CoreErased
 import Juvix.Library
 import qualified Michelson.TypeCheck as M
 import qualified Michelson.Typed as MT
+import qualified Michelson.Untyped as M
 
-type VStack = VStack.T
+data PrimTy
+  = PrimTy M.Type
+  deriving (Show, Eq, Generic)
+
+data PrimVal
+  = PrimConst (M.Value' Op)
+  | PrimPair
+  | PrimFst
+  | PrimSnd
+  -- TODO: Add all Michelson instructions which are functions.
+  deriving (Show, Eq, Generic)
+
+type Term = CoreErased.AnnTerm PrimTy PrimVal
+
+type Type = CoreErased.Type PrimTy PrimVal
+
+type Value = M.Value' M.ExpandedOp
+
+type Op = M.ExpandedOp
 
 data CompilationError
   = NotYetImplemented Text
@@ -40,27 +51,3 @@ deriving instance Show (SomeInstr)
 
 instance Eq SomeInstr where
   _ == _ = False
-
-data Env
-  = Env
-      { stack ∷ VStack.T,
-        compilationLog ∷ [CompilationLog]
-      }
-  deriving (Generic)
-
-newtype EnvCompilation a = EnvCompilation (ExceptT CompilationError (State Env) a)
-  deriving (Functor, Applicative, Monad)
-  deriving
-    ( HasStream "compilationLog" [CompilationLog],
-      HasWriter "compilationLog" [CompilationLog]
-    )
-    via WriterLog (Field "compilationLog" () (MonadState (ExceptT CompilationError (State Env))))
-  deriving
-    (HasState "stack" VStack.T)
-    via Field "stack" () (MonadState (ExceptT CompilationError (State Env)))
-  deriving
-    (HasThrow "compilationError" CompilationError)
-    via MonadError (ExceptT CompilationError (State Env))
-
-execWithStack ∷ VStack.T → EnvCompilation a → (Either CompilationError a, Env)
-execWithStack stack (EnvCompilation env) = runState (runExceptT env) (Env stack [])

@@ -16,7 +16,6 @@
 module Juvix.Backends.Michelson.Optimisation where
 
 import Juvix.Backends.Michelson.Compilation.Types
-import Juvix.Backends.Michelson.Parameterisation
 import Juvix.Library
 import qualified Michelson.Optimizer as MO
 import qualified Michelson.Typed as MT

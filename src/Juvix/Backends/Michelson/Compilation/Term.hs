@@ -4,12 +4,13 @@ module Juvix.Backends.Michelson.Compilation.Term where
 
 import qualified Data.Set as Set
 import Juvix.Backends.Michelson.Compilation.Checks
+import Juvix.Backends.Michelson.Compilation.Environment
 import Juvix.Backends.Michelson.Compilation.Prim
 import Juvix.Backends.Michelson.Compilation.Type
 import Juvix.Backends.Michelson.Compilation.Types
 import Juvix.Backends.Michelson.Compilation.Util
 import qualified Juvix.Backends.Michelson.Compilation.VirtualStack as VStack
-import Juvix.Backends.Michelson.Parameterisation
+import qualified Juvix.Backends.Michelson.Parameterisation as Paramaterisation
 import qualified Juvix.Core.ErasedAnn as J
 import qualified Juvix.Core.Usage as Usage
 import Juvix.Library
@@ -76,7 +77,7 @@ termToInstr ann@(term, _, ty) paramTy = stackGuard ann paramTy $ do
           -- TODO ∷ generate better unique names
           let arguments =
                 intern
-                  <$> replicate (arity prim) "_"
+                  <$> replicate (Paramaterisation.arity prim) "_"
                   <> fmap Prelude.show ([1 ..] ∷ [Integer])
           insts ← evaluateAndPushArgs arguments primTy args paramTy
           recurseApplication

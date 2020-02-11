@@ -3,8 +3,9 @@
 module Juvix.Backends.Michelson.Compilation.Util where
 
 import qualified Data.Set as Set
-import Juvix.Backends.Michelson.Compilation.Types
+import Juvix.Backends.Michelson.Compilation.Types hiding (Type)
 import qualified Juvix.Backends.Michelson.Compilation.VirtualStack as VStack
+import Juvix.Backends.Michelson.Compilation.VirtualStack (car, cdr, cons)
 import Juvix.Library hiding (Type)
 import Michelson.TypeCheck
 import qualified Michelson.Typed as MT

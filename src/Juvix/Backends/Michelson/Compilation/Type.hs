@@ -3,7 +3,6 @@
 module Juvix.Backends.Michelson.Compilation.Type where
 
 import Juvix.Backends.Michelson.Compilation.Types
-import Juvix.Backends.Michelson.Parameterisation
 import qualified Juvix.Core.ErasedAnn.Types as J
 import Juvix.Library hiding (Type)
 import qualified Michelson.Untyped as M
@@ -79,7 +78,7 @@ typesFromPi ∷
 typesFromPi (J.Pi _usage aType rest) = (:) <$> typeToType aType <*> typesFromPi rest
 typesFromPi _ = pure []
 
-returnTypeFromPi ::
+returnTypeFromPi ∷
   HasThrow "compilationError" CompilationError m ⇒ J.Type PrimTy PrimVal → m M.Type
 returnTypeFromPi (J.Pi _usage _ rest) = returnTypeFromPi rest
 returnTypeFromPi x = typeToType x

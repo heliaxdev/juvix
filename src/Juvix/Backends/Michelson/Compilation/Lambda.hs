@@ -25,10 +25,10 @@ termToMichelson ∷
 termToMichelson term paramTy = do
   case term of
     (J.Lam arg body, _, _) → do
-      modify @"stack" (cons (VStack.varE arg Nothing, paramTy))
+      modify @"stack" (VStack.cons (VStack.varE arg Nothing, paramTy))
       instr' ← termToInstrOuter body paramTy
       let instr = M.SeqEx [instr', M.PrimEx (M.DIP [M.PrimEx M.DROP])]
-      modify @"stack" (\xs → cons (car xs) (cdr (cdr xs)))
+      modify @"stack" (\xs → VStack.cons (VStack.car xs) (VStack.cdr (VStack.cdr xs)))
       tell @"compilationLog" [TermToInstr body instr]
       pure instr
     _ → throw @"compilationError" (NotYetImplemented "must be a lambda function")
@@ -46,7 +46,7 @@ termToInstrOuter term ty = do
   maybeOp ← termToInstr term ty
   case maybeOp of
     Right op → pure op
-    Left (LamPartial _ops _captures _args _body _) → do
+    Left (VStack.LamPartial _ops _captures _args _body _) → do
       -- TODO: Actually compile the lambda to a closure.
       -- We should never need to do this elsewhere.
       -- ergo, if we do not return a lambda, we should never
@@ -63,10 +63,10 @@ funcToLambda ∷
     HasThrow "compilationError" CompilationError m,
     HasWriter "compilationLog" [CompilationLog] m
   ) ⇒
-  LamPartial →
+  VStack.LamPartial →
   M.Type →
   m M.ExpandedOp
-funcToLambda (LamPartial ops captures args body lamTy) paramTy = do
+funcToLambda (VStack.LamPartial ops captures args body lamTy) paramTy = do
   -- ~~
   -- Here we are dealing with a (possibly previously partially applied)
   -- function which will not be fully applied, ergo we must compile it
@@ -96,7 +96,7 @@ funcToLambda (LamPartial ops captures args body lamTy) paramTy = do
                     VStack.Val' v → VStack.ConstE v
                     VStack.Lam' l → VStack.LamPartialE l
               modify @"stack"
-                ( cons
+                ( VStack.cons
                     ( VStack.varE x (Just val),
                       type'
                     )
@@ -105,7 +105,7 @@ funcToLambda (LamPartial ops captures args body lamTy) paramTy = do
             Just (VStack.Position p) → do
               let (Just type') = VStack.lookupType x currentStack
               let inst = dupToFront (fromIntegral p)
-              modify @"stack" (cons (VStack.varE x Nothing, type'))
+              modify @"stack" (VStack.cons (VStack.varE x Nothing, type'))
               pure inst
       )
       captures

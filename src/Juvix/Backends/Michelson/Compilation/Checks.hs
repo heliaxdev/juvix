@@ -5,7 +5,6 @@ module Juvix.Backends.Michelson.Compilation.Checks where
 import Juvix.Backends.Michelson.Compilation.Types
 import Juvix.Backends.Michelson.Compilation.Util
 import qualified Juvix.Backends.Michelson.Compilation.VirtualStack as VStack
-import Juvix.Backends.Michelson.Parameterisation
 import Juvix.Library
 import qualified Michelson.TypeCheck as M
 import qualified Michelson.Untyped as M

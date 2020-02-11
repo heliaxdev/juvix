@@ -15,7 +15,7 @@
 module Juvix.Backends.Michelson.Compilation.VirtualStack where
 
 import qualified Data.Set as Set
-import qualified Juvix.Backends.Michelson.Parameterisation as Parameterisation
+import qualified Juvix.Backends.Michelson.Compilation.Types as Types
 import qualified Juvix.Core.ErasedAnn as ErasedAnn
 import Juvix.Library hiding (Type, drop, take)
 import qualified Juvix.Library.HashMap as Map
@@ -47,16 +47,16 @@ varNone x = VarE (Set.singleton x) Nothing
 
 data LamPartial
   = LamPartial
-      { ops ∷ [Parameterisation.Op],
+      { ops ∷ [Types.Op],
         captures ∷ [Symbol], -- note: semantically this should be a set :)
         remArgs ∷ [Symbol],
-        body ∷ Parameterisation.Term,
-        ty ∷ ErasedAnn.Type Parameterisation.PrimTy Parameterisation.PrimVal
+        body ∷ Types.Term,
+        ty ∷ ErasedAnn.Type Types.PrimTy Types.PrimVal
       }
   deriving (Show, Eq, Generic)
 
 data Val
-  = ConstE Parameterisation.Value
+  = ConstE Types.Value
   | FuncResultE
   | LamPartialE LamPartial
   deriving (Show, Eq, Generic)

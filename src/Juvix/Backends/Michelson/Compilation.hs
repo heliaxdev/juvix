@@ -4,14 +4,13 @@ module Juvix.Backends.Michelson.Compilation where
 
 import qualified Data.Map as Map
 import qualified Data.Text.Lazy as L
+import Juvix.Backends.Michelson.Compilation.Environment
 import Juvix.Backends.Michelson.Compilation.Lambda
-import Juvix.Backends.Michelson.Compilation.Term
 import Juvix.Backends.Michelson.Compilation.Type
 import Juvix.Backends.Michelson.Compilation.Types
 import Juvix.Backends.Michelson.Compilation.Util
 import qualified Juvix.Backends.Michelson.Compilation.VirtualStack as VStack
 import Juvix.Backends.Michelson.Optimisation
-import Juvix.Backends.Michelson.Parameterisation
 import Juvix.Library hiding (Type)
 import qualified Michelson.Printer as M
 import qualified Michelson.TypeCheck as M
