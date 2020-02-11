@@ -140,12 +140,14 @@ library:
     - Juvix.Backends.Michelson.Compilation
     - Juvix.Backends.Michelson.Compilation.Prim
     - Juvix.Backends.Michelson.Compilation.Term
+    - Juvix.Backends.Michelson.Compilation.Lambda
     - Juvix.Backends.Michelson.Compilation.Type
     - Juvix.Backends.Michelson.Compilation.Checks
     - Juvix.Backends.Michelson.Compilation.Types
     - Juvix.Backends.Michelson.Compilation.Util
     - Juvix.Backends.Michelson.Compilation.Datatypes
     - Juvix.Backends.Michelson.Optimisation
+    - Juvix.Backends.Michelson.Compilation.VirtualStack
     - Juvix.Backends.ArithmeticCircuit
     - Juvix.Backends.ArithmeticCircuit.Parameterisation
     - Juvix.Backends.ArithmeticCircuit.Compilation

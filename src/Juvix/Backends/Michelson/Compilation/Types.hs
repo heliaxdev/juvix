@@ -1,12 +1,21 @@
 -- |
 -- - Types used internally by the Michelson backend.
-module Juvix.Backends.Michelson.Compilation.Types where
+module Juvix.Backends.Michelson.Compilation.Types
+  ( module Juvix.Backends.Michelson.Compilation.Types,
+    VStack.car,
+    VStack.cdr,
+    VStack.cons,
+    VStack.LamPartial (..),
+  )
+where
 
+import qualified Juvix.Backends.Michelson.Compilation.VirtualStack as VStack
 import Juvix.Backends.Michelson.Parameterisation
 import Juvix.Library
 import qualified Michelson.TypeCheck as M
 import qualified Michelson.Typed as MT
-import qualified Michelson.Untyped as M
+
+type VStack = VStack.T
 
 data CompilationError
   = NotYetImplemented Text
@@ -14,6 +23,8 @@ data CompilationError
   | InternalFault Text
   | DidNotTypecheck M.TCError
   | DidNotTypecheckAfterOptimisation M.TCError
+  | -- Should never happen!
+    NotEnoughStackSpace
   deriving (Show, Eq, Generic)
 
 data CompilationLog
@@ -21,14 +32,6 @@ data CompilationLog
   | OptimisedByJuvix Op Op
   | OptimisedByMorley SomeInstr SomeInstr
   deriving (Generic)
-
-type Stack = [(StackElem, M.Type)]
-
-data StackElem
-  = ConstE Value
-  | VarE Symbol
-  | FuncResultE
-  deriving (Show, Eq, Generic)
 
 data SomeInstr where
   SomeInstr ∷ ∀ a b. MT.Instr a b → SomeInstr
@@ -40,7 +43,7 @@ instance Eq SomeInstr where
 
 data Env
   = Env
-      { stack ∷ Stack,
+      { stack ∷ VStack.T,
         compilationLog ∷ [CompilationLog]
       }
   deriving (Generic)
@@ -53,11 +56,11 @@ newtype EnvCompilation a = EnvCompilation (ExceptT CompilationError (State Env) 
     )
     via WriterLog (Field "compilationLog" () (MonadState (ExceptT CompilationError (State Env))))
   deriving
-    (HasState "stack" Stack)
+    (HasState "stack" VStack.T)
     via Field "stack" () (MonadState (ExceptT CompilationError (State Env)))
   deriving
     (HasThrow "compilationError" CompilationError)
     via MonadError (ExceptT CompilationError (State Env))
 
-execWithStack ∷ Stack → EnvCompilation a → (Either CompilationError a, Env)
+execWithStack ∷ VStack.T → EnvCompilation a → (Either CompilationError a, Env)
 execWithStack stack (EnvCompilation env) = runState (runExceptT env) (Env stack [])
