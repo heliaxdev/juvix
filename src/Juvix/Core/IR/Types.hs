@@ -33,11 +33,11 @@ data Term' ext primTy primVal
     TermX (TermX ext primTy primVal)
 
 deriving instance
-  (Eq primTy, Eq primVal, TEAll Eq ext primTy primVal) =>
+  (Eq primTy, Eq primVal, TEAll Eq ext primTy primVal) ⇒
   Eq (Term' ext primTy primVal)
 
 deriving instance
-  (Show primTy, Show primVal, TEAll Show ext primTy primVal) =>
+  (Show primTy, Show primVal, TEAll Show ext primTy primVal) ⇒
   Show (Term' ext primTy primVal)
 
 -- FIXME add pretty-printer
@@ -46,7 +46,7 @@ instance (Show primTy, Show primVal) ⇒ Show (Term primTy primVal) where
   show (Star n ()) = "* " <> show n
   show (PrimTy p ()) = show p
   show (Pi _usage varTy resultTy ()) =
-    "[Π] " <> show varTy <> "-> " <> show resultTy
+    "[Π] " <> show varTy <> "→ " <> show resultTy
   show (Lam var ()) = "\\x. " <> show var
   -- Elim should be invisible to users.
   show (Elim term ()) = show term
@@ -71,30 +71,30 @@ data Elim' ext primTy primVal
     ElimX (ElimX ext primTy primVal)
 
 deriving instance
-  (Eq primTy, Eq primVal, TEAll Eq ext primTy primVal) =>
+  (Eq primTy, Eq primVal, TEAll Eq ext primTy primVal) ⇒
   Eq (Elim' ext primTy primVal)
 
 deriving instance
-  (Show primTy, Show primVal, TEAll Show ext primTy primVal) =>
+  (Show primTy, Show primVal, TEAll Show ext primTy primVal) ⇒
   Show (Elim' ext primTy primVal)
 
 
 type Term = Term' NoExt
 
-pattern Star :: Natural -> Term primTy primVal
+pattern Star ∷ Natural → Term primTy primVal
 pattern Star i = Star' i ()
 
-pattern PrimTy :: primTy -> Term primTy primVal
+pattern PrimTy ∷ primTy → Term primTy primVal
 pattern PrimTy t = PrimTy' t ()
 
-pattern Pi :: Usage -> Term primTy primVal -> Term primTy primVal
-           -> Term primTy primVal
+pattern Pi ∷ Usage → Term primTy primVal → Term primTy primVal
+           → Term primTy primVal
 pattern Pi π s t = Pi' π s t ()
 
-pattern Lam :: Term primTy primVal -> Term primTy primVal
+pattern Lam ∷ Term primTy primVal → Term primTy primVal
 pattern Lam t = Lam' t ()
 
-pattern Elim :: Elim primTy primVal -> Term primTy primVal
+pattern Elim ∷ Elim primTy primVal → Term primTy primVal
 pattern Elim e = Elim' e ()
 
 {-# COMPLETE Star, PrimTy, Pi, Lam, Elim #-}
@@ -102,20 +102,20 @@ pattern Elim e = Elim' e ()
 
 type Elim = Elim' NoExt
 
-pattern Bound :: Natural -> Elim primTy primVal
+pattern Bound ∷ Natural → Elim primTy primVal
 pattern Bound x = Bound' x ()
 
-pattern Free :: Name -> Elim primTy primVal
+pattern Free ∷ Name → Elim primTy primVal
 pattern Free x = Free' x ()
 
-pattern Prim :: primVal -> Elim primTy primVal
+pattern Prim ∷ primVal → Elim primTy primVal
 pattern Prim x = Prim' x ()
 
-pattern App :: Elim primTy primVal -> Term primTy primVal -> Elim primTy primVal
+pattern App ∷ Elim primTy primVal → Term primTy primVal → Elim primTy primVal
 pattern App s t = App' s t ()
 
-pattern Ann :: Usage -> Term primTy primVal -> Term primTy primVal
-            -> Elim primTy primVal
+pattern Ann ∷ Usage → Term primTy primVal → Term primTy primVal
+            → Elim primTy primVal
 pattern Ann π s t = Ann' π s t ()
 
 {-# COMPLETE Bound, Free, Prim, App, Ann #-}
@@ -177,7 +177,8 @@ deriving instance
   (Eq primTy, Eq primVal) ⇒
   Eq (Neutral primTy primVal (EnvTypecheck primTy primVal))
 
-instance (Show primTy, Show primVal) ⇒ Show (Value primTy primVal (EnvTypecheck primTy primVal)) where
+instance (Show primTy, Show primVal)
+       ⇒ Show (Value primTy primVal (EnvTypecheck primTy primVal)) where
   show x = show (fst (exec (quote0 x)))
 
 deriving instance
@@ -222,7 +223,8 @@ instance
       <> show (fst expectedT)
       <> " usage."
   show (UniverseMismatch t ty) =
-    show t <> " is of type * of a higher universe. But the expected type "
+    show t
+      <> " is of type * of a higher universe. But the expected type "
       <> show ty
       <> " is * of a equal or lower universe."
   show (CannotApply f x) =
@@ -238,9 +240,16 @@ instance
   show (UsageMustBeZero) =
     "Usage has to be 0."
   show (UsageNotCompatible expectedU gotU) =
-    "The usage of " <> (show (fst gotU)) <> " is not compatible with " <> (show (fst expectedU))
+       "The usage of "
+    <> (show (fst gotU))
+    <> " is not compatible with "
+    <> (show (fst expectedU))
   show (UnboundBinder ii x) =
-    "Cannot find the type of \n" <> show x <> "\n (binder number " <> show ii <> ") in the environment."
+      "Cannot find the type of \n"
+    <> show x
+    <> "\n (binder number "
+    <> show ii
+    <> ") in the environment."
   show (MustBeFunction m ii n) =
     ( show m <> "\n (binder number " <> show ii
         <> ") is not a function type and thus \n"
@@ -307,14 +316,14 @@ quote ∷
   Natural →
   Value primTy primVal m →
   m (Term primTy primVal)
-quote _ii (VStar n) = pure (Star n)
-quote _ii (VPrimTy p) = pure (PrimTy p)
-quote ii (VPi pi v f) =
-  Pi pi <$> quote ii v <*> (quote (ii + 1) =<< f (vfree (Quote ii)))
-quote ii (VLam f) =
-  Lam <$> (quote (ii + 1) =<< f (vfree (Quote ii)))
-quote ii (VNeutral n) = Elim <$> neutralQuote ii n
-quote _ii (VPrim p) = pure (Elim (Prim p))
+quote ii p =
+  case p of
+    VStar nat → pure (Star nat)
+    VPrimTy p → pure (PrimTy p)
+    VPi pi v f → Pi pi <$> quote ii v <*> (quote (succ ii) =<< f (vfree (Quote ii)))
+    VLam func → Lam <$> (quote (ii + 1) =<< func (vfree (Quote ii)))
+    VPrim pri → pure (Elim (Prim pri))
+    VNeutral n → Elim <$> neutralQuote ii n
 
 neutralQuote ∷
   ∀ primTy primVal m.
