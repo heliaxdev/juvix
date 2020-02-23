@@ -19,7 +19,7 @@ zipWith : (a : 0 Type) -> (b : 0 Type) -> (c : 0 Type) -> (n : 0 Nat) -> n (a ->
 zipWith (a : 0 Type) (b : 0 Type) (c : 0 Type) (Z : 0 Nat)   _ Nil        Nil       = Nil
 zipWith (a : 0 Type) (b : 0 Type) (c : 0 Type) (S k : 0 Nat) f (x :: xs)  (y :: ys) = f x y :: zipWith a b c k f xs ys
 
-zipAdd : (a : 0 Type) -> (n : 0 Nat) -> (d : 0 (Num a)) -> Vect n a -> Vect n a -> Vect n a
+zipAdd : (a : 0 Type) -> (n : 0 Nat) -> (d : n (Num a)) -> Vect n a -> Vect n a -> Vect n a
 zipAdd a n d xs ys = zipWith a a a n ((+) d) xs ys
 ```
 
