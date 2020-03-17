@@ -8,6 +8,7 @@ import qualified CoreParser
 import qualified CoreTypechecker
 import qualified EAC2
 import qualified Erasure
+import qualified Frontend as Frontend
 import Juvix.Library hiding (identity)
 import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as T
@@ -31,12 +32,19 @@ backendTests =
       Michelson.backendMichelson
     ]
 
+frontEndTests ∷ T.TestTree
+frontEndTests =
+  T.testGroup
+    "frontend tests"
+    [Frontend.allParserTests]
+
 allCheckedTests ∷ T.TestTree
 allCheckedTests =
   T.testGroup
     "All tests that are checked"
     [ coreTests,
       backendTests,
+      frontEndTests,
       EAC2.eac2Tests,
       Erasure.erasureTests
     ]
