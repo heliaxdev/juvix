@@ -6,6 +6,16 @@ module FakeLib
 Address : Type
 Address = String
 
+||| Error errors
+data Error = NotEnoughBalance
+           | FailedToAuthenticate
+           | NotAllowedToSpendFrom
+           | NotEnoughAllowance
+           | TokenAlreadyMinted
+           | NonExistenceToken
+           | NotOwnedByFromAddress
+           | OwnerCannotBeOperator
+
 ||| currentCaller is the address of the caller of the current operation.
 currentCaller : Address
 currentCaller = "qwer"
