@@ -29,6 +29,7 @@ Tests for the type checker and evaluator in Core/IR/Typechecker.hs
   + [[Library]]
 * EAC2
 - _Relies on_
+  + [[EAC]]
   + [[Check]]
   + [[Types]]
   + [[Types]]
@@ -54,7 +55,6 @@ Tests for the type checker and evaluator in Core/IR/Typechecker.hs
   + [[Library]]
 * Frontend
 - _Relies on_
-  + [[Lexer]]
   + [[Parser]]
   + [[Library]]
 * INet
