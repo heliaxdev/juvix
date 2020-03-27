@@ -7,10 +7,10 @@ data Term primTy primVal
   = Var Symbol
   | Prim primVal
   | LamM
-      { capture ∷ [Symbol], -- Capture
-        arguments ∷ [Symbol], -- Arguments
+      { capture :: [Symbol], -- Capture
+        arguments :: [Symbol], -- Arguments
           -- the Term in AnnTerm is not lam!
-        body ∷ AnnTerm primTy primVal
+        body :: AnnTerm primTy primVal
       }
   | AppM (AnnTerm primTy primVal) [AnnTerm primTy primVal]
   deriving (Show, Eq, Generic)
@@ -25,8 +25,8 @@ data Type primTy primVal
 
 data AnnTerm primTy primVal
   = Ann
-      { usage ∷ Usage.T,
-        type' ∷ Type primTy primVal,
-        term ∷ Term primTy primVal
+      { usage :: Usage.T,
+        type' :: Type primTy primVal,
+        term :: Term primTy primVal
       }
   deriving (Show, Eq, Generic)
