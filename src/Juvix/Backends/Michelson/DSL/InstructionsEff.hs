@@ -24,6 +24,7 @@ import qualified Juvix.Core.Usage as Usage
 import Juvix.Library hiding (abs, and, or, xor)
 import qualified Juvix.Library (abs)
 import qualified Michelson.Untyped.Instr as Instr
+import qualified Michelson.Untyped.Type as MT
 import qualified Michelson.Untyped.Value as V
 import Prelude (error)
 
@@ -41,7 +42,7 @@ expandedToInst :: Env.Reduction m => Untyped.T -> Env.Expanded -> m Instr.Expand
 expandedToInst ty exp =
   case exp of
     Env.Constant c -> do
-      let newInstr = Instructions.push ty c
+      let newInstr = VStack.constToInstr ty c
       addInstr newInstr
       pure newInstr
     Env.Expanded op -> pure op
@@ -231,12 +232,16 @@ appM form@(Types.Ann _u ty t) args =
 
 applyExpanded :: Env.Reduction m => Env.Expanded -> [Types.NewTerm] -> m Env.Expanded
 applyExpanded expanded args = do
-  modify @"stack" (VStack.drop 1)
+  (elem, ty) <- VStack.car |<< get @"stack"
   case expanded of
-    Env.Curr c -> apply c args []
+    Env.Curr c -> do
+      modify @"stack" (VStack.drop 1)
+      apply c args []
     -- We may get a Michelson lambda if we have one
     -- in storage, make sure to handle this case!
-    Env.MichelsonLam -> undefined
+    Env.MichelsonLam -> do
+      let VStack.VarE sym _ (Just VStack.MichelsonLambda) = elem
+      applyLambdaFromStorageNArgs (Set.findMin sym) ty args
     Env.Constant _ -> throw @"compilationError" (Types.InternalFault "App on Constant")
     Env.Expanded _ -> throw @"compilationError" (Types.InternalFault "App on Michelson")
     Env.Nop -> throw @"compilationError" (Types.InternalFault "App on NOP")
@@ -305,7 +310,7 @@ onPairGen1 op f =
 
 onTwoArgs :: OnTerm2 m (V.Value' Types.Op) Env.Expanded
 onTwoArgs op f typ instrs = do
-  v <- traverse (protect . (inst >=> promoteTopStack)) instrs
+  v <- traverse (protect . (inst >=> promoteTopStack)) (reverse instrs)
   case v of
     instr2 : instr1 : _ -> do
       -- May be the wrong order?
@@ -514,16 +519,19 @@ apply closure args remainingArgs = do
     app =
       Env.unFun
         (Env.fun closure)
+        -- Undo our last flip, and put the list in the proper place
+        $ reverse
         $ zipWith makeVar (reverse (Env.argsLeft closure))
         $ reverse
         $ Utils.piToListTy
         $ Env.ty closure
     makeVar (Env.Term name usage) ty = Types.Ann usage ty (Ann.Var name)
+    -- TODO ∷ see if we have to drop the top of the stack? It seems to be handled?
     recur (Env.Curr c) xs =
       apply c [] xs
-    -- TODO ∷ make exec case for Michelson lambdas
-    -- This would be possible if (storage = f) → g f = f 3!
-    recur Env.MichelsonLam _xs = undefined
+    -- Exec case for Michelson lambdas, e.g. if (storage = f) → g f = f 3!
+    recur Env.MichelsonLam _xs =
+      applyLambdaFromStorageNArgs undefined undefined args
     recur (Env.Constant _) _ =
       throw @"compilationError" (Types.InternalFault "apply to non lam")
     recur (Env.Expanded _) _ =
@@ -537,11 +545,19 @@ deleteVar :: Env.Instruction m => Env.ErasedTerm -> m ()
 deleteVar (Env.Term name _usage) = do
   stack <- get @"stack"
   let pos = VStack.lookupAllPos name stack
-      f (VStack.Value _) = pure ()
-      f (VStack.Position _ 0) = pure ()
-      f (VStack.Position _ index) = do
-        addInstr (Instructions.dipN (fromIntegral index) [Instructions.drop])
-        modify @"stack" (VStack.dropPos index)
+      op i = do
+        addInstr (Instructions.dipN (fromIntegral i) [Instructions.drop])
+        modify @"stack" (VStack.dropPos i)
+      f (VStack.Value _) =
+        pure ()
+      f (VStack.Position _ 0) = do
+        stack <- get @"stack"
+        if  | VStack.constantOnTop stack ->
+              op 0
+            | otherwise ->
+              pure ()
+      f (VStack.Position _ index) =
+        op index
   -- reverse is important here, as we don't decrease the pos of upcoming terms
   -- note that this should only ever hit at most 2 elements, so the
   -- cost of this slightly inefficient generation does not ever matter!
@@ -743,3 +759,17 @@ promoteLambda (Env.C fun argsLeft left captures ty) = do
               <>
           )
       get @"ops"
+
+-- Assume lambdas from storage are curried.
+applyLambdaFromStorage :: Env.Reduction m => Symbol -> Types.Type -> Types.NewTerm -> m [Instr.ExpandedOp]
+applyLambdaFromStorage sym ty arg = do
+  ty' <- typeToPrimType ty
+  lam <- expandedToInst ty' =<< var sym
+  arg <- instOuter arg
+  ty <- typeToPrimType (eatType 1 ty)
+  modify @"stack" (VStack.cons (VStack.varNone "_", ty) . VStack.drop 2)
+  pure [lam, arg, Instructions.exec]
+
+applyLambdaFromStorageNArgs :: Env.Reduction m => Symbol -> MT.Type -> [Types.NewTerm] -> m Env.Expanded
+applyLambdaFromStorageNArgs sym ty args = Env.Expanded . mconcat |<< do
+  undefined

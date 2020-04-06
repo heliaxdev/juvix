@@ -24,6 +24,8 @@ import Juvix.Library hiding (Type, drop, take)
 import qualified Juvix.Library.HashMap as Map
 import qualified Michelson.Untyped as Untyped
 import qualified Michelson.Untyped.Instr as Instr
+import qualified Michelson.Untyped.Type as T
+import qualified Michelson.Untyped.Value as V
 import Prelude (error)
 
 -- TODO ∷ consolidate the various recursions into a generic combinator
@@ -76,6 +78,7 @@ data Val lamType
 data NotInStack lamType
   = Val' Untyped.Value
   | Lam' lamType
+  deriving (Show, Eq, Generic)
 
 --------------------------------------------------------------------------------
 -- T Instances
@@ -189,6 +192,12 @@ lookupType n (T stack' _) = go stack'
     go ((_, _) : xs) = go xs
     go [] = Nothing
 
+constToInstr ty c =
+  case c of
+    V.ValueNil ->
+      let T.Type (T.TList t) _ = ty in Instructions.nil t
+    _ -> Instructions.push ty c
+
 promote ::
   forall m lamType.
   Monad m =>
@@ -201,7 +210,7 @@ promote _n stack _
 promote 0 stack _ = pure ([], stack)
 promote n stack f = do
   (insts, newStack) <- promote (pred n) (cdr stack) f
-  let pushVal v t = Instructions.push t v : insts
+  let pushVal v t = constToInstr t v : insts
   case car stack of
     (Val (ConstE v), t) ->
       pure (pushVal v t, cons (Val FuncResultE, t) newStack)
@@ -248,7 +257,7 @@ dropPos 0 xs
   | not (isNil xs) && inT (fst (car xs)) =
     updatUsageVar (car xs) (cdr xs)
   | not (isNil xs) =
-    dropPos 0 (cdr xs)
+    cons (car xs) (dropPos 0 (cdr xs))
   | otherwise = xs
 dropPos n xs
   | not (isNil xs) && inT (fst (car xs)) =
@@ -275,6 +284,7 @@ updatUsageVar (Val _, _) t = t
 data Lookup lamType
   = Value (NotInStack lamType)
   | Position Usage.T Natural
+  deriving (Show)
 
 -- | 'lookup' looks up a symbol from the stack
 -- May return None if the symbol does not exist at all on the stack
@@ -323,7 +333,7 @@ predValueUsage n s@(T stack' i) = go stack' []
 
 dig :: Int -> T lamType -> T lamType
 dig i (T stack' n) =
-  case splitAt i stack' of
+  case splitAtReal i stack' of
     (xs, []) -> T xs n
     (xs, y : ys) -> T (y : xs <> ys) n
 
@@ -332,7 +342,7 @@ dig i (T stack' n) =
 -- A Precondition is that at position n the 'usageOf y' >= 1
 dupDig :: Int -> T lamType -> T lamType
 dupDig i (T stack' n) =
-  case splitAt i stack' of
+  case splitAtReal i stack' of
     (xs, []) ->
       T xs n
     (xs, (y, ty) : ys) ->
@@ -377,6 +387,20 @@ insertAt n xs stack =
   where
     postDrop = drop n stack
     dropped = take n stack
+
+splitAtReal ::
+  Int -> [(Elem lamType, b)] -> ([(Elem lamType, b)], [(Elem lamType, b)])
+splitAtReal i xs = splitAt (go xs 0 + i) xs
+  where
+    go ((v, _) : vs) realStackNum
+      | realStackNum == i && inT v = 0
+      | inT v = go vs (succ i)
+      | otherwise = succ (go vs i)
+    go [] _ = 0
+
+constantOnTOp (T [] _) = False
+
+constantOnTop (T ((v, _) : _) _) = not (inT v)
 
 --------------------------------------------------------------------------------
 -- Usage Manipulation
