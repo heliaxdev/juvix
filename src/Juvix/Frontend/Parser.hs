@@ -16,7 +16,6 @@ import qualified Data.ByteString.Char8 as Char8
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Set as Set
 import qualified Data.Text.Encoding as Encoding
-import qualified Juvix.Core.Usage as Usage
 import qualified Juvix.Frontend.Lexer as Lexer
 import qualified Juvix.Frontend.Types as Types
 import Juvix.Library hiding (guard, maybe, option, product, sum, take, takeWhile, try)
@@ -34,7 +33,8 @@ topLevel =
     <|> Types.Function <$> function
     <|> Types.Signature <$> signature'
 
-expressionGen' :: Parser Types.Expression -> Parser Types.Expression
+expressionGen' ::
+  Parser Types.Expression -> Parser Types.Expression
 expressionGen' p =
   Types.Cond <$> cond
     <|> Types.Let <$> let'
@@ -42,22 +42,37 @@ expressionGen' p =
     <|> Types.OpenExpr <$> moduleOpenExpr
     <|> Types.Block <$> block
     <|> Types.Lambda <$> lam
-    <|> Types.ExpRecord <$> expRecord
-    <|> Types.Application <$> try application
     <|> try p
+    <|> Types.ExpRecord <$> expRecord
     <|> Types.Constant <$> constant
+    <|> try (Types.NamedTypeE <$> namedRefine)
     <|> Types.Name <$> prefixSymbolDot
-    <|> parens (expressionGen p)
+    <|> universeSymbol
+    <|> parens (expressionGen all'')
+
+do''' :: Parser Types.Expression
+do''' = Types.Do <$> do'
+
+app'' :: Parser Types.Expression
+app'' = Types.Application <$> try application
+
+all'' :: Parser Types.Expression
+all'' = app'' <|> do'''
 
 expressionGen :: Parser Types.Expression -> Parser Types.Expression
 expressionGen p =
   Expr.buildExpressionParser tableExp (spaceLiner (expressionGen' p))
 
+-- used to remove do from parsing
 expression' :: Parser Types.Expression
-expression' = expressionGen (fail "")
+expression' = expressionGen app''
+
+-- used to remove app from parsing
+expression'' :: Parser Types.Expression
+expression'' = expressionGen do'''
 
 expression :: Parser Types.Expression
-expression = expressionGen (Types.Do <$> do')
+expression = expressionGen all''
 
 usage :: Parser Types.Expression
 usage = string "u#" *> expression
@@ -104,13 +119,13 @@ signature' = do
   maybeUsage <- maybe expressionSN
   skipLiner Lexer.colon
   typeclasses <- signatureConstraintSN
-  arrowType <- arrowType
-  pure (Types.Sig name maybeUsage arrowType typeclasses)
+  exp <- expression
+  pure (Types.Sig name maybeUsage exp typeclasses)
 
-signatureConstraint :: Parser [Types.TypeName]
+signatureConstraint :: Parser [Types.Expression]
 signatureConstraint =
-  pure <$> typeNameParserSN <* string "=>"
-    <|> parens (sepBy typeNameParserSN (skipLiner Lexer.comma)) <* string "=>"
+  pure <$> expression <* string "=>"
+    <|> parens (sepBy expression (skipLiner Lexer.comma)) <* string "=>"
     <|> pure []
 
 --------------------------------------------------------------------------------
@@ -170,6 +185,18 @@ matchRecord =
 --------------------------------------------------------------------------------
 -- NameSet
 --------------------------------------------------------------------------------
+nameSetMany' :: Parser a -> Parser (NonEmpty (Types.NameSet a))
+nameSetMany' parser =
+  curly $ do
+    x <- sepBy1H (nameSetSN parser) (skipLiner Lexer.comma)
+    if  | length x == 1 && isPunned x ->
+          x <$ skipLiner Lexer.comma
+        | otherwise ->
+          x <$ maybe (skipLiner Lexer.comma)
+
+isPunned :: NonEmpty (Types.NameSet t) -> Bool
+isPunned (Types.Punned {} :| _) = True
+isPunned (Types.NonPunned {} :| _) = False
 
 nameSetMany :: Parser a -> Parser (NonEmpty (Types.NameSet a))
 nameSetMany parser =
@@ -244,36 +271,17 @@ typeP = do
 
 typeSumParser :: Parser Types.TypeSum
 typeSumParser =
-  Types.NewType <$> try newTypeParser
-    <|> Types.Alias <$> try aliasParser
+  Types.Alias <$> try aliasParser
     <|> Types.Data <$> dataParser
-
-newTypeParser :: Parser Types.NewType
-newTypeParser = do
-  let nonOverlappingCase = do
-        p <- peekWord8
-        case p of
-          Just p
-            | p == Lexer.dash || p == Lexer.colon ->
-              fail "overlapping"
-            | otherwise -> pure ()
-          Nothing -> pure ()
-  skipLiner Lexer.equals
-  skipLiner Lexer.pipe
-  -- if we get a | or a - at the end of this, then we need to go to the other case
-  -- Note that we may end up with a non boxed type, but that is fine
-  -- this is a subset of the ADT case for analysis
-  Types.Declare <$> prefixSymbolSN <*> typeRefineSN
-    <* nonOverlappingCase
 
 aliasParser :: Parser Types.Alias
 aliasParser = do
   skipLiner Lexer.equals
-  Types.AliasDec <$> typeRefine
+  Types.AliasDec <$> expressionSN
 
 dataParser :: Parser Types.Data
 dataParser = do
-  arrow <- maybe (skipLiner Lexer.colon *> arrowTypeSN)
+  arrow <- maybe (skipLiner Lexer.colon *> expression)
   skipLiner Lexer.equals
   adt <- adt
   case arrow of
@@ -297,7 +305,8 @@ sum = do
 product :: Parser Types.Product
 product =
   Types.Record <$> record
-    <|> Types.Arrow <$> arrowType
+    <|> skipLiner Lexer.colon *> fmap Types.Arrow expression
+    <|> fmap Types.ADTLike (many expression''SN)
 
 record :: Parser Types.Record
 record = do
@@ -305,14 +314,14 @@ record = do
     spaceLiner
       $ curly
       $ sepBy1HFinal nameTypeSN (skipLiner Lexer.comma)
-  familySignature <- maybe (skipLiner Lexer.colon *> typeRefine)
+  familySignature <- maybe (skipLiner Lexer.colon *> expression)
   pure (Types.Record' names familySignature)
 
 nameType :: Parser Types.NameType
 nameType = do
   name <- nameParserSN
   skipLiner Lexer.colon
-  sig <- arrowType
+  sig <- expression
   pure (Types.NameType sig name)
 
 nameParserColon :: Parser Types.Name
@@ -328,85 +337,15 @@ nameParser =
 -- Arrow Type parser
 --------------------------------------------------
 
--- This family of parsers are a bit complicated
--- Though they work well!
-
-arrowType :: Parser Types.ArrowType
-arrowType = do
-  let toType (Arrow a) = Types.Arrows a
-      toType (Parens p) = Types.Parens p
-  recursive <- arrowOrParens
-  end <- fmap Types.Refined (namedRefine <|> parens namedRefine) <|> endArrow
-  pure (foldr toType end recursive)
-
-data ArrowOrParens
-  = Arrow Types.ArrowData
-  | Parens Types.ArrowParen
-  deriving (Show)
-
-endArrow :: Parser Types.ArrowType
-endArrow = Types.End <$> parens arrowType
-
-arrowOrParens :: Parser [ArrowOrParens]
-arrowOrParens =
-  many (Arrow <$> arrowsSN <|> Parens <$> parendArrowSN)
-
-arrowGen ::
-  Parser a ->
-  ( Parser (Maybe Types.Name, a) ->
-    Parser (Maybe Types.Name, a)
-  ) ->
-  Parser (Types.ArrowGen a)
-arrowGen p overParser = do
-  (mName, parser) <- spaceLiner (overParser ((,) <$> maybe nameParserColonSN <*> p))
-  Types.ArrGen mName parser <$> arrowSymbol
-
-arrows :: Parser Types.ArrowData
-arrows =
-  Types.Arr <$> arrowGen typeRefineSN identity
-
-parendArrow :: Parser Types.ArrowParen
-parendArrow =
-  Types.Paren <$> arrowGen arrowTypeSN parens
-
-namedRefine :: Parser Types.NamedRefine
+namedRefine :: Parser Types.NamedType
 namedRefine =
-  Types.NamedRefine <$> maybe nameParserColonSN <*> typeRefine
-
-arrowSymbol :: Parser Types.ArrowSymbol
-arrowSymbol =
-  Types.ArrowUse Usage.Omega <$ string "->"
-    <|> Types.ArrowUse one <$ string "-o"
-    <|> Types.ArrowUse mempty <$ string "-|"
-    <|> ( do
-            skipLiner Lexer.dash
-            exp <- expressionSN
-            string "->"
-            pure (Types.ArrowExp exp)
-        )
+  Types.NamedType <$> nameParserColonSN <*> expression
 
 --------------------------------------------------
 -- TypeNameParser and typeRefine Parser
 --------------------------------------------------
 
-typeRefine :: Parser Types.TypeRefine
-typeRefine = do
-  typeName <- typeNameParserSN
-  refine <- maybe (curly expressionSN)
-  pure (Types.TypeRefine typeName refine)
-
-typeNameParser :: Parser Types.TypeName
-typeNameParser = do
-  pre <- prefixSymbolDotSN
-  body <-
-    many
-      $ spaceLiner
-      $ universeSymbol
-        <|> Types.SymbolName <$> prefixSymbolDotSN
-        <|> Types.ArrowName <$> parens arrowTypeSN
-  pure (Types.Start pre body)
-
-universeSymbol :: Parser Types.TypeNameValid
+universeSymbol :: Parser Types.Expression
 universeSymbol = do
   _ <- string "u#"
   Types.UniverseName <$> universeExpression
@@ -433,7 +372,7 @@ block = do
 --------------------------------------------------
 
 expRecord :: Parser Types.ExpRecord
-expRecord = Types.ExpressionRecord <$> nameSetMany expression
+expRecord = Types.ExpressionRecord <$> nameSetMany' expression
 
 --------------------------------------------------
 -- Let
@@ -493,7 +432,7 @@ lam = do
 application :: Parser Types.Application
 application = do
   name <- prefixSymbolDotSN
-  args <- many1H expressionSN
+  args <- many1H expression''SN
   pure (Types.App name args)
 
 --------------------------------------------------
@@ -572,7 +511,9 @@ infixSymbolGen p = do
 infixSymbolDot :: Parser (NonEmpty Symbol)
 infixSymbolDot = do
   qualified <- option [] (NonEmpty.toList <$> prefixSymbolDot <* word8 Lexer.dot)
-  infix' <- infixSymbol
+  -- -o is a bit special since it's a normal letter
+  -- this is a bit of a hack
+  infix' <- ("-o" <$ string "-o") <|> infixSymbol
   pure (NonEmpty.fromList (qualified <> [infix']))
 
 infixSymbol :: Parser Symbol
@@ -611,7 +552,7 @@ prefixSymbol =
     <|> parend
 
 parend :: Parser Symbol
-parend = word8 Lexer.openParen *> infixSymbolGen infixSymbol' <* word8 Lexer.closeParen
+parend = skipLiner Lexer.openParen *> spaceLiner (infixSymbolGen infixSymbol') <* word8 Lexer.closeParen
 
 prefixCapital :: Parser Symbol
 prefixCapital = prefixSymbolGen (satisfy Lexer.validUpperSymbol)
@@ -670,8 +611,11 @@ maybeParend p = p <|> parens p
 
 -- For Expressions
 tableExp :: [[Expr.Operator ByteString Types.Expression]]
-tableExp = [[infixOp]]
-
+tableExp =
+  [ [refine],
+    [infixOp],
+    [arrowExp]
+  ]
 infixOp :: Expr.Operator ByteString Types.Expression
 infixOp =
   Expr.Infix
@@ -681,6 +625,25 @@ infixOp =
           (\l r -> Types.Infix (Types.Inf l inf r))
     )
     Expr.AssocLeft
+
+arrowExp :: Expr.Operator ByteString Types.Expression
+arrowExp =
+  Expr.Infix
+    ( do
+        skipLiner Lexer.dash
+        exp <- expressionSN
+        _ <- spaceLiner (string "->")
+        pure
+          (\l r -> Types.ArrowE (Types.Arr' l exp r))
+    )
+    Expr.AssocLeft
+
+refine :: Expr.Operator ByteString Types.Expression
+refine =
+  Expr.Postfix $
+    do
+      refine <- curly expressionSN
+      pure (\p -> Types.RefinedE (Types.TypeRefine p refine))
 
 -- For Do!
 table :: Semigroup a => [[Expr.Operator ByteString a]]
@@ -699,13 +662,16 @@ topLevelSN = spaceLiner topLevel
 expression'SN :: Parser Types.Expression
 expression'SN = spaceLiner expression'
 
+expression''SN :: Parser Types.Expression
+expression''SN = spaceLiner expression''
+
 expressionSN :: Parser Types.Expression
 expressionSN = spaceLiner expression
 
 expressionS :: Parser Types.Expression
 expressionS = spacer expression
 
-signatureConstraintSN :: Parser [Types.TypeName]
+signatureConstraintSN :: Parser [Types.Expression]
 signatureConstraintSN = spaceLiner signatureConstraint
 
 argSN :: Parser Types.Arg
@@ -762,38 +728,17 @@ nameParserColonSN = spaceLiner nameParserColon
 nameParserSN :: Parser Types.Name
 nameParserSN = spaceLiner nameParser
 
-arrowTypeSN :: Parser Types.ArrowType
-arrowTypeSN = spaceLiner arrowType
-
-arrowTypeS :: Parser Types.ArrowType
-arrowTypeS = spacer arrowType
-
 bindingSN :: Parser Types.Binding
 bindingSN = spaceLiner binding
 
-typeRefineSN :: Parser Types.TypeRefine
-typeRefineSN = spaceLiner typeRefine
-
-typeRefineS :: Parser Types.TypeRefine
-typeRefineS = spacer typeRefine
+namedRefineSN :: Parser Types.NamedType
+namedRefineSN = spaceLiner namedRefine
 
 sumSN :: Parser Types.Sum
 sumSN = spaceLiner sum
 
 sumS :: Parser Types.Sum
 sumS = spaceLiner sum
-
-arrowsSN :: Parser Types.ArrowData
-arrowsSN = spaceLiner arrows
-
-parendArrowSN :: Parser Types.ArrowParen
-parendArrowSN = spaceLiner parendArrow
-
-typeNameParserSN :: Parser Types.TypeName
-typeNameParserSN = spaceLiner typeNameParser
-
-typeNameParserS :: Parser Types.TypeName
-typeNameParserS = spacer typeNameParser
 
 prefixCapitalDotSN :: Parser (NonEmpty Symbol)
 prefixCapitalDotSN = spaceLiner prefixCapitalDot

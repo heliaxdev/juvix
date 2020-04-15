@@ -2,10 +2,11 @@
 
 -- |
 -- - This file defines the main ADT for the Juvix front end language.
--- - This ADT corresponds to the bnf laid out
---   [[https://github.com/cryptiumlabs/juvix/blob/develop/doc/Frontend/syntax.org][here]].
+-- - This ADT corresponds to the bnf laid out [[https://github.com/cryptiumlabs/juvix/blob/develop/doc/Frontend/syntax.org][here]].
 -- - Later a trees that grow version of this will be implemented, so
 --   infix functions can better transition across syntax
+-- - Note :: The names for the types in =ArrowData= are stored in the
+--           =ArrowGen= and not in =NamedType=
 module Juvix.Frontend.Types where
 
 import Control.Lens
@@ -37,15 +38,13 @@ data Type
 
 data TypeSum
   = Alias Alias
-  | -- Maybe not needed!?
-    NewType NewType
   | Data Data
   deriving (Show)
 
 -- | 'Data' is the data declaration in the Juvix language
 data Data
   = Arrowed
-      { dataArrow :: ArrowType,
+      { dataArrow :: Expression,
         dataAdt :: Adt
       }
   | NonArrowed
@@ -53,63 +52,27 @@ data Data
       }
   deriving (Show)
 
-data NewType
-  = Declare
-      { newTypeAlias :: !Symbol,
-        newTypeType' :: TypeRefine
-      }
-  deriving (Show)
-
 newtype Alias
   = AliasDec
-      {aliasType' :: TypeRefine}
+      {aliasType' :: Expression}
   deriving (Show)
 
 --------------------------------------------------
 -- Arrows
 --------------------------------------------------
-
-data ArrowType
-  = Refined NamedRefine
-  | End ArrowType
-  | Arrows ArrowData ArrowType
-  | Parens ArrowParen ArrowType
-  deriving (Show)
-
-data NamedRefine
-  = NamedRefine
-      { nameRefineName :: !(Maybe Name),
-        namedRefineRefine :: TypeRefine
-      }
-  deriving (Show)
-
-newtype ArrowParen
-  = Paren (ArrowGen ArrowType)
-  deriving (Show)
-
-newtype ArrowData
-  = Arr (ArrowGen TypeRefine)
-  deriving (Show)
-
-data ArrowGen a
-  = ArrGen
-      { arrowGenName :: !(Maybe Name),
-        arrowGenData :: a,
-        arrowGenArrow :: !ArrowSymbol
+data NamedType
+  = NamedType
+      { nameRefineName :: !Name,
+        namedRefineRefine :: Expression
       }
   deriving (Show)
 
 -- TODO ∷ change TypeName to TypeNameModule
 data TypeRefine
   = TypeRefine
-      { typeRefineName :: !TypeName,
-        typeRefineRefinement :: Maybe Expression
+      { typeRefineName :: Expression,
+        typeRefineRefinement :: Expression
       }
-  deriving (Show)
-
-data TypeNameModule
-  = TypedName !TypeName
-  | ModuleName
   deriving (Show)
 
 --------------------------------------------------
@@ -124,18 +87,6 @@ data Name
 data ArrowSymbol
   = ArrowUse Usage.T
   | ArrowExp Usage
-  deriving (Show)
-
--- I think we can do
--- Foo a u#b c ?
-data TypeName
-  = Start NameSymb [TypeNameValid]
-  deriving (Show)
-
-data TypeNameValid
-  = ArrowName ArrowType
-  | SymbolName NameSymb
-  | UniverseName UniverseExpression
   deriving (Show)
 
 -- TODO ∷ finish this type!
@@ -161,19 +112,20 @@ data Sum
 
 data Product
   = Record !Record
-  | Arrow !ArrowType
+  | Arrow Expression
+  | ADTLike [Expression]
   deriving (Show)
 
 data Record
   = Record'
       { recordFields :: NonEmpty NameType,
-        recordFamilySignature :: Maybe TypeRefine
+        recordFamilySignature :: Maybe Expression
       }
   deriving (Show)
 
 data NameType
   = NameType
-      { nameTypeSignature :: !ArrowType,
+      { nameTypeSignature :: Expression,
         nameTypeName :: !Name
       }
   deriving (Show)
@@ -246,8 +198,8 @@ data Signature
   = Sig
       { signatureName :: Symbol,
         signatureUsage :: Maybe Usage,
-        signatureArrowType :: ArrowType,
-        signatureConstraints :: [TypeName]
+        signatureArrowType :: Expression,
+        signatureConstraints :: [Expression]
       }
   deriving (Show)
 
@@ -274,6 +226,19 @@ data Expression
   | Infix Infix
   | ExpRecord ExpRecord
   | Do Do
+  | -- Added due to merge
+    ArrowE ArrowExp
+  | NamedTypeE NamedType
+  | RefinedE TypeRefine
+  | UniverseName UniverseExpression
+  deriving (Show)
+
+data ArrowExp
+  = Arr'
+      { arrowExpLeft :: Expression,
+        arrowExpUsage :: Usage,
+        arrowExpRight :: Expression
+      }
   deriving (Show)
 
 data Constant
@@ -407,13 +372,11 @@ makeLensesWith camelCaseFields ''Data
 
 makeLensesWith camelCaseFields ''Type
 
-makeLensesWith camelCaseFields ''NewType
-
 makeLensesWith camelCaseFields ''Sum
 
 makeLensesWith camelCaseFields ''Record
 
-makeLensesWith camelCaseFields ''NamedRefine
+makeLensesWith camelCaseFields ''NamedType
 
 makeLensesWith camelCaseFields ''TypeRefine
 
