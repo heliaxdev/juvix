@@ -18,8 +18,9 @@ hrToIR' term =
   case term of
     HR.Star n -> pure (IR.Star n)
     HR.PrimTy p -> pure (IR.PrimTy p)
-    HR.Pi u a b -> do
+    HR.Pi u n a b -> do
       a <- hrToIR' a
+      pushName n
       b <- hrToIR' b
       pure (IR.Pi u a b)
     HR.Lam n b -> do
@@ -44,10 +45,10 @@ hrElimToIR' elim =
       f <- hrElimToIR' f
       x <- hrToIR' x
       pure (IR.App f x)
-    HR.Ann u t x -> do
+    HR.Ann u t x l -> do
       t <- hrToIR' t
       x <- hrToIR' x
-      pure (IR.Ann u t x)
+      pure (IR.Ann u t x l)
 
 irToHR :: IR.Term primTy primVal -> HR.Term primTy primVal
 irToHR = fst . exec . irToHR'
@@ -64,8 +65,9 @@ irToHR' term =
     IR.PrimTy p -> pure (HR.PrimTy p)
     IR.Pi u a b -> do
       a <- irToHR' a
+      n <- newName
       b <- irToHR' b
-      pure (HR.Pi u a b)
+      pure (HR.Pi u n a b)
     IR.Lam t -> do
       n <- newName
       t <- irToHR' t
@@ -89,10 +91,10 @@ irElimToHR' elim =
       f <- irElimToHR' f
       x <- irToHR' x
       pure (HR.App f x)
-    IR.Ann u t x -> do
+    IR.Ann u t x l -> do
       t <- irToHR' t
       x <- irToHR' x
-      pure (HR.Ann u t x)
+      pure (HR.Ann u t x l)
 
 exec :: EnvElim a -> (a, Env)
 exec (EnvCon env) = runState env (Env 0 [] [])
