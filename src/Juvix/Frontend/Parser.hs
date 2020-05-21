@@ -38,6 +38,7 @@ expressionGen' ::
 expressionGen' p =
   Types.Cond <$> cond
     <|> Types.Let <$> let'
+    <|> Types.LetType <$> letType
     <|> Types.Match <$> match
     <|> Types.OpenExpr <$> moduleOpenExpr
     <|> Types.Block <$> block
@@ -59,7 +60,7 @@ app'' :: Parser Types.Expression
 app'' = Types.Application <$> try application
 
 all'' :: Parser Types.Expression
-all'' = app'' <|> do'''
+all'' = do''' <|> app''
 
 expressionGen :: Parser Types.Expression -> Parser Types.Expression
 expressionGen p =
@@ -386,18 +387,18 @@ expRecord = Types.ExpressionRecord <$> nameSetMany' expression
 
 let' :: Parser Types.Let
 let' = do
-  spaceLiner (string "let")
-  binds <- many1H bindingSN
+  binds <- functionModGen expression
   spaceLiner (string "in")
   body <- expression
   pure (Types.Let' binds body)
 
-binding :: Parser Types.Binding
-binding = do
-  pattern' <- matchLogicSN
-  skipLiner Lexer.equals
-  on <- expression
-  pure (Types.Bind pattern' on)
+letType :: Parser Types.LetType
+letType = do
+  spaceLiner (string "let")
+  typ <- typePSN
+  spaceLiner (string "in")
+  body <- expression
+  pure (Types.LetType' typ body)
 
 --------------------------------------------------
 -- Cond
@@ -737,9 +738,6 @@ nameTypeSN = spaceLiner nameType
 
 nameParserSN :: Parser Types.Name
 nameParserSN = spaceLiner nameParser
-
-bindingSN :: Parser Types.Binding
-bindingSN = spaceLiner binding
 
 -- namedRefineSN :: Parser Types.NamedType
 -- namedRefineSN = spaceLiner namedRefine
