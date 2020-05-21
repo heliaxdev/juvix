@@ -231,6 +231,7 @@ data Expression
   | NamedTypeE NamedType
   | RefinedE TypeRefine
   | UniverseName UniverseExpression
+  | Parened Expression
   deriving (Show)
 
 data ArrowExp
@@ -269,7 +270,7 @@ data Lambda
 
 data Application
   = App
-      { applicationName :: NameSymb,
+      { applicationName :: Expression,
         applicationArgs :: NonEmpty Expression
       }
   deriving (Show)
