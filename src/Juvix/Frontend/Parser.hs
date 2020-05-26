@@ -43,14 +43,7 @@ expressionGen' p =
     <|> Types.Block <$> block
     <|> Types.Lambda <$> lam
     <|> try p
-    <|> Types.ExpRecord <$> expRecord
-    <|> Types.Constant <$> constant
-    -- <|> try (Types.NamedTypeE <$> namedRefine)
-    <|> Types.Name <$> prefixSymbolDot
-    <|> universeSymbol
-    -- We wrap this in a paren to avoid conflict
-    -- with infixity that we don't know about at this phase!
-    <|> Types.Parened <$> parens (expressionGen all'')
+    <|> expressionArguments
 
 expressionArguments :: Parser Types.Expression
 expressionArguments =
@@ -99,6 +92,7 @@ usage = string "u#" *> expression
 -- Modules/ Function Gen
 --------------------------------------------------------------------------------
 
+functionModStart :: (Symbol -> [Types.Arg] -> Parser a) -> Parser a
 functionModStart f = do
   _ <- spaceLiner (string "let")
   name <- prefixSymbolSN
@@ -106,13 +100,12 @@ functionModStart f = do
   f name args
 
 functionModGen :: Parser a -> Parser (Types.FunctionLike a)
-functionModGen p = do
-  -- for now
-  _ <- spaceLiner (string "let")
-  name <- prefixSymbolSN
-  args <- many argSN
-  guard <- guard p
-  pure (Types.Like name args guard)
+functionModGen p =
+  functionModStart
+    ( \name args -> do
+        guard <- guard p
+        pure (Types.Like name args guard)
+    )
 
 --------------------------------------------------
 -- Guard
