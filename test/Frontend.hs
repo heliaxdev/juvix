@@ -1,6 +1,7 @@
 module Frontend where
 
 import Data.Attoparsec.ByteString
+import qualified Data.Attoparsec.ByteString.Char8 as Char8
 import qualified Juvix.Frontend.Parser as Parser
 import Juvix.Library hiding (show)
 import qualified Test.Tasty as T
@@ -32,6 +33,15 @@ allParserTests =
 --------------------------------------------------------------------------------
 -- Parser Checker
 --------------------------------------------------------------------------------
+
+space = Char8.char8 ' '
+
+test =
+  parseOnly
+    (many' Parser.expressionSN)
+    "let foo = 3 let foo = 3 let foo = 3 let foo = 3 let foo = 3 let foo = 3 let foo \
+    \= 3 let foo = 3 let foo = 3 let foo = 3 let foo = 3 let foo = 3 let foo = 3 let \
+    \foo = 3 let foo = 3 let foo = 3 let foo = 3 "
 
 parseTasty ::
   (Show a1, Show a2, Eq a1) => T.TestName -> Either a1 a2 -> String -> T.TestTree
@@ -253,11 +263,13 @@ sigTest2 =
     Parser.topLevel
     "sig foo 0 : i : Int{i > 0} -> Int{i > 1}"
     "Signature (Sig {signatureName = foo, signatureUsage = Just (Constant (Number \
-    \(Integer' 0))), signatureArrowType = Infix (Inf {infixLeft = Name (i :| []), \
-    \infixOp = : :| [], infixRight = RefinedE (TypeRefine {typeRefineName = Name \
-    \(Int :| []), typeRefineRefinement = Infix (Inf {infixLeft = Name (i :| []), \
-    \infixOp = > :| [], infixRight = Constant (Number (Integer' 0))})})}), signatureConstraints \
-    \= []})"
+    \(Integer' 0))), signatureArrowType = Infix (Inf {infixLeft = Name (i :| []), infixOp \
+    \= : :| [], infixRight = Infix (Inf {infixLeft = RefinedE (TypeRefine {typeRefineName \
+    \= Name (Int :| []), typeRefineRefinement = Infix (Inf {infixLeft = Name (i :| []), infixOp \
+    \= > :| [], infixRight = Constant (Number (Integer' 0))})}), infixOp = -> :| [], infixRight \
+    \= RefinedE (TypeRefine {typeRefineName = Name (Int :| []), typeRefineRefinement \
+    \= Infix (Inf {infixLeft = Name (i :| []), infixOp = > :| [], infixRight = Constant \
+    \(Number (Integer' 1))})})})}), signatureConstraints = []})"
 
 --------------------------------------------------------------------------------
 -- Function Testing

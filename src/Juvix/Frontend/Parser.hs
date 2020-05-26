@@ -28,9 +28,8 @@ import Prelude (fail)
 topLevel :: Parser Types.TopLevel
 topLevel =
   Types.Type <$> typeP
+    <|> modFunc
     <|> Types.ModuleOpen <$> moduleOpen
-    <|> Types.Module <$> module'
-    <|> Types.Function <$> function
     <|> Types.Signature <$> signature'
 
 expressionGen' ::
@@ -44,6 +43,18 @@ expressionGen' p =
     <|> Types.Block <$> block
     <|> Types.Lambda <$> lam
     <|> try p
+    <|> Types.ExpRecord <$> expRecord
+    <|> Types.Constant <$> constant
+    -- <|> try (Types.NamedTypeE <$> namedRefine)
+    <|> Types.Name <$> prefixSymbolDot
+    <|> universeSymbol
+    -- We wrap this in a paren to avoid conflict
+    -- with infixity that we don't know about at this phase!
+    <|> Types.Parened <$> parens (expressionGen all'')
+
+expressionArguments :: Parser Types.Expression
+expressionArguments =
+  Types.Block <$> block
     <|> Types.ExpRecord <$> expRecord
     <|> Types.Constant <$> constant
     -- <|> try (Types.NamedTypeE <$> namedRefine)
@@ -87,6 +98,12 @@ usage = string "u#" *> expression
 --------------------------------------------------------------------------------
 -- Modules/ Function Gen
 --------------------------------------------------------------------------------
+
+functionModStart f = do
+  _ <- spaceLiner (string "let")
+  name <- prefixSymbolSN
+  args <- many argSN
+  f name args
 
 functionModGen :: Parser a -> Parser (Types.FunctionLike a)
 functionModGen p = do
@@ -223,18 +240,22 @@ nameMatch parser = do
   pure (Types.NonPunned name bound)
 
 --------------------------------------------------------------------------------
--- Function
+-- Modules and Functions
 --------------------------------------------------------------------------------
 
-function :: Parser Types.Function
-function = Types.Func <$> functionModGen expression
-
---------------------------------------------------------------------------------
--- Modules
---------------------------------------------------------------------------------
-
-module' :: Parser Types.Module
-module' = Types.Mod <$> functionModGen (many1H topLevelSN) <* string "end"
+modFunc :: Parser Types.TopLevel
+modFunc =
+  functionModStart (\n a -> func n a <|> mod n a)
+  where
+    func n a =
+      gen n a expression
+        >>| Types.Function . Types.Func
+    mod n a =
+      ( gen n a (many1H topLevelSN)
+          >>| Types.Module . Types.Mod
+      )
+        <* string "end"
+    gen n a p = guard p >>| Types.Like n a
 
 moduleOpen :: Parser Types.ModuleOpen
 moduleOpen = do
@@ -439,7 +460,7 @@ lam = do
 application :: Parser Types.Application
 application = do
   name <- spaceLiner (expressionGen' (fail ""))
-  args <- many1H (spaceLiner (expressionGen' (fail "")))
+  args <- many1H (spaceLiner expressionArguments)
   pure (Types.App name args)
 
 --------------------------------------------------
@@ -650,7 +671,7 @@ refine :: Expr.Operator ByteString Types.Expression
 refine =
   Expr.Postfix $
     do
-      refine <- curly expressionSN
+      refine <- spaceLiner (curly expressionSN)
       pure (\p -> Types.RefinedE (Types.TypeRefine p refine))
 
 -- For Do!
