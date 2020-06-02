@@ -16,33 +16,54 @@ extra-source-files:
 dependencies:
   - base >= 4.11 && < 5
   - protolude
+  - directory
+  - lens
+  - Cabal
+  - extensible-data
+  - capability >= 0.2.0.0
+  ###########################
+  # Dependency for OS
+  ###########################
+  - turtle
+  - time
+  ###########################
+  # Dependency for Arithmetic
+  ###########################
+  - bulletproofs
+  - elliptic-curve
+  - sonic
+  ###########################
+  # Dependency for Structs
+  ###########################
   - text
   - mtl
   - containers
   - unordered-containers
   - hashable
   - fgl
-  - lens
+  - fgl-visualize
+  - bytestring
+  - enummapset
+  ###########################
+  # Dependency for Parsers
+  ###########################
   - parsec
   - attoparsec
   - attoparsec-expr
-  - capability >= 0.2.0.0
-  - fgl-visualize
-  - enummapset
-  - turtle
-  - directory
+  - aeson
+  ###########################
+  # Dependency for LLVM
+  ###########################
   - llvm-hs
   - llvm-hs-pure
   - llvm-hs-pretty
-  - bytestring
-  - time
+  ###########################
+  # Dependency for Morley
+  ###########################
   - morley
-  - bulletproofs
-  - elliptic-curve
-  - sonic
-  - aeson
-  - Cabal
-  - extensible-data
+  - vinyl
+  - singletons
+  - fmt
 
 default-extensions:
   - NoImplicitPrelude
@@ -157,6 +178,8 @@ library:
     - Juvix.Backends.Michelson.DSL.InstructionsEff
     - Juvix.Backends.Michelson.DSL.Environment
     - Juvix.Backends.Michelson.DSL.Untyped
+    - Juvix.Backends.Michelson.DSL.Contract
+    - Juvix.Backends.Michelson.DSL.Interpret
     - Juvix.Backends.Michelson.DSL.Utils
     - Juvix.Backends.Michelson.Optimisation
     - Juvix.Backends.Michelson.Contract
@@ -205,6 +228,7 @@ library:
     - Juvix.Core.IRAnn.Erasure
     - Juvix.Core.ErasedAnn.Types
     - Juvix.Core.ErasedAnn.Erasure
+    - Juvix.Core.ErasedAnn.Prim
     - Juvix.Core.IR.Typechecker.Types
     - Juvix.Core.IR.Typechecker.Log
     - Juvix.Core.IR.Typechecker.Env

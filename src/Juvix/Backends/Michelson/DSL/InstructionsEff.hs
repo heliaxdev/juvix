@@ -65,6 +65,16 @@ inst (Types.Ann _usage ty t) =
         Types.Constant m -> do
           consVal (Env.Constant m) ty
           pure (Env.Constant m)
+        -- We lose exhasution but it's a big match :(
+        x ->
+          constructPrim (newPrimToInstrErr x) ty
+
+
+applyPrimOnArgs :: Types.NewTerm -> [Types.NewTerm] -> Types.NewTerm
+applyPrimOnArgs prim arguments =
+  let newTerm = Ann.AppM prim arguments
+      retType = Utils.piToReturnType (Ann.type' prim)
+   in Ann.Ann one retType newTerm
 
 add,
   mul,
@@ -179,38 +189,95 @@ nameSymb :: Env.Reduction m => Symbol -> Types.NewTerm -> m Env.Expanded
 nameSymb symb f@(Types.Ann usage _ _) =
   inst f <* modify @"stack" (VStack.nameTop symb usage)
 
+type RunInstr =
+  (forall m. Env.Reduction m => Types.Type -> [Types.NewTerm] -> m Env.Expanded)
+
 primToFargs :: Num b => Types.NewPrim -> Types.Type -> (Env.Fun, b)
 primToFargs (Types.Constant (V.ValueLambda _lam)) _ty =
   (undefined, 1)
 primToFargs (Types.Inst inst) ty =
-  case inst of
-    -- Can't abstract out pattern due to bad forall resolution!
-    Instr.ADD _ -> (Env.Fun (add newTy2), 2)
-    Instr.SUB _ -> (Env.Fun (sub newTy2), 2)
-    Instr.MUL _ -> (Env.Fun (mul newTy2), 2)
-    Instr.OR {} -> (Env.Fun (or newTy2), 2)
-    Instr.AND _ -> (Env.Fun (and newTy2), 2)
-    Instr.XOR _ -> (Env.Fun (xor newTy2), 2)
-    Instr.EQ {} -> (Env.Fun (eq newTy1), 1)
-    Instr.NEQ _ -> (Env.Fun (neq newTy1), 1)
-    Instr.LT {} -> (Env.Fun (lt newTy1), 1)
-    Instr.LE {} -> (Env.Fun (le newTy1), 1)
-    Instr.GE {} -> (Env.Fun (ge newTy1), 1)
-    Instr.GT {} -> (Env.Fun (gt newTy1), 1)
-    Instr.NEG _ -> (Env.Fun (neg newTy1), 1)
-    Instr.ABS _ -> (Env.Fun (abs newTy1), 1)
-    Instr.CAR {} -> (Env.Fun (car newTy1), 1)
-    Instr.CDR {} -> (Env.Fun (cdr newTy1), 1)
-    Instr.PAIR {} -> (Env.Fun (pair newTy2), 2)
-    Instr.EDIV _ -> (Env.Fun (ediv newTy2), 2)
-    Instr.ISNAT _ -> (Env.Fun (isNat newTy1), 1)
-    Instr.PUSH {} -> (Env.Fun pushConstant, 1)
+  (Env.Fun (f (newTy numArgs)), fromIntegral numArgs)
   where
     newTy i = eatType i ty
-    newTy2 = newTy 2
-    newTy1 = newTy 1
+    numArgs = Instructions.toNumArgs inst
+    --
+    f :: RunInstr
+    f =
+      case inst of
+        Instr.ADD _ -> add
+        Instr.SUB _ -> sub
+        Instr.MUL _ -> mul
+        Instr.OR {} -> or
+        Instr.AND _ -> and
+        Instr.XOR _ -> xor
+        Instr.EQ {} -> eq
+        Instr.NEQ _ -> neq
+        Instr.LT {} -> lt
+        Instr.LE {} -> le
+        Instr.GE {} -> ge
+        Instr.GT {} -> gt
+        Instr.NEG _ -> neg
+        Instr.ABS _ -> abs
+        Instr.CAR {} -> car
+        Instr.CDR {} -> cdr
+        Instr.PAIR {} -> pair
+        Instr.EDIV _ -> ediv
+        Instr.ISNAT _ -> isNat
+        Instr.PUSH {} -> const pushConstant
 primToFargs (Types.Constant _) _ =
   error "Tried to apply a Michelson Constant"
+primToFargs x ty = primToFargs (newPrimToInstrErr x) ty
+
+newPrimToInstrErr :: Types.NewPrim -> Types.NewPrim
+newPrimToInstrErr x =
+  let inst =
+        case x of
+          Types.AddN -> Instructions.add
+          Types.AddI -> Instructions.add
+          Types.AddTimeStamp -> Instructions.add
+          Types.AddMutez -> Instructions.add
+          Types.NegN -> Instructions.neg
+          Types.NegI -> Instructions.neg
+          Types.SubN -> Instructions.sub
+          Types.SubI -> Instructions.sub
+          Types.SubMutez -> Instructions.sub
+          Types.SubTimeStamp -> Instructions.sub
+          Types.MulI -> Instructions.mul
+          Types.MulN -> Instructions.mul
+          Types.MulMutez -> Instructions.mul
+          Types.EDivI -> Instructions.ediv
+          Types.EDivN -> Instructions.ediv
+          Types.EDivMutez -> Instructions.ediv
+          Types.OrB -> Instructions.or
+          Types.ORI -> Instructions.or
+          Types.AndI -> Instructions.and
+          Types.AndB -> Instructions.and
+          Types.XorI -> Instructions.xor
+          Types.XorB -> Instructions.xor
+          Types.NotI -> Instructions.not
+          Types.NotB -> Instructions.not
+          Types.CompareI -> Instructions.compare
+          Types.CompareS -> Instructions.compare
+          Types.CompareP -> Instructions.compare
+          Types.CompareTimeStamp -> Instructions.compare
+          Types.CompareMutez -> Instructions.compare
+          Types.CompareBytes -> Instructions.compare
+          Types.CompareHash -> Instructions.compare
+          Types.SizeMap -> Instructions.size
+          Types.SizeSet -> Instructions.size
+          Types.SizeList -> Instructions.size
+          Types.SizeBytes -> Instructions.size
+          Types.SizeS -> Instructions.size
+          Types.MemSet -> Instructions.mem
+          Types.MemMap -> Instructions.mem
+          Types.UpdateSet -> Instructions.update
+          Types.UpdateMap -> Instructions.update
+          Types.UpdateBMap -> Instructions.update
+          Types.GetMap -> Instructions.get
+          Types.GetBMap -> Instructions.get
+          Types.Constant _ -> error "tried to convert a to prim"
+          Types.Inst _ -> error "tried to convert an inst to an inst!"
+   in Instructions.toNewPrimErr inst
 
 appM :: Env.Reduction m => Types.NewTerm -> [Types.NewTerm] -> m Env.Expanded
 appM form@(Types.Ann _u ty t) args =
@@ -527,14 +594,13 @@ apply closure args remainingArgs = do
     traverseName = traverse_ (uncurry name) . reverse
     traverseNameSymb = traverse_ (uncurry nameSymb) . reverse
     app =
-      Env.unFun
-        (Env.fun closure)
+      Env.ty closure
+        |> Utils.piToListTy
+        |> reverse
+        |> zipWith makeVar (reverse (Env.argsLeft closure))
         -- Undo our last flip, and put the list in the proper place
-        $ reverse
-        $ zipWith makeVar (reverse (Env.argsLeft closure))
-        $ reverse
-        $ Utils.piToListTy
-        $ Env.ty closure
+        |> reverse
+        |> Env.unFun (Env.fun closure)
     makeVar (Env.Term name usage) ty = Types.Ann usage ty (Ann.Var name)
     -- TODO ∷ see if we have to drop the top of the stack? It seems to be handled?
     recur (Env.Curr c) xs =

@@ -37,9 +37,9 @@ compileContract term ty =
   let (ret, env) = DSL.execMichelson (compileToMichelsonContract term ty)
    in (ret, DSL.compilationLog env)
 
-compileExpr :: Term -> Type -> (Either DSL.CompError SomeInstr, [CompilationLog])
-compileExpr term ty =
-  let (ret, env) = DSL.execMichelson (compileToMichelsonExpr term ty)
+compileExpr :: Term -> (Either DSL.CompError EmptyInstr, [CompilationLog])
+compileExpr term =
+  let (ret, env) = DSL.execMichelson (compileToMichelsonExpr term)
    in (ret, DSL.compilationLog env)
 
 compileToMichelsonContract ::
@@ -88,13 +88,12 @@ compileToMichelsonContract term ty = do
 compileToMichelsonExpr ::
   DSL.Reduction m =>
   Term ->
-  Type ->
-  m SomeInstr
-compileToMichelsonExpr term ty = do
+  m EmptyInstr
+compileToMichelsonExpr term = do
   _ <- DSL.instOuter term
   michelsonOp <- mconcat |<< get @"ops"
   case M.runTypeCheckIsolated (M.typeCheckList [michelsonOp] M.SNil) of
-    Right (_ M.:/ (s M.::: _)) -> pure (SomeInstr s)
+    Right (_ M.:/ (s M.::: _)) -> pure (EmptyInstr s)
     -- TODO ∷ Figure out what this case should be
     Right (_ M.:/ (M.AnyOutInstr _)) -> undefined
     Left err -> throw @"compilationError" (DidNotTypecheck michelsonOp err)

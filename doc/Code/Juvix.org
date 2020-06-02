@@ -266,7 +266,7 @@ Serves as a module for various debugging functions
 - _Relies on_
   + [[Michelson/Compilation]]
   + [[Michelson/Parameterisation]]
-**** Contract
+**** Contract <<Michelson/Contract>>
 This module provides a default contract environment
 **** Optimisation
 - This is a simple optimization strategy which replaces sequences of
@@ -288,9 +288,16 @@ This module provides a default contract environment
   + [[Library]]
 **** Parameterisation <<Michelson/Parameterisation>>
 - _Relies on_
+  + [[Michelson/Compilation]]
   + [[Michelson/Compilation/Types]]
-  + [[Contract]]
+  + [[Michelson/Compilation/Types]]
+  + [[Michelson/Contract]]
   + [[DSL/Environment]]
+  + [[Instructions]]
+  + [[InstructionsEff]]
+  + [[Interpret]]
+  + [[Prim]]
+  + [[Core/Types]]
   + [[Core/Types]]
   + [[Library]]
 **** Compilation <<Michelson/Compilation>>
@@ -309,6 +316,7 @@ This module provides a default contract environment
 - Types used internally by the Michelson backend.
 - _Relies on_
   + [[ErasedAnn/Types]]
+  + [[Core/Types]]
   + [[Library]]
 ***** VirtualStack
 - Serves as a virtual stack over Michelson
@@ -331,6 +339,9 @@ This module provides a default contract environment
   + [[Library]]
   + [[HashMap]]
 **** DSL
+***** Contract <<DSL/Contract>>
+- _Relies on_
+  + [[Library]]
 ***** Environment <<DSL/Environment>>
 - _Relies on_
   + [[Michelson/Compilation/Types]]
@@ -364,6 +375,11 @@ This module provides a default contract environment
   + [[ErasedAnn/Types]]
   + [[Usage]]
   + [[Library]]
+  + [[Library]]
+***** Interpret
+- _Relies on_
+  + [[Michelson/Compilation/Types]]
+  + [[DSL/Contract]]
   + [[Library]]
 ***** Untyped
 - _Relies on_
@@ -502,6 +518,17 @@ This module provides a default contract environment
   + [[Erased/Types]]
   + [[ErasedAnn/Types]]
   + [[ErasedAnn/Types]]
+  + [[Library]]
+**** Prim
+- This module represents the type which will be sent to the
+  paramiterization
+- the =Take= type is what a paramiterization will take coming in
+- the =Return= type is what will be handed back to Core to evaluate
+  and decide on the next steps. If this is a =Left= type checking
+  has failed, if it's a =Right= then type checking will continue
+- _Relies on_
+  + [[ErasedAnn/Types]]
+  + [[Usage]]
   + [[Library]]
 **** Types <<ErasedAnn/Types>>
 - _Relies on_

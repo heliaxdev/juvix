@@ -4,6 +4,7 @@ import Juvix.Backends.Michelson.Compilation
 import Juvix.Backends.Michelson.Compilation.Types
 import qualified Juvix.Backends.Michelson.DSL.Environment as DSL
 import qualified Juvix.Backends.Michelson.DSL.Instructions as Instructions
+import qualified Juvix.Backends.Michelson.DSL.Interpret as Interpret
 import qualified Juvix.Backends.Michelson.DSL.Untyped as Untyped
 import Juvix.Backends.Michelson.Optimisation
 import qualified Juvix.Core.ErasedAnn as J
@@ -19,12 +20,32 @@ import Prelude (show)
 -- Test Abstractions
 --------------------------------------------------------------------------------
 
+runContract :: Term -> Type -> Either DSL.CompError (Contract' ExpandedOp)
+runContract term ty =
+  fst (compileContract term ty) >>| fst
+
+runExpr :: Term -> Either DSL.CompError EmptyInstr
+runExpr term =
+  fst (compileExpr term)
+
+runContractWrap :: Term -> Type -> Either DSL.CompError (Contract' ExpandedOp)
+runContractWrap term ty =
+  runContract (Ann zero newTy (J.LamM [] ["gen%%%"] term)) newTy
+  where
+    newTy = J.Pi zero (primTy unitPair) ty
+
+interpretExpression :: AnnTerm PrimTy NewPrim -> M.Value -> T.TestTree
+interpretExpression term equal =
+  T.testCase
+    (show term <> " :: " <> " should compile to value " <> show equal)
+    (Right equal T.@=? (runExpr term >>= Interpret.dummyInterpret))
+
 -- TODO: Switch these tests to use the interpreter (ideally through the parameterisation :) ).
 shouldCompile :: Term -> Type -> Text -> T.TestTree
 shouldCompile term ty contract =
   T.testCase
     (show term <> " :: " <> show ty <> " should compile to " <> show contract)
-    (Right contract T.@=? ((untypedContractToSourceLine . fst) |<< fst (compileContract term ty)))
+    (Right contract T.@=? (untypedContractToSourceLine |<< runContract term ty))
 
 shouldOptimise :: Op -> Op -> T.TestTree
 shouldOptimise instr opt =
@@ -32,11 +53,11 @@ shouldOptimise instr opt =
     (show instr <> " should optimise to " <> show opt)
     (opt T.@=? optimiseSingle instr)
 
-shouldCompileExpr :: Term -> Type -> T.TestTree
-shouldCompileExpr term ty =
+shouldCompileExpr :: Term -> T.TestTree
+shouldCompileExpr term =
   T.testCase
     (show term <> " should compile to an instruction sequence")
-    (isRight (fst (compileExpr term ty)) T.@? "failed to compile")
+    (isRight (fst (compileExpr term)) T.@? "failed to compile")
 
 -- TODO replace this with semantic meaning not exact extraction meaning!
 shouldCompileTo :: Term -> [Op] -> T.TestTree
@@ -53,7 +74,12 @@ backendMichelson :: T.TestTree
 backendMichelson =
   T.testGroup
     "Backend Michelson"
-    [ identityFn,
+    [ constAppTest,
+      pairConstantTest,
+      pairNotConstantTest,
+      underExactConstTest,
+      underExactNonConstTest,
+      identityFn,
       identityApp,
       identityApp2,
       --identityExpr,
@@ -62,15 +88,33 @@ backendMichelson =
       addDoublePairTest,
       constUIntTest,
       overExactConstTest,
+      overExactConstTest2,
       overExactNonConstTest,
+      overExactNonConstTest2,
       identityTermTest,
-      xtwiceTest,
+      xtwiceTest1,
+      xtwiceTest2,
       oddAppTest
     ]
 
 --------------------------------------------------------------------------------
 -- Tests
 --------------------------------------------------------------------------------
+
+constAppTest :: T.TestTree
+constAppTest = interpretExpression constApp M.ValueUnit
+
+pairNotConstantTest :: T.TestTree
+pairNotConstantTest =
+  interpretExpression
+    pairNotConstant
+    (M.ValuePair M.ValueUnit M.ValueUnit)
+
+pairConstantTest :: T.TestTree
+pairConstantTest =
+  interpretExpression
+    pairConstant
+    (M.ValuePair M.ValueUnit M.ValueUnit)
 
 optimiseDupDrop :: T.TestTree
 optimiseDupDrop =
@@ -88,19 +132,16 @@ identityExpr :: T.TestTree
 identityExpr =
   shouldCompileExpr
     identityTerm2
-    identityType2
 
 identityExpr2 :: T.TestTree
 identityExpr2 =
   shouldCompileExpr
     identityAppExpr
-    identityType2
 
 identityExpr3 :: T.TestTree
 identityExpr3 =
   shouldCompileExpr
     identityAppExpr2
-    identityType2
 
 identityApp2 :: T.TestTree
 identityApp2 =
@@ -111,7 +152,7 @@ identityApp2 =
 
 unitTest :: T.TestTree
 unitTest =
-  shouldCompileExpr unitExpr1 (J.PrimTy (PrimTy unit))
+  shouldCompileExpr unitExpr1
 
 identityFn :: T.TestTree
 identityFn =
@@ -127,6 +168,12 @@ identityApp =
     identityType
     "parameter unit;storage unit;code { { DIG 0;DUP;DUG 1;DIG 0;DUP;DUG 1;CAR;NIL operation;PAIR;DIP 1 { DROP };DIP { DROP } } };"
 
+underExactConstTest :: T.TestTree
+underExactConstTest = interpretExpression underExactConst M.ValueUnit
+
+underExactNonConstTest :: T.TestTree
+underExactNonConstTest = interpretExpression underExactNonConst M.ValueUnit
+
 addDoublePairTest :: T.TestTree
 addDoublePairTest = shouldCompileTo addDoublePairs addDoublePairsAns
 
@@ -136,17 +183,31 @@ constUIntTest = shouldCompileTo constUInt constUIntAns
 overExactConstTest :: T.TestTree
 overExactConstTest = shouldCompileTo overExactConst overExactConstAns
 
+overExactConstTest2 :: T.TestTree
+overExactConstTest2 = interpretExpression overExactConst ValueUnit
+
+overExactNonConstTest2 :: T.TestTree
+overExactNonConstTest2 = interpretExpression overExactNonConst ValueUnit
+
 overExactNonConstTest :: T.TestTree
 overExactNonConstTest = shouldCompileTo overExactNonConst overExactNonConstAns
 
 identityTermTest :: T.TestTree
 identityTermTest = shouldCompileTo identityTerm identityTermAns
 
-xtwiceTest :: T.TestTree
-xtwiceTest = shouldCompileTo xtwice xtwiceAns
+xtwiceTest2 :: T.TestTree
+xtwiceTest2 =
+  interpretExpression xtwice (M.ValueInt 9)
+
+xtwiceTest1 :: T.TestTree
+xtwiceTest1 = shouldCompileTo xtwice xtwiceAns
 
 oddAppTest :: T.TestTree
 oddAppTest = shouldCompileTo oddApp oddAppAns
+
+-- dummyTest =
+--   runContract identityAppTerm2 identityType
+--     >>| Interpret.dummyInterpretContract
 
 --------------------------------------------------------------------------------
 -- Terms to test against
@@ -502,6 +563,7 @@ oddApp =
 
 -- this should really be a pair we are sending in, but we can let it compile
 -- (wrongly typed of course), by instead sending in a non constant unit
+identityCall :: AnnTerm PrimTy NewPrim
 identityCall =
   Ann one (primTy Untyped.unit) $
     J.AppM identityTerm2 [push1Int 3]
