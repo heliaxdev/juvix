@@ -1,36 +1,85 @@
-module Juvix.FrontendDesugar.RemoveDo.Transform where
+module Juvix.FrontendDesugar.RemoveModules.Transform where
 
 import qualified Data.List.NonEmpty as NonEmpty
-import qualified Juvix.FrontendDesugar.RemoveDo.Types as New
-import qualified Juvix.FrontendDesugar.RemovePunned.Types as Old
+import qualified Juvix.Frontend.Types as Old
+import qualified Juvix.FrontendDesugar.RemoveModules.Types as New
 import Juvix.Library
 
--- The actual transform we are doing
+transformModule :: Old.Module -> New.TopLevel
+transformModule (Old.Mod (Old.Like name args body)) =
+  transformGuardBody transformTop body
+    |> New.Like name (transformArg <$> args)
+    |> New.Func
+    |> New.Function
 
-transformDo :: Old.Do -> New.Expression
-transformDo (Old.Do'' body) = foldr f (transformLast last) body
+transformModuleE :: Old.ModuleE -> New.Expression
+transformModuleE (Old.ModE (Old.Like name args body) restExpr) =
+  transformGuardBody transformTop body
+    |> New.Like name (transformArg <$> args)
+    |> flip New.Let'' (transformExpression restExpr)
+    |> New.Let
+
+transformTop ::
+  NonEmpty Old.TopLevel -> New.Expression
+transformTop body = foldr combine record body
   where
-    f (Old.DoBody (Just name) expr) acc =
-      -- we shouldn't have a prefixed name her :(
-      New.MatchLogic (New.MatchName (NonEmpty.head name)) Nothing :| []
-        |> flip New.Lamb (transformExpression expr)
-        |> New.Lambda
-        |> formApplication ">>=" acc
-    f (Old.DoBody Nothing expr) acc =
-      transformExpression expr
-        |> formApplication ">>" acc
-    formApplication name arg2 arg1 =
-      New.App (New.Name (name :| [])) (arg1 :| [arg2]) |> New.Application
-    --
-    last =
-      NonEmpty.last body
-    transformLast (Old.DoBody Nothing expr) =
-      transformExpression expr
-    -- should we throw a warning for this
-    -- issue is we have to lift every function below
-    -- as this is part of expression
-    transformLast (Old.DoBody (Just _) expr) =
-      transformExpression expr
+    record =
+      case names of
+        x : xs ->
+          New.ExpRecord (New.ExpressionRecord (New.Punned . return <$> (x :| xs)))
+        [] ->
+          -- this can happen, as open's are not include, we should either here
+          -- Includes should happen
+          undefined
+    combine mod expression =
+      case mod of
+        Old.Type typ ->
+          New.LetType (New.LetType'' (transformType typ) expression)
+        Old.Function (Old.Func func) ->
+          New.Let (New.Let'' (transformFunctionLike func) expression)
+        -- TODO ∷ update parser and add LetSig
+        Old.Signature _sig ->
+          undefined
+        Old.ModuleOpen (Old.Open mod) ->
+          New.OpenExpr (New.OpenExpress mod expression)
+        -- These aren't really in yet
+        Old.TypeClass -> expression
+        Old.TypeClassInstance -> expression
+        -- TODO ∷ combine logic
+        Old.Module (Old.Mod (Old.Like name args body)) ->
+          transformGuardBody transformTop body
+            |> New.Like name (transformArg <$> args)
+            |> flip New.Let'' expression
+            |> New.Let
+    names =
+      -- me being lazy... I want to basically map + filter in 1 pass
+      -- but this would lead to a nonexhaustive match, so
+      -- it is better to just have f return a list of the result of single names
+      NonEmpty.toList body >>= f
+    f (Old.Type (Old.Typ _ name _ _)) =
+      return name
+    f (Old.ModuleOpen _) =
+      empty
+    f (Old.Signature (Old.Sig name _ _ _)) =
+      return name
+    f (Old.Function (Old.Func (Old.Like name _ _))) =
+      return name
+    f (Old.Module (Old.Mod (Old.Like name _ _))) =
+      return name
+    -- These aren't really in yet
+    f Old.TypeClass =
+      empty
+    f Old.TypeClassInstance =
+      empty
+
+transformFunctionLike ::
+  Old.FunctionLike Old.Expression -> New.FunctionLike New.Expression
+transformFunctionLike (Old.Like name args body) =
+  New.Like name (transformArg <$> args) (transformGuardBody transformExpression body)
+
+transformGuardBody :: (a1 -> a2) -> Old.GuardBody a1 -> New.GuardBody a2
+transformGuardBody guardF (Old.Body x) = New.Body (guardF x)
+transformGuardBody guardF (Old.Guard x) = New.Guard (transformCond guardF x)
 
 --------------------------------------------------------------------------------
 -- Boilerplate Transforms
@@ -40,14 +89,22 @@ transformTopLevel (Old.Type t) =
   New.Type (transformType t)
 transformTopLevel (Old.ModuleOpen t) =
   New.ModuleOpen (transformModuleOpen t)
+transformTopLevel (Old.Signature t) =
+  New.Signature (transformSignature t)
 transformTopLevel (Old.Function t) =
   New.Function (transformFunction t)
+transformTopLevel (Old.Module m) =
+  transformModule m
 transformTopLevel Old.TypeClass =
   New.TypeClass
 transformTopLevel Old.TypeClassInstance =
   New.TypeClassInstance
 
 transformExpression :: Old.Expression -> New.Expression
+transformExpression (Old.Cond c) =
+  New.Cond (transformCond transformExpression c)
+transformExpression (Old.ModuleE m) =
+  transformModuleE m
 transformExpression (Old.Constant c) =
   New.Constant (transformConst c)
 transformExpression (Old.Let l) =
@@ -71,7 +128,7 @@ transformExpression (Old.Infix i) =
 transformExpression (Old.ExpRecord i) =
   New.ExpRecord (transformExpRecord i)
 transformExpression (Old.Do i) =
-  transformDo i
+  New.Do (transformDo i)
 transformExpression (Old.ArrowE i) =
   New.ArrowE (transformArrowExp i)
 transformExpression (Old.NamedTypeE i) =
@@ -161,14 +218,12 @@ transformNameType :: Old.NameType -> New.NameType
 transformNameType (Old.NameType' sig name) =
   New.NameType' (transformExpression sig) (transformName name)
 
-transformFunction :: Old.Function -> New.Function
-transformFunction (Old.Func name f sig) =
-  New.Func name (transformFunctionLike <$> f) (transformSignature <$> sig)
+--------------------------------------------------------------------------------
+-- Functions And Modules
+--------------------------------------------------------------------------------
 
-transformFunctionLike ::
-  Old.FunctionLike Old.Expression -> New.FunctionLike New.Expression
-transformFunctionLike (Old.Like args body) =
-  New.Like (transformArg <$> args) (transformExpression body)
+transformFunction :: Old.Function -> New.Function
+transformFunction (Old.Func f) = New.Func (transformFunctionLike f)
 
 transformModuleOpen :: Old.ModuleOpen -> New.ModuleOpen
 transformModuleOpen (Old.Open mod) = New.Open mod
@@ -180,6 +235,13 @@ transformModuleOpenExpr (Old.OpenExpress modName expr) =
 transformArg :: Old.Arg -> New.Arg
 transformArg (Old.ImplicitA ml) = New.ImplicitA (transformMatchLogic ml)
 transformArg (Old.ConcreteA ml) = New.ConcreteA (transformMatchLogic ml)
+
+transformCond :: (t -> a) -> Old.Cond t -> New.Cond a
+transformCond trans (Old.C logs) = Old.C (transformCondLogic trans <$> logs)
+
+transformCondLogic :: (t -> a) -> Old.CondLogic t -> New.CondLogic a
+transformCondLogic trans (Old.CondExpression p b) =
+  New.CondExpression (transformExpression p) (trans b)
 
 --------------------------------------------------------------------------------
 -- Signatures
@@ -226,6 +288,13 @@ transformApplication :: Old.Application -> New.Application
 transformApplication (Old.App fun args) =
   New.App (transformExpression fun) (transformExpression <$> args)
 
+transformDo :: Old.Do -> New.Do
+transformDo (Old.Do'' dos) = New.Do'' (transformDoBody <$> dos)
+
+transformDoBody :: Old.DoBody -> New.DoBody
+transformDoBody (Old.DoBody name expr) =
+  New.DoBody name (transformExpression expr)
+
 transformExpRecord :: Old.ExpRecord -> New.ExpRecord
 transformExpRecord (Old.ExpressionRecord fields) =
   New.ExpressionRecord (transformNameSet transformExpression <$> fields)
@@ -235,8 +304,8 @@ transformExpRecord (Old.ExpressionRecord fields) =
 --------------------------------------------------
 
 transformLet :: Old.Let -> New.Let
-transformLet (Old.LetGroup name bindings body) =
-  New.LetGroup name (fmap transformFunctionLike bindings) (transformExpression body)
+transformLet (Old.Let'' bindings body) =
+  New.Let'' (transformFunctionLike bindings) (transformExpression body)
 
 transformLetType :: Old.LetType -> New.LetType
 transformLetType (Old.LetType'' typ expr) =
@@ -277,5 +346,7 @@ tranformMatchLogicStart (Old.MatchRecord r) =
   New.MatchRecord (transformNameSet transformMatchLogic <$> r)
 
 transformNameSet :: (t -> t1) -> Old.NameSet t -> New.NameSet t1
+transformNameSet _ (Old.Punned s) =
+  New.Punned s
 transformNameSet p (Old.NonPunned s e) =
   New.NonPunned s (p e)

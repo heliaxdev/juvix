@@ -118,16 +118,30 @@ library:
     - Juvix
     - Juvix.Frontend.Types
     - Juvix.Frontend.Types.Base
+    - Juvix.Frontend.Types.Extend
+    - Juvix.FrontendDesugar
     - Juvix.FrontendDesugar.RemoveModules.Types
     - Juvix.FrontendDesugar.RemoveModules.Extend
+    - Juvix.FrontendDesugar.RemoveModules.Transform
     - Juvix.FrontendDesugar.RemoveGuard.Transform
+    - Juvix.FrontendDesugar.RemoveGuard.Extend
     - Juvix.FrontendDesugar.RemoveGuard.Types
     - Juvix.FrontendDesugar.Abstractions
     - Juvix.FrontendDesugar.RemoveCond.Types
     - Juvix.FrontendDesugar.RemoveCond.Transform
+    - Juvix.FrontendDesugar.RemoveCond.Extend
+    - Juvix.FrontendDesugar.CombineMultiple.Types
+    - Juvix.FrontendDesugar.CombineMultiple.Extend
+    - Juvix.FrontendDesugar.CombineMultiple.Transform
+    - Juvix.FrontendDesugar.RemoveSignature.Transform
+    - Juvix.FrontendDesugar.RemoveSignature.Types
+    - Juvix.FrontendDesugar.RemoveSignature.Extend
+    - Juvix.FrontendDesugar.RemovePunned.Types
+    - Juvix.FrontendDesugar.RemovePunned.Extend
+    - Juvix.FrontendDesugar.RemovePunned.Transform
     - Juvix.FrontendDesugar.RemoveDo.Types
     - Juvix.FrontendDesugar.RemoveDo.Transform
-    - Juvix.FrontendDesugar.RemovePunned.Types
+    - Juvix.FrontendDesugar.RemoveDo.Extend
     - Juvix.Frontend.Lexer
     - Juvix.Frontend.Parser
     - Juvix.Core

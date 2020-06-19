@@ -1,7 +1,7 @@
-module Juvix.FrontendDesugar.RemoveModules.Types where
+module Juvix.FrontendDesugar.RemoveSignature.Types where
 
 import Juvix.Frontend.Types.Base
-import qualified Juvix.FrontendDesugar.RemoveModules.Extend as Ext
+import qualified Juvix.FrontendDesugar.RemoveSignature.Extend as Ext
 import Juvix.Library hiding (Product, Sum)
 
 data T
@@ -26,10 +26,6 @@ extendArrowSymbol "ArrowSymbol" [] [t|T|] Ext.extendArrowSymbol
 
 extendUniverseExpression "UniverseExpression" [] [t|T|] Ext.extendUniverseExpression
 
-extendCond "Cond" [] [t|T|] $ const Ext.extendCond
-
-extendCondLogic "CondLogic" [] [t|T|] $ const Ext.extendCondLogic
-
 extendAdt "Adt" [] [t|T|] Ext.extendAdt
 
 extendSum "Sum" [] [t|T|] Ext.extendSum
@@ -40,11 +36,11 @@ extendRecord "Record" [] [t|T|] Ext.extendRecord
 
 extendNameType "NameType" [] [t|T|] Ext.extendNameType
 
-extendFunction "Function" [] [t|T|] Ext.extendFunction
+extendFunction "Function" [] [t|T|] $ Ext.extendFunction [t|T|]
 
 extendArg "Arg" [] [t|T|] Ext.extendArg
 
-extendFunctionLike "FunctionLike" [] [t|T|] $ const Ext.extendFunctionLike
+extendFunctionLike "FunctionLike" [] [t|T|] $ Ext.extendFunctionLike [t|T|]
 
 extendModuleOpen "ModuleOpen" [] [t|T|] Ext.extendModuleOpen
 
@@ -60,8 +56,6 @@ extendConstant "Constant" [] [t|T|] Ext.extendConstant
 
 extendNumb "Numb" [] [t|T|] Ext.extendNumb
 
-extendGuardBody "GuardBody" [] [t|T|] $ const Ext.extendGuardBody
-
 extendString' "String'" [] [t|T|] Ext.extendString'
 
 extendBlock "Block" [] [t|T|] Ext.extendBlock
@@ -76,7 +70,7 @@ extendDoBody "DoBody" [] [t|T|] Ext.extendDoBody
 
 extendExpRecord "ExpRecord" [] [t|T|] Ext.extendExpRecord
 
-extendLet "Let" [] [t|T|] Ext.extendLet
+extendLet "Let" [] [t|T|] $ Ext.extendLet [t|T|]
 
 extendLetType "LetType" [] [t|T|] Ext.extendLetType
 
