@@ -7,7 +7,7 @@ import qualified Juvix.Backends.ArithmeticCircuit.Compilation.Types as Types
 import Juvix.Library
 
 data Memory = Mem (Map.Map Symbol (Int, Types.Expression)) Int
-  deriving (Generic)
+  deriving (Generic, Show)
 
 instance Semigroup Memory where
   (Mem map' n) <> (Mem map'' m) = Mem (map' <> fmap (shift n) map'') (n + m)
@@ -23,7 +23,7 @@ data Env
       { memory :: Memory,
         compilation :: Types.Expression
       }
-  deriving (Generic)
+  deriving (Generic, Show)
 
 type CompilationAlias = ExceptT Types.CompilationError (State Env)
 
@@ -90,7 +90,7 @@ freshVars sys = modify @"memory" (freshVars' sys)
   where
     freshVars' :: [Symbol] -> Memory -> Memory
     freshVars' vars (Mem map' n) =
-      Mem (map' <> Map.fromList (zip vars (slots n))) (succ n)
+      Mem (map' <> Map.fromList (zip vars (slots n))) (n + length vars)
     --
     slots :: Int -> [(Int, Types.Expression)]
     slots n = fmap (,Types.NoExp) [n ..]

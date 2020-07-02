@@ -48,4 +48,4 @@ data Expression
   = BoolExp (Expr.Expr Circuit.Wire Par.F Bool)
   | FExp (Expr.Expr Circuit.Wire Par.F Par.F)
   | NoExp
-  deriving (Generic)
+  deriving (Generic, Show)

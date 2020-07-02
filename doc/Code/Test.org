@@ -84,6 +84,8 @@ Tests for the type checker and evaluator in Core/IR/Typechecker.hs
 ** ArithmeticCircuit
 - _Relies on_
   + [[Compilation]]
+  + [[Environment]]
+  + [[Types]]
   + [[Parameterisation]]
   + [[ZKP]]
   + [[ErasedAnn]]
