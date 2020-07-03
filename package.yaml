@@ -103,6 +103,8 @@ default-extensions:
   - TemplateHaskell
   - NamedFieldPuns
   - DisambiguateRecordFields
+  - TupleSections
+  - BlockArguments
 
 ghc-options:
   - -ferror-spans
@@ -155,6 +157,7 @@ library:
     - Juvix.Core.HR
     - Juvix.Core.HRAnn
     - Juvix.Core.IR
+    - Juvix.Core.IR.Typechecker
     - Juvix.Core.IRAnn
     - Juvix.Core.Erased
     - Juvix.Core.ErasedAnn
@@ -255,7 +258,6 @@ library:
     - Juvix.Core.Utility
     - Juvix.Core.IR.Types
     - Juvix.Core.IR.Types.Base
-    - Juvix.Core.IR.Typechecker
     - Juvix.Core.IR.TransformExt
     - Juvix.Core.IR.Evaluator
     - Juvix.Core.HR.Parser
@@ -267,8 +269,8 @@ library:
     - Juvix.Core.ErasedAnn.Types
     - Juvix.Core.ErasedAnn.Erasure
     - Juvix.Core.ErasedAnn.Prim
+    - Juvix.Core.Erased.Types.Base
     - Juvix.Core.IR.Typechecker.Types
-    - Juvix.Core.IR.Typechecker.Log
     - Juvix.Core.IR.Typechecker.Env
     - Juvix.Core.Parameterisation
 
