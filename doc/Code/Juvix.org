@@ -484,9 +484,13 @@ This module provides a default contract environment
 - This is parameterized per phase which may store the type and
   term in slightly different ways
 - _Relies on_
+  + [[Precedence]]
   + [[Usage]]
   + [[Library]]
   + [[HashMap]]
+***** Precedence
+- _Relies on_
+  + [[Library]]
 *** EAC <<Core/EAC>>
 - This directory contains the implementation of =Eal= and the inferred
   bracket checker on =Eal=
@@ -831,30 +835,16 @@ Quantitative type implementation inspired by
   + [[Frontend/Types/Base]]
 ** FrontendContextualise
 *** Contextify
-*** EraseTypeAliases
-*** InfixPrecedence
-**** Extend <<InfixPrecedence/Extend>>
+**** Transform <<Contextify/Transform>>
 - _Relies on_
-  + [[Frontend/Types/Base]]
-  + [[RemoveDo/Extend]]
-  + [[RemoveDo/Extend]]
+  + [[Context]]
+  + [[RemoveDo/Types]]
   + [[Library]]
+*** InfixPrecedence
 **** ShuntYard
 - This implements the Shunt Yard algorithm for determining the
   precedence of operations
 - _Relies on_
-  + [[Library]]
-**** Transform <<InfixPrecedence/Transform>>
-- _Relies on_
-  + [[Context]]
-  + [[Environment]]
-  + [[InfixPrecedence/Types]]
-  + [[RemoveDo/Types]]
-  + [[Library]]
-**** Types <<InfixPrecedence/Types>>
-- _Relies on_
-  + [[Frontend/Types/Base]]
-  + [[InfixPrecedence/Extend]]
   + [[Library]]
 ** FrontendDesugar
 - Order of Passes

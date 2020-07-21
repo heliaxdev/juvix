@@ -15,9 +15,10 @@ data Associativity
 data Precedence = Pred Symbol Associativity Int
   deriving (Show, Eq)
 
-data Error = Clash Precedence Precedence
-           | MoreEles
-           deriving (Show)
+data Error
+  = Clash Precedence Precedence
+  | MoreEles
+  deriving (Show)
 
 -- Not a real ordering, hence not an ord instance
 predOrd :: Precedence -> Precedence -> Either Error Bool

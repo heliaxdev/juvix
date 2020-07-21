@@ -9,8 +9,8 @@ import qualified CoreTypechecker
 import qualified EAC2
 import qualified Erasure
 import qualified Frontend
-import qualified FrontendDesugar
 import qualified FrontendContextualise.Infix.ShuntYard as Shunt
+import qualified FrontendDesugar
 import Juvix.Library hiding (identity)
 import qualified Pipeline
 import qualified Test.Tasty as T

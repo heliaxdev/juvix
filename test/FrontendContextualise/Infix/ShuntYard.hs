@@ -18,10 +18,11 @@ allInfixTests :: T.TestTree
 allInfixTests =
   T.testGroup
     "Infix Tests"
-    [ infixlTest
-    , infixrTest
-    , mixFailTest
-    , nonAssocFailTest]
+    [ infixlTest,
+      infixrTest,
+      mixFailTest,
+      nonAssocFailTest
+    ]
 
 infixlTest :: T.TestTree
 infixlTest =
@@ -47,8 +48,7 @@ infixrTest =
     Right app =
       Shunt.shunt $
         Shunt.Ele 3
-          :| [add, Shunt.Ele 4, carrot , Shunt.Ele 5, carrot, Shunt.Ele 6]
-
+          :| [add, Shunt.Ele 4, carrot, Shunt.Ele 5, carrot, Shunt.Ele 6]
 
 mixFailTest :: T.TestTree
 mixFailTest =
@@ -61,7 +61,7 @@ mixFailTest =
     app =
       Shunt.shunt $
         Shunt.Ele 3
-          :| [add, Shunt.Ele 4, carrot , Shunt.Ele 5, carrotL, Shunt.Ele 6]
+          :| [add, Shunt.Ele 4, carrot, Shunt.Ele 5, carrotL, Shunt.Ele 6]
 
 nonAssocFailTest :: T.TestTree
 nonAssocFailTest =
@@ -74,4 +74,4 @@ nonAssocFailTest =
     app =
       Shunt.shunt $
         Shunt.Ele 3
-          :| [add, Shunt.Ele 4, equality , Shunt.Ele 5, equality, Shunt.Ele 6]
+          :| [add, Shunt.Ele 4, equality, Shunt.Ele 5, equality, Shunt.Ele 6]
