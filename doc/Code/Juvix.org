@@ -840,16 +840,6 @@ Quantitative type implementation inspired by
   + [[EraseTypeAliases/Types]]
   + [[RemoveDo/Types]]
   + [[Library]]
-*** FrontendContextualise
-- _Relies on_
-  + [[FrontendContextualise/Environment]]
-  + [[InfixPrecedence/Transform]]
-  + [[FrontendContextualise/Types]]
-  + [[RemoveDo/Types]]
-  + [[Library]]
-*** Types <<FrontendContextualise/Types>>
-- _Relies on_
-  + [[InfixPrecedence/Types]]
 *** Contextify
 **** Transform <<Contextify/Transform>>
 - _Relies on_
@@ -883,7 +873,30 @@ Quantitative type implementation inspired by
   + [[EraseTypeAliases/Extend]]
   + [[Library]]
 *** InfixPrecedence
+**** Environment <<InfixPrecedence/Environment>>
+- _Relies on_
+  + [[Context]]
+  + [[FrontendContextualise/Environment]]
+  + [[ShuntYard]]
+  + [[InfixPrecedence/Types]]
+  + [[RemoveDo/Types]]
+  + [[Library]]
 **** Extend <<InfixPrecedence/Extend>>
+- This pass removes the =Infix= form
+  + Belongs to Table
+    | Changed | Is a Sum Type of |
+    |---------+------------------|
+    | Infix   | Expression       |
+- Thus one does not have to ever deal with
+  #+begin_src haskell
+    data Infix
+      = Inf
+        { infixLeft  :: Expression
+        , infixOp    :: NameSymb
+        , infixRight :: Expression
+        }
+      deriving (Show, Generic, NFData)
+  #+end_src
 - _Relies on_
   + [[Frontend/Types/Base]]
   + [[RemoveDo/Extend]]
@@ -897,7 +910,8 @@ Quantitative type implementation inspired by
 **** Transform <<InfixPrecedence/Transform>>
 - _Relies on_
   + [[Context]]
-  + [[FrontendContextualise/Environment]]
+  + [[InfixPrecedence/Environment]]
+  + [[ShuntYard]]
   + [[InfixPrecedence/Types]]
   + [[RemoveDo/Types]]
   + [[Library]]
@@ -906,6 +920,7 @@ Quantitative type implementation inspired by
   + [[Frontend/Types/Base]]
   + [[InfixPrecedence/Extend]]
   + [[Library]]
+*** ModuleOpen
 ** FrontendDesugar
 - Order of Passes
   1. =RemoveModule=
