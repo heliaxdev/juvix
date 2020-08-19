@@ -139,6 +139,7 @@ library:
     - jsonschema-gen
   exposed-modules:
     - Juvix
+    - Juvix.Pipeline
     - Juvix.Frontend.Types
     - Juvix.Frontend.Types.Base
     - Juvix.Frontend.Types.Extend
@@ -177,6 +178,7 @@ library:
     - Juvix.FrontendContextualise.InfixPrecedence.Transform
     - Juvix.FrontendContextualise.InfixPrecedence.Environment
     - Juvix.FrontendContextualise.InfixPrecedence.Types
+    - Juvix.Frontend
     - Juvix.Frontend.Lexer
     - Juvix.Frontend.Parser
     - Juvix.Core
