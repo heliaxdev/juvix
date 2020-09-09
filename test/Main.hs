@@ -6,6 +6,7 @@ import qualified Core.Common.Context as Context
 import qualified Core.Conv as Conv
 import qualified Core.EAC2 as EAC2
 import qualified Core.Erasure as Erasure
+import qualified Core.IR.Weak as Weak
 import qualified Core.Parser as Parser
 import qualified Core.Typechecker as Typechecker
 import qualified Frontend.Desugar as Desugar
@@ -56,7 +57,8 @@ allCheckedTests =
       Erasure.erasureTests,
       Shunt.allInfixTests,
       Context.contextTests,
-      Open.openTests
+      Open.openTests,
+      Weak.top
     ]
 
 translationPasses :: T.TestTree
