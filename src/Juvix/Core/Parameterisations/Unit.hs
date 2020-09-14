@@ -1,14 +1,7 @@
+{-# LANGUAGE DisambiguateRecordFields, OverloadedLists #-}
 module Juvix.Core.Parameterisations.Unit where
 
 import qualified Juvix.Core.Parameterisation as P
-import Juvix.Core.Types hiding
-  ( apply,
-    parseTy,
-    parseVal,
-    reservedNames,
-    reservedOpNames,
-    typeOf,
-  )
 import Juvix.Library hiding ((<|>))
 import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as Token
@@ -24,8 +17,12 @@ data Val
   = Val
   deriving (Show, Eq)
 
-typeOf :: Val -> NonEmpty Ty
-typeOf Val = Ty :| []
+hasType :: Val -> P.PrimType Ty -> Bool
+hasType Val (Ty :| []) = True
+hasType _ _ = False
+
+arity :: Val -> Int
+arity Val = 0
 
 apply :: Val -> Val -> Maybe Val
 apply _ _ = Nothing
@@ -37,28 +34,30 @@ parseTy lexer = do
 
 parseVal :: Token.GenTokenParser String () Identity -> Parser Val
 parseVal lexer = do
-  Token.reserved lexer "()"
+  Token.reserved lexer "tt"
   pure Val
 
 reservedNames :: [String]
-reservedNames = ["Unit", "()"]
+reservedNames = ["Unit", "tt"]
 
 reservedOpNames :: [String]
 reservedOpNames = []
 
-t :: Parameterisation Ty Val
+builtinTypes :: P.Builtins Ty
+builtinTypes = [(["Unit"], Ty)]
+
+builtinValues :: P.Builtins Val
+builtinValues = [(["tt"], Val)]
+
+t :: P.Parameterisation Ty Val
 t =
-  Parameterisation
-    { typeOf,
-      apply,
-      parseTy,
-      parseVal,
-      reservedNames,
-      reservedOpNames,
-      stringTy = \_ _ -> False,
-      stringVal = const Nothing,
-      intTy = \_ _ -> False,
-      intVal = const Nothing,
-      floatTy = \_ _ -> False,
-      floatVal = const Nothing
-    }
+  P.Parameterisation {
+    hasType, arity, builtinTypes, builtinValues, apply,
+    parseTy, parseVal, reservedNames, reservedOpNames,
+    stringTy = \_ _ -> False,
+    stringVal = const Nothing,
+    intTy = \_ _ -> False,
+    intVal = const Nothing,
+    floatTy = \_ _ -> False,
+    floatVal = const Nothing
+  }
