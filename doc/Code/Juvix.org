@@ -668,6 +668,14 @@ This module provides a default contract environment
   + [[Core/Types]]
   + [[Usage]]
   + [[Library]]
+**** Subst
+- Runs a substitution algorithm over core
+- _Relies on_
+  + [[NameSymbol]]
+  + [[HR/Types]]
+  + [[Usage]]
+  + [[Library]]
+  + [[HashMap]]
 **** Types <<HR/Types>>
 - _Relies on_
   + [[HR/Extend]]

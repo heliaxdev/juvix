@@ -192,6 +192,7 @@ library:
     - Juvix.Core.Common.Context.Precedence
     - Juvix.Core.HR
     - Juvix.Core.HRAnn
+    - Juvix.Core.HR.Subst
     - Juvix.Core.IR
     - Juvix.Core.IR.Typechecker
     - Juvix.Core.IR.Evaluator
@@ -323,6 +324,7 @@ executables:
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
+      - -fwrite-ide-info
     dependencies:
       - juvix
       - optparse-applicative
