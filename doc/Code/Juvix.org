@@ -728,6 +728,7 @@ Transformations between different extensions.
   + [[Typechecker/Env]]
   + [[Typechecker/Types]]
   + [[IR/Types]]
+  + [[IR/Types/Base]]
   + [[Core/Parameterisation]]
   + [[Usage]]
   + [[Library]]
@@ -736,6 +737,7 @@ Transformations between different extensions.
   + [[IR/Evaluator]]
   + [[Typechecker/Types]]
   + [[IR/Types]]
+  + [[IR/Types/Base]]
   + [[Core/Parameterisation]]
   + [[Usage]]
   + [[Library]]
@@ -756,6 +758,7 @@ Quantitative type implementation inspired by
 - _Relies on_
   + [[Usage]]
   + [[Library]]
+  + [[HashMap]]
 *** IRAnn
 - _Relies on_
   + [[IRAnn/Erasure]]
@@ -1015,6 +1018,7 @@ Quantitative type implementation inspired by
   6. =RemovePunned=
   7. =RemoveDo=
 - _Relies on_
+  + [[Frontend/Parser]]
   + [[Frontend/Types]]
   + [[CombineMultiple/Transform]]
   + [[RemoveCond/Transform]]

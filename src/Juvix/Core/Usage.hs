@@ -13,7 +13,6 @@ module Juvix.Core.Usage
 where
 
 import Juvix.Library hiding (pred, show)
-import Prelude (Show (..))
 
 -- | Usage is an alias for the semiring representation
 type T = NatAndw
@@ -27,11 +26,7 @@ data NatAndw
     SNat Natural
   | -- | unspecified usage
     Omega
-  deriving (Eq, Generic, Data, NFData)
-
-instance Show NatAndw where
-  show (SNat n) = show n
-  show Omega = "w"
+  deriving (Eq, Show, Read, Generic, Data, NFData)
 
 -- Addition is the semi-Ring/Monoid instance
 instance Semigroup NatAndw where

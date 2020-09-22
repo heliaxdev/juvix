@@ -347,6 +347,7 @@ tests:
       - juvix
       - tasty
       - tasty-hunit
+      - tasty-silver
       - tasty-quickcheck
 
 benchmarks:

@@ -28,7 +28,7 @@ module Juvix.Library
     (|>),
     (...),
     traverseM,
-    Symbol,
+    Symbol (..),
     internText,
     intern,
     unintern,
@@ -120,11 +120,8 @@ instance Show (a -> b) where
   show _ = "fun"
 
 newtype Symbol = Sym Text
-  deriving newtype (Eq, Hashable, Semigroup, Ord, NFData)
+  deriving newtype (Eq, Show, Read, Hashable, Semigroup, Ord, NFData)
   deriving stock (Data, Generic)
-
-instance Show Symbol where
-  show (Sym t) = T.unpack t
 
 instance IsString Symbol where
   fromString = intern

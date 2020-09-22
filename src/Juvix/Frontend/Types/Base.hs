@@ -34,7 +34,7 @@ extensible
       | Function Function
       | TypeClass
       | TypeClassInstance
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     --------------------------------------------------------------------------------
     -- Types
@@ -48,7 +48,7 @@ extensible
             typeArgs :: [Symbol],
             typeForm :: Data
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     -- | 'Data' is the data declaration in the Juvix language
     data Data
@@ -59,7 +59,7 @@ extensible
       | NonArrowed
           { dataAdt :: Adt
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     --------------------------------------------------
     -- Arrows
@@ -69,7 +69,7 @@ extensible
           { nameRefineName :: !Name,
             namedRefineRefine :: Expression
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     -- TODO ∷ change TypeName to TypeNameModule
     data TypeRefine
@@ -77,7 +77,7 @@ extensible
           { typeRefineName :: Expression,
             typeRefineRefinement :: Expression
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     --------------------------------------------------
     -- Types Misc
@@ -86,19 +86,19 @@ extensible
     data Name
       = Implicit !Symbol
       | Concrete !Symbol
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data ArrowSymbol
       = ArrowUse Usage.T
       | -- Was a usage but can't alias for now
         ArrowExp Expression
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     -- Was a new type
     -- TODO ∷ finish this type!
     data UniverseExpression
       = UniverseExpression Symbol
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     --------------------------------------------------
     -- ADTs
@@ -118,14 +118,14 @@ extensible
     data Adt
       = Sum (NonEmpty Sum)
       | Product Product
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data Sum
       = S
           { sumConstructor :: !Symbol,
             sumValue :: !(Maybe Product)
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     -- for when a product is without a sum
     -- only a record can apply
@@ -134,21 +134,21 @@ extensible
       = Record !Record
       | Arrow Expression
       | ADTLike [Expression]
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data Record
       = Record''
           { recordFields :: NonEmpty NameType,
             recordFamilySignature :: Maybe Expression
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data NameType
       = NameType'
           { nameTypeSignature :: Expression,
             nameTypeName :: !Name
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     --------------------------------------------------------------------------------
     -- Functions And Modules
@@ -160,19 +160,19 @@ extensible
     -- that may or may not have a guard before it
     data Function
       = Func (FunctionLike Expression)
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     -- | 'Module' is like function, however it allows multiple top levels
     data Module
       = Mod (FunctionLike (NonEmpty TopLevel))
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data ModuleE
       = ModE
           { moduleEBindings :: FunctionLike (NonEmpty TopLevel),
             moduleEBody :: Expression
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     -- | 'FunctionLike' is the generic version for both modules and functions
     data FunctionLike a
@@ -181,41 +181,41 @@ extensible
             functionLikeArgs :: [Arg],
             functionLikeBody :: GuardBody a
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     -- | 'GuardBody' determines if a form is a guard or a body
     data GuardBody a
       = Body a
       | Guard (Cond a)
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data ModuleOpen
       = Open ModuleName
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data ModuleOpenExpr
       = OpenExpress
           { moduleOpenExprModuleN :: ModuleName,
             moduleOpenExprExpr :: Expression
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     -- Very similar to name, but match instead of symbol
     data Arg
       = ImplicitA MatchLogic
       | ConcreteA MatchLogic
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data Cond a
       = C (NonEmpty (CondLogic a))
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data CondLogic a
       = CondExpression
           { condLogicPred :: Expression,
             condLogicBody :: a
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     --------------------------------------------------------------------------------
     -- Signatures
@@ -229,7 +229,7 @@ extensible
             signatureArrowType :: Expression,
             signatureConstraints :: [Expression]
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     --------------------------------------------------------------------------------
     -- Type Classes
@@ -265,19 +265,19 @@ extensible
       | RefinedE TypeRefine
       | UniverseName UniverseExpression
       | Parened Expression
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data Primitive
       = Prim NameSymb
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data List
       = ListLit [Expression]
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data Tuple
       = TupleLit [Expression]
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data ArrowExp
       = Arr'
@@ -286,45 +286,45 @@ extensible
             arrowExpUsage :: Expression,
             arrowExpRight :: Expression
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data Constant
       = Number Numb
       | String String'
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data Numb
       = Integer' Integer
       | Double' Double
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data String'
       = Sho Text
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data Block
       = Bloc
           {blockExpr :: Expression}
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data Lambda
       = Lamb
           { lambdaArgs :: NonEmpty MatchLogic,
             lambdaBody :: Expression
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data Application
       = App
           { applicationName :: Expression,
             applicationArgs :: NonEmpty Expression
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     -- Was a newtype but extensible adds fields
     data Do
       = Do'' (NonEmpty DoBody)
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     -- promote this to a match!!!
     data DoBody
@@ -332,7 +332,7 @@ extensible
           { doBodyName :: Maybe Symbol,
             doBodyExpr :: Expression
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     -- TODO ∷ we need includes in here as well!
     -- Was a newtype but extensible adds fields
@@ -340,7 +340,7 @@ extensible
       = ExpressionRecord
           { expRecordFields :: NonEmpty (NameSet Expression)
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     --------------------------------------------------
     -- Symbol Binding
@@ -351,14 +351,14 @@ extensible
           { letBindings :: FunctionLike Expression,
             letBody :: Expression
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data LetType
       = LetType''
           { letTypeBindings :: Type,
             letTypeBody :: Expression
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     -- TODO ∷ have letSig
 
@@ -372,7 +372,7 @@ extensible
             infixOp :: NameSymb,
             infixRight :: Expression
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     --------------------------------------------------
     -- Matching
@@ -383,14 +383,14 @@ extensible
           { matchOn :: Expression,
             matchBindigns :: NonEmpty MatchL
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data MatchL
       = MatchL
           { matchLPattern :: MatchLogic,
             matchLBody :: Expression
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     -- TODO ∷ add literals to the match
     data MatchLogic
@@ -398,19 +398,19 @@ extensible
           { matchLogicContents :: MatchLogicStart,
             matchLogicNamed :: Maybe Symbol
           }
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data MatchLogicStart
       = MatchCon ConstructorName [MatchLogic]
       | MatchName Symbol
       | MatchConst Constant
       | MatchRecord (NonEmpty (NameSet MatchLogic))
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
 
     data NameSet t
       = Punned NameSymb
       | NonPunned NameSymb t
-      deriving (Show, Generic, NFData, D.Data)
+      deriving (Show, Read, Generic, NFData, D.Data, Eq)
     |]
 
 --------------------------------------------------------------------------------
