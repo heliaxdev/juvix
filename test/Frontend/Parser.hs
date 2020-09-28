@@ -9,30 +9,14 @@ import Data.Attoparsec.ByteString
     parseOnly,
   )
 import qualified Data.Attoparsec.ByteString.Char8 as Char8
+import qualified Juvix.Core.Common.NameSymbol as NameSym
 import qualified Juvix.Frontend.Parser as Parser
 import Juvix.Frontend.Types (Expression, TopLevel)
-import Juvix.Frontend.Types.Base
+import qualified Juvix.Frontend.Types as AST
 import Juvix.Library
-  ( ($),
-    (&&),
-    Alternative (many),
-    Bool (False),
-    ByteString,
-    Either,
-    Eq ((==)),
-    Maybe (Just, Nothing),
-    NonEmpty ((:|)),
-    Semigroup ((<>)),
-    Show,
-    Symbol (Sym),
-    Word8,
-    isLeft,
-    isRight,
-    (|>),
-  )
 import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as T
-import Prelude (String, error, show)
+import Prelude (String, error)
 
 allParserTests :: T.TestTree
 allParserTests =
@@ -57,7 +41,16 @@ allParserTests =
       -- pre-processor tests
       removeNoComment,
       removeNewLineBefore,
-      removeSpaceBefore
+      removeSpaceBefore,
+      nonassocTest,
+      infxlTest,
+      infxrTest,
+      infixFail,
+      spacerSymb,
+      vpsDashFrontFail,
+      vpsDashMiddle,
+      infxPlusTest,
+      infixPlusFail
     ]
 
 --------------------------------------------------------------------------------
@@ -123,7 +116,8 @@ many1FunctionsParser =
   shouldParseAs
     "many1FunctionsParser"
     (parse $ many Parser.topLevelSN)
-    ( "let foo a b c = (+) (a + b) c\n"
+    ( ""
+        <> "let foo a b c = (+) (a + b) c\n"
         <> "let bah = foo 1 2 3\n"
         <> "let nah \n"
         <> "  | bah == 5 = 7 \n"
@@ -137,104 +131,101 @@ many1FunctionsParser =
         <> "          print failed; \n"
         <> "          fail"
     )
-    -- to avoid having too many lines some of these lines go over 80
-    [ Function'
-        ( Func'
-            ( Like'
-                { functionLikedName = "foo",
-                  functionLikeArgs =
-                    [ ConcreteA'
-                        ( MatchLogic'
-                            { matchLogicContents = MatchName' "a" (),
-                              matchLogicNamed = Nothing,
-                              annMatchLogic = ()
-                            }
-                        )
-                        (),
-                      ConcreteA'
-                        ( MatchLogic'
-                            { matchLogicContents = MatchName' "b" (),
-                              matchLogicNamed = Nothing,
-                              annMatchLogic = ()
-                            }
-                        )
-                        (),
-                      ConcreteA'
-                        ( MatchLogic'
-                            { matchLogicContents = MatchName' "c" (),
-                              matchLogicNamed = Nothing,
-                              annMatchLogic = ()
-                            }
-                        )
-                        ()
-                    ],
-                  functionLikeBody =
-                    Body'
-                      ( Application'
-                          ( App'
-                              { applicationName = Name' ("+" :| []) (),
-                                applicationArgs =
-                                  Parened'
-                                    ( Infix'
-                                        ( Inf'
-                                            { infixLeft = Name' ("a" :| []) (),
-                                              infixOp = "+" :| [],
-                                              infixRight = Name' ("b" :| []) (),
-                                              annInf = ()
-                                            }
-                                        )
-                                        ()
-                                    )
-                                    ()
-                                    :| [Name' ("c" :| []) ()],
-                                annApp = ()
-                              }
-                          )
-                          ()
-                      )
-                      (),
-                  annLike = ()
+    [ ( AST.Inf
+          (AST.Name (NameSym.fromSymbol "a"))
+          (NameSym.fromSymbol "+")
+          (AST.Name (NameSym.fromSymbol "b"))
+          |> AST.Infix
+          |> AST.Parened
+      )
+        :| [AST.Name (NameSym.fromSymbol "c")]
+        |> AST.App
+          (AST.Name (NameSym.fromSymbol "+"))
+        |> AST.Application
+        |> AST.Body
+        |> AST.Like
+          "foo"
+          [ AST.ConcreteA (AST.MatchLogic (AST.MatchName "a") Nothing),
+            AST.ConcreteA (AST.MatchLogic (AST.MatchName "b") Nothing),
+            AST.ConcreteA (AST.MatchLogic (AST.MatchName "c") Nothing)
+          ]
+        |> AST.Func
+        |> AST.Function,
+      --
+      ( AST.Constant (AST.Number (AST.Integer' 1))
+          :| [ AST.Constant (AST.Number (AST.Integer' 2)),
+               AST.Constant (AST.Number (AST.Integer' 3))
+             ]
+      )
+        |> AST.App
+          (AST.Name (NameSym.fromSymbol "foo"))
+        |> AST.Application
+        |> AST.Body
+        |> AST.Like "bah" []
+        |> AST.Func
+        |> AST.Function,
+      --
+      ( AST.CondExpression
+          { condLogicPred =
+              AST.Integer' 5
+                |> AST.Number
+                |> AST.Constant
+                |> AST.Inf (AST.Name (NameSym.fromSymbol "bah")) (NameSym.fromSymbol "==")
+                |> AST.Infix,
+            condLogicBody =
+              AST.Constant (AST.Number (AST.Integer' 7))
+          }
+          :| [ AST.Integer' 11
+                 |> AST.Number
+                 |> AST.Constant
+                 |> AST.CondExpression (AST.Name (NameSym.fromSymbol "else"))
+             ]
+      )
+        |> AST.C
+        |> AST.Guard
+        |> AST.Like "nah" []
+        |> AST.Func
+        |> AST.Function,
+      --
+
+      AST.Let''
+        { letBindings =
+            AST.Name (NameSym.fromSymbol "nah")
+              |> AST.Body
+              |> AST.Like "check" [],
+          letBody =
+            ( AST.MatchL
+                { matchLPattern =
+                    AST.MatchLogic (AST.MatchName "seven") Nothing,
+                  matchLBody =
+                    AST.Constant (AST.Number (AST.Integer' 11))
                 }
+                :| [ AST.Integer' 7
+                       |> AST.Number
+                       |> AST.Constant
+                       |> AST.MatchL (AST.MatchLogic (AST.MatchName "eleven") Nothing),
+                     --
+
+                     (AST.Name (NameSym.fromSymbol "failed") :| [])
+                       |> AST.App (AST.Name (NameSym.fromSymbol "print"))
+                       |> AST.Application
+                       |> AST.DoBody Nothing
+                       |> (:| [AST.DoBody Nothing (AST.Name (NameSym.fromSymbol "fail"))])
+                       |> AST.Do''
+                       |> AST.Do
+                       |> AST.OpenExpress (NameSym.fromSymbol "Fails")
+                       |> AST.OpenExpr
+                       |> AST.MatchL (AST.MatchLogic (AST.MatchName "f") Nothing)
+                   ]
             )
-            ()
-        )
-        (),
-      Function'
-        ( Func'
-            ( Like'
-                { functionLikedName = "bah",
-                  functionLikeArgs = [],
-                  functionLikeBody = Body' (Application' (App' {applicationName = Name' ("foo" :| []) (), applicationArgs = Constant' (Number' (Integer'' 1 ()) ()) () :| [Constant' (Number' (Integer'' 2 ()) ()) (), Constant' (Number' (Integer'' 3 ()) ()) ()], annApp = ()}) ()) (),
-                  annLike = ()
-                }
-            )
-            ()
-        )
-        (),
-      Function'
-        ( Func'
-            ( Like'
-                { functionLikedName = "nah",
-                  functionLikeArgs = [],
-                  functionLikeBody = Guard' (C' (CondExpression' {condLogicPred = Infix' (Inf' {infixLeft = Name' ("bah" :| []) (), infixOp = "==" :| [], infixRight = Constant' (Number' (Integer'' 5 ()) ()) (), annInf = ()}) (), condLogicBody = Constant' (Number' (Integer'' 7 ()) ()) (), annCondExpression = ()} :| [CondExpression' {condLogicPred = Name' ("else" :| []) (), condLogicBody = Constant' (Number' (Integer'' 11 ()) ()) (), annCondExpression = ()}]) ()) (),
-                  annLike = ()
-                }
-            )
-            ()
-        )
-        (),
-      Function'
-        ( Func'
-            ( Like'
-                { functionLikedName = "test",
-                  functionLikeArgs = [],
-                  functionLikeBody = Body' (Let' (Let''' {letBindings = Like' {functionLikedName = "check", functionLikeArgs = [], functionLikeBody = Body' (Name' ("nah" :| []) ()) (), annLike = ()}, letBody = Match' (Match''' {matchOn = Name' ("check" :| []) (), matchBindigns = MatchL' {matchLPattern = MatchLogic' {matchLogicContents = MatchName' "seven" (), matchLogicNamed = Nothing, annMatchLogic = ()}, matchLBody = Constant' (Number' (Integer'' 11 ()) ()) (), annMatchL = ()} :| [MatchL' {matchLPattern = MatchLogic' {matchLogicContents = MatchName' "eleven" (), matchLogicNamed = Nothing, annMatchLogic = ()}, matchLBody = Constant' (Number' (Integer'' 7 ()) ()) (), annMatchL = ()}, MatchL' {matchLPattern = MatchLogic' {matchLogicContents = MatchName' "f" (), matchLogicNamed = Nothing, annMatchLogic = ()}, matchLBody = OpenExpr' (OpenExpress' {moduleOpenExprModuleN = "Fails" :| [], moduleOpenExprExpr = Do' (Do''' (DoBody' {doBodyName = Nothing, doBodyExpr = Application' (App' {applicationName = Name' ("print" :| []) (), applicationArgs = Name' ("failed" :| []) () :| [], annApp = ()}) (), annDoBody = ()} :| [DoBody' {doBodyName = Nothing, doBodyExpr = Name' ("fail" :| []) (), annDoBody = ()}]) ()) (), annOpenExpress = ()}) (), annMatchL = ()}], annMatch'' = ()}) (), annLet'' = ()}) ()) (),
-                  annLike = ()
-                }
-            )
-            ()
-        )
-        ()
+              |> AST.Match'' (AST.Name (NameSym.fromSymbol "check"))
+              |> AST.Match
+        }
+        |> AST.Let
+        |> AST.Body
+        |> AST.Like "test" []
+        |> AST.Func
+        |> AST.Function
     ]
 
 --------------------------------------------------------------------------------
@@ -247,25 +238,11 @@ sigTest1 =
     "sigTest1"
     Parser.parse
     "sig foo 0 : Int -> Int"
-    [ Signature'
-        ( Sig'
-            { signatureName = Sym "foo",
-              signatureUsage = Just (Constant' (Number' (Integer'' 0 ()) ()) ()),
-              signatureArrowType =
-                Infix'
-                  ( Inf'
-                      { infixLeft = Name' (Sym "Int" :| []) (),
-                        infixOp = Sym "->" :| [],
-                        infixRight = Name' (Sym "Int" :| []) (),
-                        annInf = ()
-                      }
-                  )
-                  (),
-              signatureConstraints = [],
-              annSig = ()
-            }
-        )
-        ()
+    [ AST.Name (NameSym.fromSymbol "Int")
+        |> AST.Inf (AST.Name (NameSym.fromSymbol "Int")) (NameSym.fromSymbol "->")
+        |> AST.Infix
+        |> flip (AST.Sig "foo" (Just (AST.Constant (AST.Number (AST.Integer' 0))))) []
+        |> AST.Signature
     ]
 
 sigTest2 :: T.TestTree
@@ -274,74 +251,28 @@ sigTest2 =
     "sigTest2"
     Parser.parse
     "sig foo 0 : i : Int{i > 0} -> Int{i > 1}"
-    [ Signature'
-        ( Sig'
-            { signatureName = Sym "foo",
-              signatureUsage = Just (Constant' (Number' (Integer'' 0 ()) ()) ()),
-              signatureArrowType =
-                Infix'
-                  ( Inf'
-                      { infixLeft = Name' (Sym "i" :| []) (),
-                        infixOp = Sym ":" :| [],
-                        infixRight =
-                          Infix'
-                            ( Inf'
-                                { infixLeft =
-                                    RefinedE'
-                                      ( TypeRefine'
-                                          { typeRefineName = Name' (Sym "Int" :| []) (),
-                                            typeRefineRefinement =
-                                              Infix'
-                                                ( Inf'
-                                                    { infixLeft = Name' (Sym "i" :| []) (),
-                                                      infixOp = Sym ">" :| [],
-                                                      infixRight = Constant' (Number' (Integer'' 0 ()) ()) (),
-                                                      annInf = ()
-                                                    }
-                                                )
-                                                (),
-                                            annTypeRefine = ()
-                                          }
-                                      )
-                                      (),
-                                  infixOp = Sym "->" :| [],
-                                  infixRight =
-                                    RefinedE'
-                                      ( TypeRefine'
-                                          { typeRefineName = Name' (Sym "Int" :| []) (),
-                                            typeRefineRefinement =
-                                              Infix'
-                                                ( Inf'
-                                                    { infixLeft = Name' (Sym "i" :| []) (),
-                                                      infixOp = Sym ">" :| [],
-                                                      infixRight =
-                                                        Constant'
-                                                          ( Number'
-                                                              (Integer'' 1 ())
-                                                              ()
-                                                          )
-                                                          (),
-                                                      annInf = ()
-                                                    }
-                                                )
-                                                (),
-                                            annTypeRefine = ()
-                                          }
-                                      )
-                                      (),
-                                  annInf = ()
-                                }
-                            )
-                            (),
-                        annInf = ()
-                      }
-                  )
-                  (),
-              signatureConstraints = [],
-              annSig = ()
-            }
-        )
-        ()
+    [ AST.Integer' 1
+        |> AST.Number
+        |> AST.Constant
+        |> AST.Inf (AST.Name (NameSym.fromSymbol "i")) (NameSym.fromSymbol ">")
+        |> AST.Infix
+        |> AST.TypeRefine (AST.Name (NameSym.fromSymbol "Int"))
+        |> AST.RefinedE
+        |> AST.Inf
+          ( AST.Integer' 0
+              |> AST.Number
+              |> AST.Constant
+              |> AST.Inf (AST.Name (NameSym.fromSymbol "i")) (NameSym.fromSymbol ">")
+              |> AST.Infix
+              |> AST.TypeRefine (AST.Name (NameSym.fromSymbol "Int"))
+              |> AST.RefinedE
+          )
+          (NameSym.fromSymbol "->")
+        |> AST.Infix
+        |> AST.Inf (AST.Name (NameSym.fromSymbol "i")) (NameSym.fromSymbol ":")
+        |> AST.Infix
+        |> flip (AST.Sig "foo" (Just (AST.Constant (AST.Number (AST.Integer' 0))))) []
+        |> AST.Signature
     ]
 
 -- --------------------------------------------------------------------------------
@@ -354,52 +285,22 @@ fun1 =
     "fun1"
     Parser.parse
     "let f foo@(A b c d) = 3"
-    [ Function'
-        ( Func'
-            ( Like'
-                { functionLikedName = Sym "f",
-                  functionLikeArgs =
-                    [ ConcreteA'
-                        ( MatchLogic'
-                            { matchLogicContents =
-                                MatchCon'
-                                  (Sym "A" :| [])
-                                  [ MatchLogic'
-                                      { matchLogicContents = MatchName' (Sym "b") (),
-                                        matchLogicNamed = Nothing,
-                                        annMatchLogic = ()
-                                      },
-                                    MatchLogic'
-                                      { matchLogicContents = MatchName' (Sym "c") (),
-                                        matchLogicNamed = Nothing,
-                                        annMatchLogic = ()
-                                      },
-                                    MatchLogic'
-                                      { matchLogicContents = MatchName' (Sym "d") (),
-                                        matchLogicNamed = Nothing,
-                                        annMatchLogic = ()
-                                      }
-                                  ]
-                                  (),
-                              matchLogicNamed = Just (Sym "foo"),
-                              annMatchLogic = ()
-                            }
-                        )
-                        ()
-                    ],
-                  functionLikeBody =
-                    Body'
-                      ( Constant'
-                          (Number' (Integer'' 3 ()) ())
-                          ()
-                      )
-                      (),
-                  annLike = ()
-                }
-            )
-            ()
-        )
-        ()
+    [ AST.Integer' 3
+        |> AST.Number
+        |> AST.Constant
+        |> AST.Body
+        |> AST.Like
+          "f"
+          [ [ AST.MatchLogic (AST.MatchName "b") Nothing,
+              AST.MatchLogic (AST.MatchName "c") Nothing,
+              AST.MatchLogic (AST.MatchName "d") Nothing
+            ]
+              |> AST.MatchCon (NameSym.fromSymbol "A")
+              |> flip AST.MatchLogic (Just "foo")
+              |> AST.ConcreteA
+          ]
+        |> AST.Func
+        |> AST.Function
     ]
 
 fun2 :: T.TestTree
@@ -408,44 +309,23 @@ fun2 =
     "fun2"
     Parser.parse
     "let f foo | foo = 2 | else = 3"
-    [ Function'
-        ( Func'
-            ( Like'
-                { functionLikedName = Sym "f",
-                  functionLikeArgs =
-                    [ ConcreteA'
-                        ( MatchLogic'
-                            { matchLogicContents = MatchName' (Sym "foo") (),
-                              matchLogicNamed = Nothing,
-                              annMatchLogic = ()
-                            }
-                        )
-                        ()
-                    ],
-                  functionLikeBody =
-                    Guard'
-                      ( C'
-                          ( CondExpression'
-                              { condLogicPred = Name' (Sym "foo" :| []) (),
-                                condLogicBody = Constant' (Number' (Integer'' 2 ()) ()) (),
-                                annCondExpression = ()
-                              }
-                              :| [ CondExpression'
-                                     { condLogicPred = Name' (Sym "else" :| []) (),
-                                       condLogicBody = Constant' (Number' (Integer'' 3 ()) ()) (),
-                                       annCondExpression = ()
-                                     }
-                                 ]
-                          )
-                          ()
-                      )
-                      (),
-                  annLike = ()
-                }
-            )
-            ()
-        )
-        ()
+    [ ( AST.Integer' 2
+          |> AST.Number
+          |> AST.Constant
+          |> AST.CondExpression (AST.Name (NameSym.fromSymbol "foo"))
+      )
+        :| [ AST.Integer' 3
+               |> AST.Number
+               |> AST.Constant
+               |> AST.CondExpression (AST.Name (NameSym.fromSymbol "else"))
+           ]
+        |> AST.C
+        |> AST.Guard
+        |> AST.Like
+          "f"
+          [AST.ConcreteA (AST.MatchLogic (AST.MatchName "foo") Nothing)]
+        |> AST.Func
+        |> AST.Function
     ]
 
 --------------------------------------------------------------------------------
@@ -466,161 +346,54 @@ sumTypeTest =
         <> "            | C { a : Int, #b : Int } \n"
         <> "            | D { a : Int, #b : Int } : Foo Int (Fooy -> Nada)"
     )
-    [ Type'
-        ( Typ'
-            { typeUsage = Nothing,
-              typeName' = Sym "Foo",
-              typeArgs =
-                [Sym "a", Sym "b", Sym "c"],
-              typeForm =
-                NonArrowed'
-                  { dataAdt =
-                      Sum'
-                        ( S'
-                            { sumConstructor = Sym "A",
-                              sumValue =
-                                Just
-                                  ( Arrow'
-                                      ( Infix'
-                                          ( Inf'
-                                              { infixLeft = Name' (Sym "b" :| []) (),
-                                                infixOp = Sym ":" :| [],
-                                                infixRight =
-                                                  Infix'
-                                                    ( Inf'
-                                                        { infixLeft = Name' (Sym "a" :| []) (),
-                                                          infixOp = Sym "->" :| [],
-                                                          infixRight =
-                                                            Infix'
-                                                              ( Inf'
-                                                                  { infixLeft =
-                                                                      Name'
-                                                                        (Sym "b" :| [])
-                                                                        (),
-                                                                    infixOp = Sym "->" :| [],
-                                                                    infixRight = Name' (Sym "c" :| []) (),
-                                                                    annInf = ()
-                                                                  }
-                                                              )
-                                                              (),
-                                                          annInf = ()
-                                                        }
-                                                    )
-                                                    (),
-                                                annInf = ()
-                                              }
-                                          )
-                                          ()
-                                      )
-                                      ()
-                                  ),
-                              annS = ()
-                            }
-                            :| [ S'
-                                   { sumConstructor = Sym "B",
-                                     sumValue =
-                                       Just
-                                         ( Arrow'
-                                             ( Infix'
-                                                 ( Inf'
-                                                     { infixLeft = Name' (Sym "d" :| []) (),
-                                                       infixOp = Sym "->" :| [],
-                                                       infixRight = Name' (Sym "Foo" :| []) (),
-                                                       annInf = ()
-                                                     }
-                                                 )
-                                                 ()
-                                             )
-                                             ()
-                                         ),
-                                     annS = ()
-                                   },
-                                 S'
-                                   { sumConstructor = Sym "C",
-                                     sumValue =
-                                       Just
-                                         ( Record'
-                                             ( Record'''
-                                                 { recordFields =
-                                                     NameType''
-                                                       { nameTypeSignature = Name' (Sym "Int" :| []) (),
-                                                         nameTypeName = Concrete' (Sym "a") (),
-                                                         annNameType' = ()
-                                                       }
-                                                       :| [ NameType''
-                                                              { nameTypeSignature = Name' (Sym "Int" :| []) (),
-                                                                nameTypeName = Implicit' (Sym "b") (),
-                                                                annNameType' = ()
-                                                              }
-                                                          ],
-                                                   recordFamilySignature = Nothing,
-                                                   annRecord'' = ()
-                                                 }
-                                             )
-                                             ()
-                                         ),
-                                     annS = ()
-                                   },
-                                 S'
-                                   { sumConstructor = Sym "D",
-                                     sumValue =
-                                       Just
-                                         ( Record'
-                                             ( Record'''
-                                                 { recordFields =
-                                                     NameType''
-                                                       { nameTypeSignature = Name' (Sym "Int" :| []) (),
-                                                         nameTypeName = Concrete' (Sym "a") (),
-                                                         annNameType' = ()
-                                                       }
-                                                       :| [ NameType''
-                                                              { nameTypeSignature =
-                                                                  Name' (Sym "Int" :| []) (),
-                                                                nameTypeName = Implicit' (Sym "b") (),
-                                                                annNameType' = ()
-                                                              }
-                                                          ],
-                                                   recordFamilySignature =
-                                                     Just
-                                                       ( Application'
-                                                           ( App'
-                                                               { applicationName = Name' (Sym "Foo" :| []) (),
-                                                                 applicationArgs =
-                                                                   Name' (Sym "Int" :| []) ()
-                                                                     :| [ Parened'
-                                                                            ( Infix'
-                                                                                ( Inf'
-                                                                                    { infixLeft = Name' (Sym "Fooy" :| []) (),
-                                                                                      infixOp = Sym "->" :| [],
-                                                                                      infixRight = Name' (Sym "Nada" :| []) (),
-                                                                                      annInf = ()
-                                                                                    }
-                                                                                )
-                                                                                ()
-                                                                            )
-                                                                            ()
-                                                                        ],
-                                                                 annApp = ()
-                                                               }
-                                                           )
-                                                           ()
-                                                       ),
-                                                   annRecord'' = ()
-                                                 }
-                                             )
-                                             ()
-                                         ),
-                                     annS = ()
-                                   }
-                               ]
-                        )
-                        (),
-                    annNonArrowed = ()
-                  },
-              annTyp = ()
-            }
-        )
-        ()
+    [ ( AST.Name (NameSym.fromSymbol "c")
+          |> AST.Inf (AST.Name (NameSym.fromSymbol "b")) (NameSym.fromSymbol "->")
+          |> AST.Infix
+          |> AST.Inf (AST.Name (NameSym.fromSymbol "a")) (NameSym.fromSymbol "->")
+          |> AST.Infix
+          |> AST.Inf (AST.Name (NameSym.fromSymbol "b")) (NameSym.fromSymbol ":")
+          |> AST.Infix
+          |> AST.Arrow
+          |> Just
+          |> AST.S "A"
+      )
+        :| [ AST.Name (NameSym.fromSymbol "Foo")
+               |> AST.Inf (AST.Name (NameSym.fromSymbol "d")) (NameSym.fromSymbol "->")
+               |> AST.Infix
+               |> AST.Arrow
+               |> Just
+               |> AST.S "B",
+             --
+             AST.NameType' (AST.Name (NameSym.fromSymbol "Int")) (AST.Concrete "a")
+               :| [AST.NameType' (AST.Name (NameSym.fromSymbol "Int")) (AST.Implicit "b")]
+               |> flip AST.Record'' Nothing
+               |> AST.Record
+               |> Just
+               |> AST.S "C",
+             --
+             (AST.Name (NameSym.fromSymbol "Int"))
+               :| [ (AST.Name (NameSym.fromSymbol "Nada"))
+                      |> AST.Inf
+                        (AST.Name (NameSym.fromSymbol "Fooy"))
+                        (NameSym.fromSymbol "->")
+                      |> AST.Infix
+                      |> AST.Parened
+                  ]
+               |> AST.App (AST.Name (NameSym.fromSymbol "Foo"))
+               |> AST.Application
+               |> Just
+               |> AST.Record''
+                 ( AST.NameType' (AST.Name (NameSym.fromSymbol "Int")) (AST.Concrete "a")
+                     :| [AST.NameType' (AST.Name (NameSym.fromSymbol "Int")) (AST.Implicit "b")]
+                 )
+               |> AST.Record
+               |> Just
+               |> AST.S "D"
+           ]
+        |> AST.Sum
+        |> AST.NonArrowed
+        |> AST.Typ Nothing "Foo" ["a", "b", "c"]
+        |> AST.Type
     ]
 
 --------------------------------------------------
@@ -629,106 +402,46 @@ sumTypeTest =
 
 superArrowCase :: T.TestTree
 superArrowCase =
-  shouldParseAs
-    "superArrowCase"
-    (parse Parser.expression)
-    "( b : Bah ->  c : B -o Foo) -> Foo a b -> a : Bah a c -o ( HAHAHHA -> foo )"
-    ( Infix'
-        ( Inf'
-            { infixLeft =
-                Parened'
-                  ( Infix'
-                      ( Inf'
-                          { infixLeft = Name' (Sym "b" :| []) (),
-                            infixOp = Sym ":" :| [],
-                            infixRight =
-                              Infix'
-                                ( Inf'
-                                    { infixLeft = Name' (Sym "Bah" :| []) (),
-                                      infixOp = Sym "->" :| [],
-                                      infixRight =
-                                        Infix'
-                                          ( Inf'
-                                              { infixLeft = Name' (Sym "c" :| []) (),
-                                                infixOp = Sym ":" :| [],
-                                                infixRight =
-                                                  Infix'
-                                                    ( Inf'
-                                                        { infixLeft = Name' (Sym "B" :| []) (),
-                                                          infixOp = Sym "-o" :| [],
-                                                          infixRight = Name' (Sym "Foo" :| []) (),
-                                                          annInf = ()
-                                                        }
-                                                    )
-                                                    (),
-                                                annInf = ()
-                                              }
-                                          )
-                                          (),
-                                      annInf = ()
-                                    }
-                                )
-                                (),
-                            annInf = ()
-                          }
-                      )
-                      ()
-                  )
-                  (),
-              infixOp = Sym "->" :| [],
-              infixRight =
-                Infix'
-                  ( Inf'
-                      { infixLeft =
-                          Application'
-                            ( App'
-                                { applicationName = Name' (Sym "Foo" :| []) (),
-                                  applicationArgs = Name' (Sym "a" :| []) () :| [Name' (Sym "b" :| []) ()],
-                                  annApp = ()
-                                }
-                            )
-                            (),
-                        infixOp = Sym "->" :| [],
-                        infixRight =
-                          Infix'
-                            ( Inf'
-                                { infixLeft = Name' (Sym "a" :| []) (),
-                                  infixOp = Sym ":" :| [],
-                                  infixRight =
-                                    Infix'
-                                      ( Inf'
-                                          { infixLeft = Application' (App' {applicationName = Name' (Sym "Bah" :| []) (), applicationArgs = Name' (Sym "a" :| []) () :| [Name' (Sym "c" :| []) ()], annApp = ()}) (),
-                                            infixOp = Sym "-o" :| [],
-                                            infixRight =
-                                              Parened'
-                                                ( Infix'
-                                                    ( Inf'
-                                                        { infixLeft = Name' (Sym "HAHAHHA" :| []) (),
-                                                          infixOp = Sym "->" :| [],
-                                                          infixRight = Name' (Sym "foo" :| []) (),
-                                                          annInf = ()
-                                                        }
-                                                    )
-                                                    ()
-                                                )
-                                                (),
-                                            annInf = ()
-                                          }
-                                      )
-                                      (),
-                                  annInf = ()
-                                }
-                            )
-                            (),
-                        annInf = ()
-                      }
-                  )
-                  (),
-              annInf = ()
-            }
-        )
-        ()
-    )
+  AST.Name (NameSym.fromSymbol "foo")
+    |> AST.Inf (AST.Name (NameSym.fromSymbol "HAHAHHA")) (NameSym.fromSymbol "->")
+    |> AST.Infix
+    |> AST.Parened
+    |> AST.Inf
+      ( AST.App
+          (AST.Name (NameSym.fromSymbol "Bah"))
+          (AST.Name (NameSym.fromSymbol "a") :| [(AST.Name (NameSym.fromSymbol "c"))])
+          |> AST.Application
+      )
+      (NameSym.fromSymbol "-o")
+    |> AST.Infix
+    |> AST.Inf (AST.Name (NameSym.fromSymbol "a")) (NameSym.fromSymbol ":")
+    |> AST.Infix
+    |> AST.Inf
+      ( AST.App
+          (AST.Name (NameSym.fromSymbol "Foo"))
+          (AST.Name (NameSym.fromSymbol "a") :| [(AST.Name (NameSym.fromSymbol "b"))])
+          |> AST.Application
+      )
+      (NameSym.fromSymbol "->")
+    |> AST.Infix
+    |> AST.Inf
+      ( AST.Name (NameSym.fromSymbol "Foo")
+          |> AST.Inf (AST.Name (NameSym.fromSymbol "B")) (NameSym.fromSymbol "-o")
+          |> AST.Infix
+          |> AST.Inf (AST.Name (NameSym.fromSymbol "c")) (NameSym.fromSymbol ":")
+          |> AST.Infix
+          |> AST.Inf (AST.Name (NameSym.fromSymbol "Bah")) (NameSym.fromSymbol "->")
+          |> AST.Infix
+          |> AST.Inf (AST.Name (NameSym.fromSymbol "b")) (NameSym.fromSymbol ":")
+          |> AST.Infix
+          |> AST.Parened
+      )
+      (NameSym.fromSymbol "->")
+    |> AST.Infix
+    |> shouldParseAs
+      "superArrowCase"
+      (parse Parser.expression)
+      "( b : Bah ->  c : B -o Foo) -> Foo a b -> a : Bah a c -o ( HAHAHHA -> foo )"
 
 --------------------------------------------------
 -- alias tests
@@ -740,29 +453,18 @@ typeTest =
     "typeTest"
     Parser.parse
     "type Foo a b c d = | Foo nah bah sad"
-    [ Type'
-        ( Typ'
-            { typeUsage = Nothing,
-              typeName' = Sym "Foo",
-              typeArgs = [Sym "a", Sym "b", Sym "c", Sym "d"],
-              typeForm =
-                NonArrowed'
-                  { dataAdt =
-                      Sum'
-                        ( S'
-                            { sumConstructor = Sym "Foo",
-                              sumValue = Just (ADTLike' [Name' (Sym "nah" :| []) (), Name' (Sym "bah" :| []) (), Name' (Sym "sad" :| []) ()] ()),
-                              annS = ()
-                            }
-                            :| []
-                        )
-                        (),
-                    annNonArrowed = ()
-                  },
-              annTyp = ()
-            }
-        )
-        ()
+    [ [ AST.Name (NameSym.fromSymbol "nah"),
+        AST.Name (NameSym.fromSymbol "bah"),
+        AST.Name (NameSym.fromSymbol "sad")
+      ]
+        |> AST.ADTLike
+        |> Just
+        |> AST.S "Foo"
+        |> (:| [])
+        |> AST.Sum
+        |> AST.NonArrowed
+        |> AST.Typ Nothing "Foo" ["a", "b", "c", "d"]
+        |> AST.Type
     ]
 
 --------------------------------------------------------------------------------
@@ -781,37 +483,42 @@ moduleOpen =
         <> "  let bah t = Int.(t + 3) \n"
         <> "end"
     )
-    [ Module'
-        ( Mod'
-            ( Like'
-                { functionLikedName = Sym "Foo",
-                  functionLikeArgs =
-                    [ ConcreteA'
-                        ( MatchLogic'
-                            { matchLogicContents = MatchCon' (Sym "Int" :| []) [] (),
-                              matchLogicNamed = Nothing,
-                              annMatchLogic = ()
-                            }
-                        )
-                        ()
-                    ],
-                  functionLikeBody =
-                    Body'
-                      ( Function'
-                          ( Func'
-                              (Like' {functionLikedName = Sym "T", functionLikeArgs = [], functionLikeBody = Body' (Name' (Sym "Int" :| [Sym "t"]) ()) (), annLike = ()})
-                              ()
-                          )
-                          ()
-                          :| [Signature' (Sig' {signatureName = Sym "bah", signatureUsage = Nothing, signatureArrowType = Infix' (Inf' {infixLeft = Name' (Sym "T" :| []) (), infixOp = Sym "->" :| [], infixRight = Name' (Sym "T" :| []) (), annInf = ()}) (), signatureConstraints = [], annSig = ()}) (), Function' (Func' (Like' {functionLikedName = Sym "bah", functionLikeArgs = [ConcreteA' (MatchLogic' {matchLogicContents = MatchName' (Sym "t") (), matchLogicNamed = Nothing, annMatchLogic = ()}) ()], functionLikeBody = Body' (OpenExpr' (OpenExpress' {moduleOpenExprModuleN = Sym "Int" :| [], moduleOpenExprExpr = Infix' (Inf' {infixLeft = Name' (Sym "t" :| []) (), infixOp = Sym "+" :| [], infixRight = Constant' (Number' (Integer'' 3 ()) ()) (), annInf = ()}) (), annOpenExpress = ()}) ()) (), annLike = ()}) ()) ()]
-                      )
-                      (),
-                  annLike = ()
-                }
-            )
-            ()
-        )
-        ()
+    [ ( AST.Name (NameSym.fromSymbol "Int.t")
+          |> AST.Body
+          |> AST.Like "T" []
+          |> AST.Func
+          |> AST.Function
+      )
+        :| [ AST.Inf
+               (AST.Name (NameSym.fromSymbol "T"))
+               (NameSym.fromSymbol "->")
+               (AST.Name (NameSym.fromSymbol "T"))
+               |> AST.Infix
+               |> flip (AST.Sig "bah" Nothing) []
+               |> AST.Signature,
+             --
+             AST.Inf
+               (AST.Name (NameSym.fromSymbol "t"))
+               (NameSym.fromSymbol "+")
+               (AST.Constant (AST.Number (AST.Integer' 3)))
+               |> AST.Infix
+               |> AST.OpenExpress (NameSym.fromSymbol "Int")
+               |> AST.OpenExpr
+               |> AST.Body
+               |> AST.Like
+                 "bah"
+                 [AST.ConcreteA (AST.MatchLogic (AST.MatchName "t") Nothing)]
+               |> AST.Func
+               |> AST.Function
+           ]
+        |> AST.Body
+        |> AST.Like
+          "Foo"
+          [ AST.MatchLogic (AST.MatchCon (NameSym.fromSymbol "Int") []) Nothing
+              |> AST.ConcreteA
+          ]
+        |> AST.Mod
+        |> AST.Module
     ]
 
 moduleOpen' :: T.TestTree
@@ -828,28 +535,40 @@ moduleOpen' =
         <> "     , b = expr M.N.t}"
         <> "end"
     )
-    [ Module'
-        ( Mod'
-            ( Like'
-                { functionLikedName = Sym "Bah",
-                  functionLikeArgs = [ConcreteA' (MatchLogic' {matchLogicContents = MatchCon' (Sym "M" :| []) [] (), matchLogicNamed = Nothing, annMatchLogic = ()}) ()],
-                  functionLikeBody =
-                    Body'
-                      ( ModuleOpen'
-                          ( Open'
-                              (Sym "M" :| [])
-                              ()
-                          )
-                          ()
-                          :| [Signature' (Sig' {signatureName = Sym "bah", signatureUsage = Nothing, signatureArrowType = Name' (Sym "Rec" :| []) (), signatureConstraints = [], annSig = ()}) (), Function' (Func' (Like' {functionLikedName = Sym "bah", functionLikeArgs = [ConcreteA' (MatchLogic' {matchLogicContents = MatchName' (Sym "t") (), matchLogicNamed = Nothing, annMatchLogic = ()}) ()], functionLikeBody = Body' (ExpRecord' (ExpressionRecord' {expRecordFields = NonPunned' (Sym "a" :| []) (Infix' (Inf' {infixLeft = Name' (Sym "t" :| []) (), infixOp = Sym "+" :| [], infixRight = Constant' (Number' (Integer'' 3 ()) ()) (), annInf = ()}) ()) () :| [NonPunned' (Sym "b" :| []) (Application' (App' {applicationName = Name' (Sym "expr" :| []) (), applicationArgs = Name' (Sym "M" :| [Sym "N", Sym "t"]) () :| [], annApp = ()}) ()) ()], annExpressionRecord = ()}) ()) (), annLike = ()}) ()) ()]
-                      )
-                      (),
-                  annLike = ()
-                }
-            )
-            ()
-        )
-        ()
+    [ AST.ModuleOpen (AST.Open (NameSym.fromSymbol "M"))
+        :| [ AST.Sig "bah" Nothing (AST.Name (NameSym.fromSymbol "Rec")) []
+               |> AST.Signature,
+             AST.NonPunned
+               (NameSym.fromSymbol "a")
+               ( AST.Inf
+                   (AST.Name (NameSym.fromSymbol "t"))
+                   (NameSym.fromSymbol "+")
+                   (AST.Constant (AST.Number (AST.Integer' 3)))
+                   |> AST.Infix
+               )
+               :| [ AST.Name (NameSym.fromSymbol "M.N.t") :| []
+                      |> AST.App (AST.Name (NameSym.fromSymbol "expr"))
+                      |> AST.Application
+                      |> AST.NonPunned (NameSym.fromSymbol "b")
+                  ]
+                 |> AST.ExpressionRecord
+                 |> AST.ExpRecord
+                 |> AST.Body
+                 |> AST.Like
+                   "bah"
+                   [AST.ConcreteA (AST.MatchLogic (AST.MatchName "t") Nothing)]
+                 |> AST.Func
+                 |> AST.Function
+           ]
+        |> AST.Body
+        |> AST.Like
+          "Bah"
+          -- this shouldn't be a matchCon but a match argument
+          [ AST.MatchLogic (AST.MatchCon (NameSym.fromSymbol "M") []) Nothing
+              |> AST.ConcreteA
+          ]
+        |> AST.Mod
+        |> AST.Module
     ]
 
 --------------------------------------------------
@@ -858,40 +577,23 @@ moduleOpen' =
 
 typeNameNoUniverse :: T.TestTree
 typeNameNoUniverse =
-  shouldParseAs
-    "typeNameNoUniverse"
-    (parse Parser.expression)
-    "Foo a b c (b -o d) a c u"
-    ( Application'
-        ( App'
-            { applicationName = Name' (Sym "Foo" :| []) (),
-              applicationArgs =
-                Name'
-                  (Sym "a" :| [])
-                  ()
-                  :| [ Name' (Sym "b" :| []) (),
-                       Name' (Sym "c" :| []) (),
-                       Parened'
-                         ( Infix'
-                             ( Inf'
-                                 { infixLeft = Name' (Sym "b" :| []) (),
-                                   infixOp = Sym "-o" :| [],
-                                   infixRight = Name' (Sym "d" :| []) (),
-                                   annInf = ()
-                                 }
-                             )
-                             ()
-                         )
-                         (),
-                       Name' (Sym "a" :| []) (),
-                       Name' (Sym "c" :| []) (),
-                       Name' (Sym "u" :| []) ()
-                     ],
-              annApp = ()
-            }
-        )
-        ()
-    )
+  AST.Name (NameSym.fromSymbol "a")
+    :| [ AST.Name (NameSym.fromSymbol "b"),
+         AST.Name (NameSym.fromSymbol "c"),
+         AST.Name (NameSym.fromSymbol "d")
+           |> AST.Inf (AST.Name (NameSym.fromSymbol "b")) (NameSym.fromSymbol "-o")
+           |> AST.Infix
+           |> AST.Parened,
+         AST.Name (NameSym.fromSymbol "a"),
+         AST.Name (NameSym.fromSymbol "c"),
+         AST.Name (NameSym.fromSymbol "u")
+       ]
+    |> AST.App (AST.Name (intern "Foo" :| []))
+    |> AST.Application
+    |> shouldParseAs
+      "typeNameNoUniverse"
+      (parse Parser.expression)
+      "Foo a b c (b -o d) a c u"
 
 --------------------------------------------------------------------------------
 -- Match tests
@@ -899,86 +601,36 @@ typeNameNoUniverse =
 
 simpleNamedCon :: T.TestTree
 simpleNamedCon =
-  shouldParseAs
-    "simpleNamedCon"
-    (parse Parser.matchLogic)
-    "foo@( Hi a b c )"
-    ( MatchLogic'
-        { matchLogicContents =
-            MatchCon'
-              (Sym "Hi" :| [])
-              [ MatchLogic'
-                  { matchLogicContents = MatchName' (Sym "a") (),
-                    matchLogicNamed = Nothing,
-                    annMatchLogic = ()
-                  },
-                MatchLogic'
-                  { matchLogicContents = MatchName' (Sym "b") (),
-                    matchLogicNamed = Nothing,
-                    annMatchLogic = ()
-                  },
-                MatchLogic'
-                  { matchLogicContents = MatchName' (Sym "c") (),
-                    matchLogicNamed = Nothing,
-                    annMatchLogic = ()
-                  }
-              ]
-              (),
-          matchLogicNamed = Just (Sym "foo"),
-          annMatchLogic = ()
-        }
-    )
+  [ AST.MatchLogic (AST.MatchName "a") Nothing,
+    AST.MatchLogic (AST.MatchName "b") Nothing,
+    AST.MatchLogic (AST.MatchName "c") Nothing
+  ]
+    |> AST.MatchCon (NameSym.fromSymbol "Hi")
+    |> flip AST.MatchLogic (Just "foo")
+    |> shouldParseAs
+      "simpleNamedCon"
+      (parse Parser.matchLogic)
+      "foo@( Hi a b c )"
 
 matchMoreComplex :: T.TestTree
 matchMoreComplex =
-  shouldParseAs
-    "matchMoreComplex"
-    (parse Parser.matchLogic)
-    "foo@( Hi nah@{ a = nah , f } b 5 )"
-    ( MatchLogic'
-        { matchLogicContents =
-            MatchCon'
-              (Sym "Hi" :| [])
-              [ MatchLogic'
-                  { matchLogicContents =
-                      MatchRecord'
-                        ( NonPunned'
-                            (Sym "a" :| [])
-                            ( MatchLogic'
-                                { matchLogicContents = MatchName' (Sym "nah") (),
-                                  matchLogicNamed = Nothing,
-                                  annMatchLogic = ()
-                                }
-                            )
-                            ()
-                            :| [Punned' (Sym "f" :| []) ()]
-                        )
-                        (),
-                    matchLogicNamed = Just (Sym "nah"),
-                    annMatchLogic = ()
-                  },
-                MatchLogic'
-                  { matchLogicContents = MatchName' (Sym "b") (),
-                    matchLogicNamed = Nothing,
-                    annMatchLogic = ()
-                  },
-                MatchLogic'
-                  { matchLogicContents =
-                      MatchConst'
-                        ( Number'
-                            (Integer'' 5 ())
-                            ()
-                        )
-                        (),
-                    matchLogicNamed = Nothing,
-                    annMatchLogic = ()
-                  }
-              ]
-              (),
-          matchLogicNamed = Just (Sym "foo"),
-          annMatchLogic = ()
-        }
-    )
+  [ Nothing
+      |> AST.MatchLogic (AST.MatchName "nah")
+      |> AST.NonPunned (NameSym.fromSymbol "a")
+      |> (:| [AST.Punned (NameSym.fromSymbol "f")])
+      |> AST.MatchRecord
+      |> flip AST.MatchLogic (Just "nah"),
+    --
+    AST.MatchLogic (AST.MatchName "b") Nothing,
+    --
+    AST.MatchLogic (AST.MatchConst (AST.Number (AST.Integer' 5))) Nothing
+  ]
+    |> AST.MatchCon (NameSym.fromSymbol "Hi")
+    |> flip AST.MatchLogic (Just "foo")
+    |> shouldParseAs
+      "matchMoreComplex"
+      (parse Parser.matchLogic)
+      "foo@( Hi nah@{ a = nah , f } b 5 )"
 
 --------------------------------------------------------------------------------
 -- Expression
@@ -986,28 +638,23 @@ matchMoreComplex =
 
 condTest1 :: T.TestTree
 condTest1 =
-  shouldParseAs
-    "condTest1"
-    (parse Parser.cond)
-    ( ""
-        <> "if  | foo  = a\n"
-        <> "    | else = b "
-    )
-    ( C'
-        ( CondExpression'
-            { condLogicPred = Name' (Sym "foo" :| []) (),
-              condLogicBody = Name' (Sym "a" :| []) (),
-              annCondExpression = ()
-            }
-            :| [ CondExpression'
-                   { condLogicPred = Name' (Sym "else" :| []) (),
-                     condLogicBody = Name' (Sym "b" :| []) (),
-                     annCondExpression = ()
-                   }
-               ]
-        )
-        ()
-    )
+  AST.CondExpression
+    { condLogicPred = AST.Name (NameSym.fromSymbol "foo"),
+      condLogicBody = AST.Name (NameSym.fromSymbol "a")
+    }
+    :| [ AST.CondExpression
+           { condLogicPred = AST.Name (NameSym.fromSymbol "else"),
+             condLogicBody = AST.Name (NameSym.fromSymbol "b")
+           }
+       ]
+    |> AST.C
+    |> shouldParseAs
+      "condTest1"
+      (parse Parser.cond)
+      ( ""
+          <> "if  | foo  = a\n"
+          <> "    | else = b "
+      )
 
 --------------------------------------------------
 -- Record
@@ -1015,33 +662,21 @@ condTest1 =
 
 record1 :: T.TestTree
 record1 =
-  shouldParseAs
-    "record1"
-    (parse Parser.expression)
-    "{a, b = 3+5}"
-    ( ExpRecord'
-        ( ExpressionRecord'
-            { expRecordFields =
-                Punned' (Sym "a" :| []) ()
-                  :| [ NonPunned'
-                         (Sym "b" :| [])
-                         ( Infix'
-                             ( Inf'
-                                 { infixLeft = Constant' (Number' (Integer'' 3 ()) ()) (),
-                                   infixOp = Sym "+" :| [],
-                                   infixRight = Constant' (Number' (Integer'' 5 ()) ()) (),
-                                   annInf = ()
-                                 }
-                             )
-                             ()
-                         )
-                         ()
-                     ],
-              annExpressionRecord = ()
-            }
-        )
-        ()
-    )
+  AST.Punned (NameSym.fromSymbol "a")
+    :| [ AST.Inf
+           { infixLeft = AST.Constant (AST.Number (AST.Integer' 3)),
+             infixOp = NameSym.fromSymbol "+",
+             infixRight = AST.Constant (AST.Number (AST.Integer' 5))
+           }
+           |> AST.Infix
+           |> AST.NonPunned (NameSym.fromSymbol "b")
+       ]
+    |> AST.ExpressionRecord
+    |> AST.ExpRecord
+    |> shouldParseAs
+      "record1"
+      (parse Parser.expression)
+      "{a, b = 3+5}"
 
 --------------------------------------------------
 -- parens
@@ -1049,70 +684,105 @@ record1 =
 
 parens1 :: T.TestTree
 parens1 =
+  AST.Punned (NameSym.fromSymbol "a")
+    :| [ AST.Integer' 5
+           |> AST.Number
+           |> AST.Constant
+           |> AST.Inf
+             (AST.Constant (AST.Number (AST.Integer' 3)))
+             (NameSym.fromSymbol "+")
+           |> AST.Infix
+           |> AST.NonPunned (NameSym.fromSymbol "b")
+       ]
+    |> AST.ExpressionRecord
+    |> AST.ExpRecord
+    |> AST.Parened
+    |> AST.Parened
+    |> AST.Parened
+    |> AST.Parened
+    |> shouldParseAs
+      "parens1"
+      (parse Parser.expression)
+      "(       ( (({a, b = 3+5}))))"
+
+--------------------------------------------------
+-- Infix Tests
+--------------------------------------------------
+
+nonassocTest :: T.TestTree
+nonassocTest =
   shouldParseAs
-    "parens1"
-    (parse Parser.expression)
-    "(       ( (({a, b = 3+5}))))"
-    ( Parened'
-        ( Parened'
-            ( Parened'
-                ( Parened'
-                    ( ExpRecord'
-                        ( ExpressionRecord'
-                            { expRecordFields =
-                                Punned' (Sym "a" :| []) ()
-                                  :| [ NonPunned'
-                                         (Sym "b" :| [])
-                                         ( Infix'
-                                             ( Inf'
-                                                 { infixLeft = Constant' (Number' (Integer'' 3 ()) ()) (),
-                                                   infixOp = Sym "+" :| [],
-                                                   infixRight = Constant' (Number' (Integer'' 5 ()) ()) (),
-                                                   annInf = ()
-                                                 }
-                                             )
-                                             ()
-                                         )
-                                         ()
-                                     ],
-                              annExpressionRecord = ()
-                            }
-                        )
-                        ()
-                    )
-                    ()
-                )
-                ()
-            )
-            ()
-        )
-        ()
-    )
+    "infix foo 5"
+    Parser.parse
+    "infix foo 5"
+    [AST.InfixDeclar (AST.NonAssoc "foo" 5)]
+
+infxrTest :: T.TestTree
+infxrTest =
+  shouldParseAs
+    "infixr foo 5"
+    Parser.parse
+    "infixr foo 5"
+    [AST.InfixDeclar (AST.AssocR "foo" 5)]
+
+infxlTest :: T.TestTree
+infxlTest =
+  shouldParseAs
+    "infixl foo 5"
+    Parser.parse
+    "infixl foo 5"
+    [AST.InfixDeclar (AST.AssocL "foo" 5)]
+
+infxPlusTest :: T.TestTree
+infxPlusTest =
+  shouldParseAs
+    "infixl (+) 5"
+    Parser.parse
+    "infixl (+) 5"
+    [AST.InfixDeclar (AST.AssocL "+" 5)]
+
+infixPlusFail :: T.TestTree
+infixPlusFail =
+  T.testCase
+    ("parse: infixl + 5 should fail")
+    (isLeft (Parser.parseOnly "infixl + 5") T.@=? True)
+
+infixFail :: T.TestTree
+infixFail =
+  T.testCase
+    ("parse: infixl foo.o 5 should fail")
+    (isLeft (Parser.parseOnly "infixl foo.o 5") T.@=? True)
 
 --------------------------------------------------------------------------------
 -- Spacer tests
 --------------------------------------------------------------------------------
 
-spacerSymb :: Bool
+spacerSymb :: T.TestTree
 spacerSymb =
-  case parse (Parser.spacer Parser.prefixSymbol) "Foo   f" of
-    Done f s -> f == "f" && s == "Foo"
-    _ -> False
+  let res =
+        case parse (Parser.spacer Parser.prefixSymbol) "Foo   f" of
+          Done f s -> f == "f" && s == "Foo"
+          _ -> False
+   in T.testCase "symbol parser test: Foo f" (res T.@=? True)
 
 --------------------------------------------------------------------------------
 -- validPrefixSymbols
 --------------------------------------------------------------------------------
 
-vpsDashFrontFail :: Bool
+vpsDashFrontFail :: T.TestTree
 vpsDashFrontFail =
-  isLeft (parseOnly Parser.prefixSymbol "-Foo")
+  T.testCase
+    "-Foo is not a valid prefix symbol"
+    (isLeft (parseOnly Parser.prefixSymbol "-Foo") T.@=? True)
 
-vpsDashMiddle :: Bool
+vpsDashMiddle :: T.TestTree
 vpsDashMiddle =
-  isRight (parseOnly Parser.prefixSymbol "Foo-Foo")
+  T.testCase
+    "Foo-Foo is a valid prefix symbol"
+    (isRight (parseOnly Parser.prefixSymbol "Foo-Foo") T.@=? True)
 
 --------------------------------------------------------------------------------
--- Example(s) for REPL testing
+-- Examples for testing
 --------------------------------------------------------------------------------
 
 contractTest :: Either String [TopLevel]

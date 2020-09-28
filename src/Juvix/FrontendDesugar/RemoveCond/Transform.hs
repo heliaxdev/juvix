@@ -8,7 +8,7 @@ import Juvix.Library
 -- The actual transform we are doing
 transformCond :: Old.Cond Old.Expression -> New.Expression
 transformCond (Old.C xs) =
-  foldr f (fList last []) xs
+  foldr f (fList last []) (NonEmpty.init xs)
   where
     fList (Old.CondExpression pred body) falses =
       boolean "True" (transformExpression body)
@@ -36,6 +36,8 @@ transformTopLevel (Old.Signature t) =
   New.Signature (transformSignature t)
 transformTopLevel (Old.Function t) =
   New.Function (transformFunction t)
+transformTopLevel (Old.InfixDeclar i) =
+  New.InfixDeclar (transformInfixDeclar i)
 transformTopLevel Old.TypeClass =
   New.TypeClass
 transformTopLevel Old.TypeClassInstance =
@@ -84,6 +86,14 @@ transformExpression (Old.UniverseName i) =
   New.UniverseName (transformUniverseExpression i)
 transformExpression (Old.Parened e) =
   New.Parened (transformExpression e)
+
+--------------------------------------------------------------------------------
+-- Infix Declaration
+--------------------------------------------------------------------------------
+transformInfixDeclar :: Old.InfixDeclar -> New.InfixDeclar
+transformInfixDeclar (Old.AssocL n i) = New.AssocL n i
+transformInfixDeclar (Old.AssocR n i) = New.AssocR n i
+transformInfixDeclar (Old.NonAssoc n i) = New.NonAssoc n i
 
 --------------------------------------------------------------------------------
 -- Types
