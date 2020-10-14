@@ -1,5 +1,7 @@
 mod Prelude.Michelson where
 
+open Prelude
+
 -- datatypes
 let option    = %Michelson.option
 let list      = %Michelson.list
