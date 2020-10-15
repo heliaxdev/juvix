@@ -57,6 +57,10 @@ groupInfixs (Old.Infix (Old.Inf l s r)) = do
         m (NonEmpty (Shunt.PredOrEle NameSymbol.T Old.Expression))
       continuePref (Just Context.Def {precedence}) _maybeF =
         fmap (f precedence) (groupInfixs r)
+      continuePref (Just (Context.Information is)) _maybeF =
+        case Context.precedenceOf is of
+          Nothing -> throw @"error" (Env.UnknownSymbol s)
+          Just pr -> fmap (f pr) (groupInfixs r)
       continuePref (Just _) _maybeF =
         throw @"error" (Env.UnknownSymbol s)
       continuePref Nothing maybeF =
@@ -143,6 +147,9 @@ transformDef (Context.Unknown mTy) _ =
 transformDef Context.CurrentNameSpace _ =
   pure Context.CurrentNameSpace
 --
+transformDef (Context.Information is) _ =
+  pure (Context.Information is)
+--
 transformDef (Context.Record _contents mTy) name' = do
   sig <- traverse transformSignature mTy
   old <- get @"old"
@@ -226,7 +233,30 @@ transformExpression (Old.NamedTypeE i) =
 transformExpression (Old.RefinedE i) = New.RefinedE <$> transformTypeRefine i
 transformExpression (Old.UniverseName i) =
   New.UniverseName <$> transformUniverseExpression i
-transformExpression (Old.Parened e) = New.Parened <$> transformExpression e
+transformExpression (Old.Parened e) =
+  New.Parened <$> transformExpression e
+transformExpression (Old.DeclarationE e) =
+  New.DeclarationE <$> transformDeclarationExpression e
+
+--------------------------------------------------------------------------------
+-- Declaration
+--------------------------------------------------------------------------------
+
+transformDeclarationExpression ::
+  Env.WorkingMaps m => Old.DeclarationExpression -> m New.DeclarationExpression
+transformDeclarationExpression (Old.DeclareExpession i e) =
+  New.DeclareExpession <$> transformDeclaration i <*> transformExpression e
+
+transformDeclaration :: Env.WorkingMaps m => Old.Declaration -> m New.Declaration
+transformDeclaration (Old.Infixivity i) =
+  New.Infixivity <$> transformInfixDeclar i
+
+-- TODO ∷ update map to reflect the infixivity changes!!!!!!
+
+transformInfixDeclar :: Env.WorkingMaps m => Old.InfixDeclar -> m New.InfixDeclar
+transformInfixDeclar (Old.AssocL n i) = pure (New.AssocL n i)
+transformInfixDeclar (Old.AssocR n i) = pure (New.AssocR n i)
+transformInfixDeclar (Old.NonAssoc n i) = pure (New.NonAssoc n i)
 
 --------------------------------------------------------------------------------
 -- Types

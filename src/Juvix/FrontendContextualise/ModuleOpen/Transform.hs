@@ -31,6 +31,7 @@ transformModuleOpenExpr (Old.OpenExpress modName expr) = do
     Just Context.TypeDeclar {} -> err
     Just Context.Unknown {} -> err
     Just Context.CurrentNameSpace {} -> err
+    Just Context.Information {} -> err
     Nothing -> err
     Just (Context.Record innerC _mTy) ->
       -- Fine to just have the public names
@@ -189,6 +190,9 @@ transformDef (Context.Unknown mTy) _ =
 transformDef Context.CurrentNameSpace _ =
   pure Context.CurrentNameSpace
 --
+transformDef (Context.Information is) _ =
+  pure (Context.Information is)
+--
 transformDef (Context.Record _contents mTy) name' = do
   sig <- traverse transformSignature mTy
   old <- get @"old"
@@ -275,7 +279,28 @@ transformExpression (Old.NamedTypeE i) =
 transformExpression (Old.RefinedE i) = New.RefinedE <$> transformTypeRefine i
 transformExpression (Old.UniverseName i) =
   New.UniverseName <$> transformUniverseExpression i
-transformExpression (Old.Parened e) = New.Parened <$> transformExpression e
+transformExpression (Old.Parened e) =
+  New.Parened <$> transformExpression e
+transformExpression (Old.DeclarationE e) =
+  New.DeclarationE <$> transformDeclarationExpression e
+
+--------------------------------------------------------------------------------
+-- Declaration
+--------------------------------------------------------------------------------
+
+transformDeclarationExpression ::
+  Env.WorkingMaps m => Old.DeclarationExpression -> m New.DeclarationExpression
+transformDeclarationExpression (Old.DeclareExpession i e) =
+  New.DeclareExpession <$> transformDeclaration i <*> transformExpression e
+
+transformDeclaration :: Env.WorkingMaps m => Old.Declaration -> m New.Declaration
+transformDeclaration (Old.Infixivity i) =
+  New.Infixivity <$> transformInfixDeclar i
+
+transformInfixDeclar :: Env.WorkingMaps m => Old.InfixDeclar -> m New.InfixDeclar
+transformInfixDeclar (Old.AssocL n i) = pure (New.AssocL n i)
+transformInfixDeclar (Old.AssocR n i) = pure (New.AssocR n i)
+transformInfixDeclar (Old.NonAssoc n i) = pure (New.NonAssoc n i)
 
 --------------------------------------------------------------------------------
 -- Types
