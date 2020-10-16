@@ -8,6 +8,7 @@ where
 
 import qualified Control.Arrow as Arr
 import Control.Monad.Fail (fail)
+import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Text as Text
 import qualified Juvix.Backends.Michelson.Compilation as Compilation
 import Juvix.Backends.Michelson.Compilation.Types
@@ -32,28 +33,72 @@ import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as Token
 import Prelude (String)
 
--- TODO: Add rest of primitive values.
--- TODO: Add dependent functions for pair, fst, snd, etc.
-typeOf :: PrimVal -> NonEmpty PrimTy
-typeOf (Constant v) = PrimTy (M.Type (constType v) "") :| []
-typeOf AddI = PrimTy (M.Type M.TInt "") :| [PrimTy (M.Type M.TInt ""), PrimTy (M.Type M.TInt "")]
+-- TODO ∷ refactor this all to not be so bad
+-- DO EXTRA CHECKS
+check3Equal :: Eq a => NonEmpty a -> Bool
+check3Equal (x :| [y, z])
+  | x == y && x == z = True
+  | otherwise = False
+check3Equal (_ :| _) = False
+
+check2Equal :: Eq a => NonEmpty a -> Bool
+check2Equal (x :| [y])
+  | x == y = True
+  | otherwise = False
+check2Equal (_ :| _) = False
+
+isBool :: PrimTy -> Bool
+isBool (PrimTy (M.Type M.TBool _)) = True
+isBool _ = False
+
+checkFirst2AndLast :: Eq t => NonEmpty t -> (t -> Bool) -> Bool
+checkFirst2AndLast (x :| [y, last]) check
+  | check2Equal (x :| [y]) && check last = True
+  | otherwise = False
+checkFirst2AndLast (_ :| _) _ = False
 
 hasType :: PrimVal -> P.PrimType PrimTy -> Bool
-hasType x ty = ty == typeOf x
+hasType AddTimeStamp ty = check3Equal ty
+hasType AddI ty = check3Equal ty
+hasType AddN ty = check3Equal ty
+hasType SubI ty = check3Equal ty
+hasType SubN ty = check3Equal ty
+hasType SubTimeStamp ty = check3Equal ty
+hasType MulI ty = check3Equal ty
+hasType MulN ty = check3Equal ty
+hasType MulMutez ty = check3Equal ty
+hasType ORI ty = check3Equal ty
+hasType OrB ty = check3Equal ty
+hasType AndI ty = check3Equal ty
+hasType AndB ty = check3Equal ty
+hasType XorI ty = check3Equal ty
+hasType XorB ty = check3Equal ty
+hasType NotI ty = check2Equal ty
+hasType NotB ty = check2Equal ty
+hasType CompareI ty = checkFirst2AndLast ty isBool
+hasType CompareS ty = checkFirst2AndLast ty isBool
+hasType CompareP ty = checkFirst2AndLast ty isBool
+hasType CompareTimeStamp ty = checkFirst2AndLast ty isBool
+hasType CompareMutez ty = checkFirst2AndLast ty isBool
+hasType CompareHash ty = checkFirst2AndLast ty isBool
+hasType (Inst (M.IF _ _)) (bool :| rest)
+  | empty == rest = False
+  | otherwise = isBool bool && check2Equal (NonEmpty.fromList rest)
+hasType (Constant _v) ty
+  | length ty == 1 = True
+  | otherwise = False
+hasType x ty = ty == undefined
 
 -- constructTerm ∷ PrimVal → PrimTy
 -- constructTerm (PrimConst v) = (v, Usage.Omega, PrimTy (M.Type (constType v) ""))
-constType :: M.Value' Op -> M.T
-constType v =
-  case v of
-    M.ValueInt _ -> Untyped.tint
-    M.ValueUnit -> Untyped.TUnit
-    M.ValueTrue -> Untyped.tbool
-    M.ValueFalse -> Untyped.tbool
 
 -- the arity elsewhere lacks this 'pred'?
+-- Arity for constant is BAD, refactor to handle lambda
 arity :: PrimVal -> Int
-arity = pred . length . typeOf
+arity (Inst inst) = fromIntegral (Instructions.toNumArgs inst)
+arity (Constant _) = 1
+arity prim =
+  Run.instructionOf prim |> Instructions.toNewPrimErr |> arity
 
 applyProper ::
   Prim.Take PrimTy PrimVal ->
@@ -107,7 +152,7 @@ applyProper fun args =
 apply :: PrimVal -> PrimVal -> Maybe PrimVal
 apply t1 _t2 = Nothing
   where
-    primTy :| _ = typeOf t1
+    primTy :| _ = undefined
     runPrim =
       DSL.execMichelson $
         --Prim.primToInstr t1 (CoreErased.PrimTy primTy)
