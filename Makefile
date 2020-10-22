@@ -34,9 +34,28 @@ format:
 	find . -path ./.stack-work -prune -o -path ./archived -prune -o -type f -name "*.hs" -exec ormolu --mode inplace {} --ghc-opt -XTypeApplications --ghc-opt -XUnicodeSyntax --ghc-opt -XPatternSynonyms --ghc-opt -XTemplateHaskell \;
 
 org-gen:
-	org-generation app/ doc/Code/App.org test/ doc/Code/Test.org src/ doc/Code/Juvix.org bench/ doc/Code/Bench.org
+	org-generation app/ doc/Code/App.org test/ doc/Code/Test.org src/ doc/Code/Juvix.org bench/ doc/Code/Bench.org library/ doc/Code/Library.org
 
 test:
+	stack test --fast --jobs=$(shell nproc) --test-arguments "--hide-successes --ansi-tricks false"
+
+test-all:
+	cd library/StandardLibrary; \
+	stack test --fast --jobs=$(shell nproc) --test-arguments "--hide-successes --ansi-tricks false"
+	cd library/Frontend; \
+	stack test --fast --jobs=$(shell nproc) --test-arguments "--hide-successes --ansi-tricks false"
+	cd library/Core; \
+	stack test --fast --jobs=$(shell nproc) --test-arguments "--hide-successes --ansi-tricks false"
+	cd library/InteractionNet; \
+	stack test --fast --jobs=$(shell nproc) --test-arguments "--hide-successes --ansi-tricks false"
+	cd library/Translate; \
+	stack test --fast --jobs=$(shell nproc) --test-arguments "--hide-successes --ansi-tricks false"
+	cd library/Backends/LLVM; \
+	stack test --fast --jobs=$(shell nproc) --test-arguments "--hide-successes --ansi-tricks false"
+	cd library/Backends/Michelson; \
+	stack test --fast --jobs=$(shell nproc) --test-arguments "--hide-successes --ansi-tricks false"
+	cd library/Backends/ArithmeticCircuit; \
+	stack test --fast --jobs=$(shell nproc) --test-arguments "--hide-successes --ansi-tricks false"
 	stack test --fast --jobs=$(shell nproc) --test-arguments "--hide-successes --ansi-tricks false"
 
 test-parser:
@@ -57,4 +76,4 @@ clean:
 clean-full:
 	stack clean --full
 
-.PHONY: all setup build build-libff build-z3 build-watch build-prod lint format org-gen test test-parser repl-lib repl-exe clean clean-full bench build-format
+.PHONY: all setup build build-libff build-z3 build-watch build-prod lint format org-gen test test-parser repl-lib repl-exe clean clean-full bench build-format build-cache test-all
