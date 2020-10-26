@@ -150,7 +150,7 @@ identityApp2 =
   shouldCompile
     identityAppTerm2
     identityType
-    "parameter unit;storage unit;code { { DIG 0;DUP;DUG 1;CAR;DIG 0;NIL operation;PAIR;DIP { DROP } } };"
+    "parameter unit;storage unit;code { { DIG 0;CAR;DIG 0;NIL operation;PAIR } };"
 
 unitTest :: T.TestTree
 unitTest =
@@ -161,14 +161,14 @@ identityFn =
   shouldCompile
     identityTerm
     identityType
-    "parameter unit;storage unit;code { { DIG 0;DUP;DUG 1;CAR;NIL operation;PAIR;DIP { DROP } } };"
+    "parameter unit;storage unit;code { { DIG 0;CAR;NIL operation;PAIR } };"
 
 identityApp :: T.TestTree
 identityApp =
   shouldCompile
     identityAppTerm
     identityType
-    "parameter unit;storage unit;code { { DIG 0;DUP;DUG 1;DIG 0;DUP;DUG 1;CAR;NIL operation;PAIR;DIP 1 { DROP };DIP { DROP } } };"
+    "parameter unit;storage unit;code { { DIG 0;DIG 0;CAR;NIL operation;PAIR } };"
 
 underExactConstTest :: T.TestTree
 underExactConstTest = interpretExpression underExactConst M.ValueUnit
@@ -532,7 +532,7 @@ xtwice =
               Ann one (primTy int) (J.Var "x")
             ]
       )
-      [push1Int 2, push1Int 3, push1Int 4]
+      [push1Int 2, pushInt (SNat 2) 3, push1Int 4]
 
 oddApp :: Term
 oddApp =
@@ -636,11 +636,11 @@ identityAppTerm =
 
 identityAppExpr :: Term
 identityAppExpr =
-  Ann one identityType2
+  Ann one identityType
     $ J.LamM [] ["y"]
     $ Ann one (primTy (Untyped.pair unitl Untyped.unit))
     $ J.AppM
-      ( Ann one identityType2
+      ( Ann one identityType
           $ J.LamM [] ["x"]
           $ Ann one (primTy (Untyped.pair unitl Untyped.unit))
           $ J.AppM
@@ -705,7 +705,7 @@ identityAppExpr2 :: Term
 identityAppExpr2 =
   Ann
     one
-    identityType2
+    identityType
     $ J.LamM [] ["x"]
     $ Ann one (primTy (Untyped.pair opl Untyped.unit))
     $ J.AppM
@@ -941,11 +941,10 @@ identityTermAns =
           )
           (M.Type (TPair "" "" (M.Type TUnit "") (M.Type TUnit "")) "")
           [ SeqEx [],
-            SeqEx [PrimEx (DIG 0), PrimEx (DUP ""), PrimEx (DUG 1)],
+            PrimEx (DIG 0),
             PrimEx (CAR "" ""),
             PrimEx (NIL "" "" (M.Type TOperation "")),
-            PrimEx (PAIR "" "" "" ""),
-            PrimEx (DIPN 1 [PrimEx DROP])
+            PrimEx (PAIR "" "" "" "")
           ]
       )
   ]
@@ -963,10 +962,6 @@ pairTy = primPairTy
 
 identityType :: Type
 identityType =
-  J.Pi Omega (primTy unitPair) (primTy (Untyped.pair opl unit))
-
-identityType2 :: Type
-identityType2 =
   J.Pi one (primTy unitPair) (primTy (Untyped.pair opl unit))
 
 unitl :: M.Type
@@ -1028,8 +1023,24 @@ annIntOne :: Integer -> Term
 annIntOne i =
   Ann one (primTy Untyped.int) (J.Prim (Constant (M.ValueInt i)))
 
+pushInt :: Usage -> Integer -> AnnTerm PrimTy NewPrim
+pushInt usage i = pushUsage usage (M.ValueInt i) Untyped.int
+
 push1Int :: Integer -> AnnTerm PrimTy NewPrim
 push1Int i = push1 (M.ValueInt i) Untyped.int
+
+pushUsage :: Usage -> M.Value' Op -> M.Type -> AnnTerm PrimTy NewPrim
+pushUsage usage const ty =
+  Ann
+    usage
+    (primTy Untyped.unit)
+    $ J.AppM
+      ( Ann one (J.Pi usage (primTy ty) (primTy ty))
+          $ J.Prim
+          $ Instructions.toNewPrimErr
+          $ Instructions.push ty (M.ValueNil) -- the undefined here is never used
+      )
+      [Ann one (primTy ty) (J.Prim (Constant const))]
 
 push1 :: M.Value' Op -> M.Type -> AnnTerm PrimTy NewPrim
 push1 const ty =
