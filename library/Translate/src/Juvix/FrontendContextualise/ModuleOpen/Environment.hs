@@ -1,4 +1,7 @@
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LiberalTypeSynonyms #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 
 module Juvix.FrontendContextualise.ModuleOpen.Environment
   ( module Juvix.FrontendContextualise.ModuleOpen.Environment,
@@ -7,6 +10,7 @@ module Juvix.FrontendContextualise.ModuleOpen.Environment
 where
 
 import qualified Data.HashSet as Set
+import Data.Kind (Constraint)
 import qualified Juvix.Core.Common.Context as Context
 import qualified Juvix.Core.Common.NameSpace as NameSpace
 import Juvix.FrontendContextualise.Environment
@@ -16,30 +20,59 @@ import Juvix.Library
 import qualified Juvix.Library.HashMap as Map
 import qualified Juvix.Library.NameSymbol as NameSymbol
 
+--------------------------------------------------------------------------------
+-- Type Aliases and effect setup
+--------------------------------------------------------------------------------
+
+type ModuleMap = Map.T Symbol NameSymbol.T
+
 type Old f =
   f (NonEmpty (Old.FunctionLike Old.Expression)) Old.Signature Old.Type
 
 type New f =
   f (NonEmpty (New.FunctionLike New.Expression)) New.Signature New.Type
 
+type TransitionMap m =
+  (HasState "old" (Old Context.T) m, HasState "new" (New Context.T) m)
+
 type WorkingMaps m =
-  ( HasState "old" (Old Context.T) m,
-    HasState "new" (New Context.T) m,
+  (TransitionMap m, Expression EnvDispatch m)
+
+type ModuleNames tag m =
+  (NameConstraint tag m, HasReader "dispatch" tag m, Names tag)
+
+type ModuleSwitch tag m =
+  (SwitchConstraint tag m, HasReader "dispatch" tag m, Switch tag)
+
+-- The effect of expression and below note that new is not the new map
+-- per se, but more instead of where local functions get added...  for
+-- a full pass this is indeed the new context, but for a single pass,
+-- just a local cache
+type Expression tag m =
+  ( HasState "new" (New Context.T) m,
+    ModuleNames tag m,
     HasThrow "error" Error m,
     HasState "modMap" ModuleMap m,
-    HasReader "openMap" OpenMap m
+    HasReader "openMap" OpenMap m,
+    ModuleSwitch tag m
   )
+
+--------------------------------------------------------------------------------
+-- Environment data declarations
+--------------------------------------------------------------------------------
+
+-- | the traditional transition between one context and another
+data EnvDispatch = EnvDispatch deriving (Show)
 
 data Environment
   = Env
       { old :: Old Context.T,
         new :: New Context.T,
         modMap :: ModuleMap,
-        openMap :: OpenMap
+        openMap :: OpenMap,
+        dispatch :: EnvDispatch
       }
   deriving (Generic, Show)
-
-type FinalContext = New Context.T
 
 data Error
   = UnknownModule NameSymbol.T
@@ -57,8 +90,6 @@ data Open a
 
 type ContextAlias =
   ExceptT Error (State Environment)
-
-type ModuleMap = Map.T Symbol NameSymbol.T
 
 newtype Context a = Ctx {antiAlias :: ContextAlias a}
   deriving (Functor, Applicative, Monad)
@@ -84,10 +115,90 @@ newtype Context a = Ctx {antiAlias :: ContextAlias a}
     (HasThrow "error" Error)
     via MonadError ContextAlias
   deriving
+    ( HasReader "dispatch" EnvDispatch,
+      HasSource "dispatch" EnvDispatch
+    )
+    via ReaderField "dispatch" ContextAlias
+  deriving
     ( HasReader "openMap" OpenMap,
       HasSource "openMap" OpenMap
     )
     via ReaderField "openMap" ContextAlias
+
+--------------------------------------------------------------------------------
+-- Generic Interface Definitions for Environment lookup
+--------------------------------------------------------------------------------
+
+class Switch a where
+  type SwitchConstraint a (m :: * -> *) :: Constraint
+  switch :: SwitchConstraint a m => Context.NameSymbol -> a -> m ()
+
+-- | Names encapsulates the idea of looking up all current names in
+-- a context
+class Names a where
+  type NameConstraint a (m :: * -> *) :: Constraint
+  contextNames :: NameConstraint a m => NameSymbol.T -> a -> m [Symbol]
+  currentNameSpace' :: NameConstraint a m => a -> m NameSymbol.T
+  inCurrentModule' :: NameConstraint a m => NameSymbol.T -> a -> m Bool
+
+instance Switch EnvDispatch where
+  type SwitchConstraint _ m = (TransitionMap m, HasThrow "error" Error m)
+  switch sym EnvDispatch = do
+    old <- get @"old"
+    new <- get @"new"
+    case Context.switchNameSpace sym old of
+      -- bad Error for now
+      Left ____ -> throw @"error" (UnknownModule sym)
+      Right map -> put @"old" map
+    -- have to do this again sadly
+    case Context.switchNameSpace sym new of
+      Left ____ -> throw @"error" (UnknownModule sym)
+      Right map -> put @"new" map
+
+instance Names EnvDispatch where
+  type NameConstraint _ m = TransitionMap m
+  contextNames name EnvDispatch = do
+    old <- get @"old"
+    new <- get @"new"
+    let grabList ::
+          Context.T a b c ->
+          NameSpace.List (Context.Definition a b c)
+        grabList ctx =
+          case Context.extractValue <$> Context.lookup name ctx of
+            Just (Context.Record nameSpace _) ->
+              NameSpace.toList nameSpace
+            Just _ ->
+              NameSpace.List [] []
+            Nothing ->
+              NameSpace.List [] []
+        NameSpace.List {publicL = pubN} =
+          grabList new
+        NameSpace.List {publicL = pubO} =
+          grabList old
+     in pure (fmap fst pubN <> fmap fst pubO)
+
+  currentNameSpace' EnvDispatch = do
+    new <- get @"new"
+    pure (Context.currentName new)
+
+  inCurrentModule' name EnvDispatch = do
+    old <- get @"old"
+    new <- get @"new"
+    pure (isJust (Context.lookup name old) || isJust (Context.lookup name new))
+
+switchNameSpace :: ModuleSwitch tag m => NameSymbol.T -> m ()
+switchNameSpace name = Juvix.Library.ask @"dispatch" >>= switch name
+
+inScopeNames :: ModuleNames tag m => NameSymbol.T -> m [Symbol]
+inScopeNames name = Juvix.Library.ask @"dispatch" >>= contextNames name
+
+currentNameSpace :: ModuleNames tag m => m NameSymbol.T
+currentNameSpace = Juvix.Library.ask @"dispatch" >>= currentNameSpace'
+
+inCurrentModule :: ModuleNames tag m => NameSymbol.T -> m Bool
+inCurrentModule name = Juvix.Library.ask @"dispatch" >>= inCurrentModule' name
+
+type FinalContext = New Context.T
 
 --------------------------------------------------------------------------------
 -- Types for resolving opens
@@ -132,7 +243,7 @@ bareRun ::
   OpenMap ->
   (Either Error a, Environment)
 bareRun (Ctx c) old new opens =
-  Env old new mempty opens
+  Env old new mempty opens EnvDispatch
     |> runState (runExceptT c)
 
 runEnv ::
@@ -140,7 +251,7 @@ runEnv ::
 runEnv (Ctx c) old pres =
   case resolve old pres of
     Right opens ->
-      Env old (Context.empty (Context.currentName old)) mempty opens
+      Env old (Context.empty (Context.currentName old)) mempty opens EnvDispatch
         |> runState (runExceptT c)
     Left err -> (Left err, undefined)
 
@@ -180,65 +291,45 @@ removeModMap s = Juvix.Library.modify @"modMap" (Map.delete s)
 -- | @populateModMap@ populates the modMap with all the global opens
 -- in the module
 populateModMap ::
-  WorkingMaps m => m ()
+  Expression tag m => m ()
 populateModMap = do
-  old <- get @"old"
-  new <- get @"new"
   open <- Juvix.Library.ask @"openMap"
   modM <- get @"modMap"
-  let curr = pure Context.topLevelName <> Context.currentName old
+  currentName <- currentNameSpace
+  let curr = pure Context.topLevelName <> currentName
   case open Map.!? curr of
     Nothing ->
       pure ()
-    Just opens ->
+    Just opens -> do
       -- TODO ∷
       -- explicts and implicits for now work the same
       -- later they should work as follows
-      -- Implicit opens should be superseded by explict
+      -- Implicit opens should be superseded by explicit
       -- thus our map should have implciit explicit on
       -- each symbol. Later when we are done, we remove
       -- these markings as they are no longer useful
-      put @"modMap" (foldr f modM opens)
+      -- TODO ∷
+      -- should we even append modM to this
+      assocNameWithAlias <- concatMapM f opens
+      put @"modMap" (modM <> Map.fromList assocNameWithAlias)
       where
-        f y modMap = foldr addNewSymbol modMap openList
+        f y = do
+          openList <- inScopeNames nameSpace
+          maybeAssocNameWithAlias <- traverse addNewSymbol openList
+          pure (catMaybes maybeAssocNameWithAlias)
           where
             nameSpace =
               case y of
                 Implicit x -> x
                 Explicit x -> x
-            unpopulate = (() <$)
-            unpopulateLookup x =
-              unpopulate . Context.lookup (NameSymbol.fromSymbol x)
-            --
-            addNewSymbol x modMap =
-              case unpopulateLookup x old <|> unpopulateLookup x new of
-                Just () ->
-                  -- if the symbol is in the map, then
-                  -- we don't shadow it....
-                  -- TODO ∷ later throw an error for
-                  --        explicit opens that do this
-                  modMap
-                Nothing ->
-                  Map.insert x nameSpace modMap
-            --
-            openList =
-              -- haskell gives type error if grabList is not typed
-              let grabList ::
-                    Context.T a b c ->
-                    NameSpace.List (Context.Definition a b c)
-                  grabList ctx =
-                    case Context.extractValue <$> Context.lookup nameSpace ctx of
-                      Just (Context.Record nameSpace _) ->
-                        NameSpace.toList nameSpace
-                      Just _ ->
-                        NameSpace.List [] []
-                      Nothing ->
-                        NameSpace.List [] []
-                  NameSpace.List {publicL = pubN} =
-                    grabList new
-                  NameSpace.List {publicL = pubO} =
-                    grabList old
-               in fmap fst pubN <> fmap fst pubO
+            addNewSymbol x =
+              inCurrentModule (NameSymbol.fromSymbol x) >>= \case
+                True -> pure Nothing
+                -- if the symbol is in the map, then
+                -- we don't shadow it....
+                -- TODO ∷ later throw an error for
+                --        explicit opens that do this
+                False -> pure (Just (x, nameSpace))
 
 -- we don't take a module mapping as all symbols at the point of
 -- resolve can't be anything else, thus we don't have to pre-pend any
