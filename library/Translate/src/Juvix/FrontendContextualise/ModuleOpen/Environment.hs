@@ -35,6 +35,9 @@ type New f =
 type TransitionMap m =
   (HasState "old" (Old Context.T) m, HasState "new" (New Context.T) m)
 
+type SingleMap a b c m =
+  (HasState "env" (Context.T a b c) m, HasState "new" (New Context.T) m)
+
 type WorkingMaps m =
   (TransitionMap m, Expression EnvDispatch m)
 
@@ -64,6 +67,22 @@ type Expression tag m =
 -- | the traditional transition between one context and another
 data EnvDispatch = EnvDispatch deriving (Show)
 
+-- | Used when going trying to transition one definition to the next level
+data SingleDispatch a b c = SingleDispatch
+
+-- | @SingleEnv@ is used when we are trying to convert one function to the next step
+data SingleEnv term1 ty1 sumRep1
+  = Single
+      { env :: Context.T term1 ty1 sumRep1,
+        temp :: New Context.T,
+        disp :: SingleDispatch term1 ty1 sumRep1,
+        modM :: ModuleMap,
+        openM :: OpenMap
+      }
+  deriving (Generic)
+
+-- | @Environment@ is the environment used when going from one entire
+-- phase to another
 data Environment
   = Env
       { old :: Old Context.T,
@@ -125,6 +144,44 @@ newtype Context a = Ctx {antiAlias :: ContextAlias a}
     )
     via ReaderField "openMap" ContextAlias
 
+type SingleAlias term1 ty1 sumRep1 =
+  ExceptT Error (State (SingleEnv term1 ty1 sumRep1))
+
+newtype SingleCont term1 ty1 sumRep1 a
+  = SCtx {aSingle :: SingleAlias term1 ty1 sumRep1 a}
+  deriving (Functor, Applicative, Monad)
+  deriving
+    ( HasState "new" (New Context.T),
+      HasSink "new" (New Context.T),
+      HasSource "new" (New Context.T)
+    )
+    via Rename "temp" (StateField "temp" (SingleAlias term1 ty1 sumRep1))
+  deriving
+    ( HasState "env" (Context.T term1 ty1 sumRep1),
+      HasSink "env" (Context.T term1 ty1 sumRep1),
+      HasSource "env" (Context.T term1 ty1 sumRep1)
+    )
+    via (StateField "env" (SingleAlias term1 ty1 sumRep1))
+  deriving
+    ( HasReader "dispatch" (SingleDispatch term1 ty1 sumRep1),
+      HasSource "dispatch" (SingleDispatch term1 ty1 sumRep1)
+    )
+    via Rename "disp" (ReaderField "disp" (SingleAlias term1 ty1 sumRep1))
+  deriving
+    (HasThrow "error" Error)
+    via MonadError (SingleAlias term1 ty1 sumRep1)
+  deriving
+    ( HasReader "openMap" OpenMap,
+      HasSource "openMap" OpenMap
+    )
+    via Rename "openM" (ReaderField "openM" (SingleAlias term1 ty1 sumRep1))
+  deriving
+    ( HasState "modMap" ModuleMap,
+      HasSink "modMap" ModuleMap,
+      HasSource "modMap" ModuleMap
+    )
+    via Rename "modM" (StateField "modM" (SingleAlias term1 ty1 sumRep1))
+
 --------------------------------------------------------------------------------
 -- Generic Interface Definitions for Environment lookup
 --------------------------------------------------------------------------------
@@ -141,50 +198,55 @@ class Names a where
   currentNameSpace' :: NameConstraint a m => a -> m NameSymbol.T
   inCurrentModule' :: NameConstraint a m => NameSymbol.T -> a -> m Bool
 
+instance Switch (SingleDispatch a b c) where
+  type SwitchConstraint _ m = (SingleMap a b c m, HasThrow "error" Error m)
+  switch sym SingleDispatch = do
+    tmp <- get @"new"
+    env <- get @"env"
+    switchContextErr sym tmp >>= put @"new"
+    switchContextErr sym env >>= put @"env"
+
 instance Switch EnvDispatch where
   type SwitchConstraint _ m = (TransitionMap m, HasThrow "error" Error m)
   switch sym EnvDispatch = do
+    -- no modifyM to remove this pattern
     old <- get @"old"
     new <- get @"new"
-    case Context.switchNameSpace sym old of
-      -- bad Error for now
-      Left ____ -> throw @"error" (UnknownModule sym)
-      Right map -> put @"old" map
-    -- have to do this again sadly
-    case Context.switchNameSpace sym new of
-      Left ____ -> throw @"error" (UnknownModule sym)
-      Right map -> put @"new" map
+    switchContextErr sym old >>= put @"old"
+    switchContextErr sym new >>= put @"new"
+
+instance Names (SingleDispatch a b c) where
+  type NameConstraint _ m = SingleMap a b c m
+
+  -- arbitrary choice between new and env
+  currentNameSpace' SingleDispatch =
+    get @"env" >>| Context.currentName
+
+  contextNames name SingleDispatch = do
+    env <- get @"env"
+    new <- get @"new"
+    pure $ combineLists (grabList name env) (grabList name new)
+
+  inCurrentModule' name SingleDispatch = do
+    env <- get @"env"
+    new <- get @"new"
+    pure (inMap name env || inMap name new)
 
 instance Names EnvDispatch where
   type NameConstraint _ m = TransitionMap m
   contextNames name EnvDispatch = do
     old <- get @"old"
     new <- get @"new"
-    let grabList ::
-          Context.T a b c ->
-          NameSpace.List (Context.Definition a b c)
-        grabList ctx =
-          case Context.extractValue <$> Context.lookup name ctx of
-            Just (Context.Record nameSpace _) ->
-              NameSpace.toList nameSpace
-            Just _ ->
-              NameSpace.List [] []
-            Nothing ->
-              NameSpace.List [] []
-        NameSpace.List {publicL = pubN} =
-          grabList new
-        NameSpace.List {publicL = pubO} =
-          grabList old
-     in pure (fmap fst pubN <> fmap fst pubO)
+    pure $ combineLists (grabList name new) (grabList name old)
 
-  currentNameSpace' EnvDispatch = do
-    new <- get @"new"
-    pure (Context.currentName new)
+  -- arbitrary choice between new and old
+  currentNameSpace' EnvDispatch =
+    get @"new" >>| Context.currentName
 
   inCurrentModule' name EnvDispatch = do
     old <- get @"old"
     new <- get @"new"
-    pure (isJust (Context.lookup name old) || isJust (Context.lookup name new))
+    pure (inMap name old || inMap name new)
 
 switchNameSpace :: ModuleSwitch tag m => NameSymbol.T -> m ()
 switchNameSpace name = Juvix.Library.ask @"dispatch" >>= switch name
@@ -197,6 +259,38 @@ currentNameSpace = Juvix.Library.ask @"dispatch" >>= currentNameSpace'
 
 inCurrentModule :: ModuleNames tag m => NameSymbol.T -> m Bool
 inCurrentModule name = Juvix.Library.ask @"dispatch" >>= inCurrentModule' name
+
+----------------------------------------
+-- Helper functions for the instances
+----------------------------------------
+
+switchContextErr ::
+  HasThrow "error" Error m =>
+  NameSymbol.T ->
+  Context.T term ty sumRep ->
+  m (Context.T term ty sumRep)
+switchContextErr sym ctx =
+  case Context.switchNameSpace sym ctx of
+    -- bad Error for now
+    Left ____ -> throw @"error" (UnknownModule sym)
+    Right map -> pure map
+
+grabList :: NameSymbol.T -> Context.T a b c -> NameSpace.List (Context.Definition a b c)
+grabList name ctx =
+  case Context.extractValue <$> Context.lookup name ctx of
+    Just (Context.Record nameSpace _) ->
+      NameSpace.toList nameSpace
+    Just _ ->
+      NameSpace.List [] []
+    Nothing ->
+      NameSpace.List [] []
+
+combineLists :: NameSpace.List b1 -> NameSpace.List b2 -> [Symbol]
+combineLists NameSpace.List {publicL = pub1} NameSpace.List {publicL = pub2} =
+  fmap fst pub1 <> fmap fst pub2
+
+inMap :: NameSymbol.T -> Context.T term ty sumRep -> Bool
+inMap name ctx = isJust (Context.lookup name ctx)
 
 type FinalContext = New Context.T
 
