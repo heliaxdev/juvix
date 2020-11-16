@@ -1,46 +1,94 @@
-module Juvix.Library.NameSymbol where
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 
-import qualified Data.List.NonEmpty as NonEmpty
-import qualified Data.Text as Text
+
+module Juvix.Librbary.NameSymbol where
+
 import Juvix.Library
-import qualified Prelude (foldr1)
+import qualified Juvix.Library.NameSymbol.NonEmpty as NonEmpty
+import Control.Lens hiding ((|>), cons)
 
-type T = NonEmpty Symbol
+-- | T is the base class that talks about normal symbol operations
+class (Eq t, Show t) => T t where
+  toSymbol :: t -> Symbol
+  fromSymbol :: Symbol -> t
+  prefixOf :: t -> t -> Bool
+  takePrefixOf :: t -> t -> Maybe t
+  cons :: Symbol -> t -> t
+  hd :: t -> Symbol
 
-toSymbol :: T -> Symbol
-toSymbol =
-  Prelude.foldr1 (\x acc -> x <> "." <> acc)
+-- | The default NameSymbol implementation
+instance T NonEmpty.T where
+  toSymbol = NonEmpty.toSymbol
+  fromSymbol = NonEmpty.fromSymbol
+  prefixOf = NonEmpty.prefixOf
+  takePrefixOf = NonEmpty.takePrefixOf
+  cons = NonEmpty.cons
+  hd = NonEmpty.hd
 
-fromSymbol :: Symbol -> T
-fromSymbol =
-  NonEmpty.fromList . fmap internText . Text.splitOn "." . textify
+type NonEmpty = NonEmpty.T
 
-prefixOf :: T -> T -> Bool
-prefixOf smaller larger =
-  case takePrefixOfInternal smaller larger of
-    Just _ -> True
-    Nothing -> False
+class T (Ext original new) => Extended original new where
+  type Ext original new = res | res -> original new -- ?
 
-takePrefixOf :: T -> T -> Maybe T
-takePrefixOf smaller larger =
-  case takePrefixOfInternal smaller larger of
-    Just [] -> Nothing
-    Nothing -> Nothing
-    Just (x : xs) -> Just (x :| xs)
+  fromNameSymbol :: original -> new -> Ext original new
+  originalName :: Ext original new -> original
+  newName :: Ext original new -> new
+  setNewName :: new -> Ext original new -> Ext original new
 
-takePrefixOfInternal :: T -> T -> Maybe [Symbol]
-takePrefixOfInternal (s :| smaller) (b :| bigger)
-  | b == s = recurse smaller bigger
-  | otherwise = Nothing
-  where
-    recurse [] ys = Just ys
-    recurse _ [] = Nothing
-    recurse (x : xs) (y : ys)
-      | x == y = recurse xs ys
-      | otherwise = Nothing
+class T a => Extra a where
+  boundGlobal :: a -> Maybe Symbol
 
-cons :: Symbol -> T -> T
-cons = NonEmpty.cons
+type Qualified original new =
+  (T original,
+   Extra new,
+   Extended original new,
+   Ext original new ~ (original, new))
 
-hd :: T -> Symbol
-hd = NonEmpty.head
+
+data Ex t a =
+  Ex { extendedOriginalName :: t
+      , extendedNewName :: a
+      } deriving Show
+
+-- data Qualified =
+--   Qual { qualifiedOriginalName :: NonEmpty.T
+--        , qualifiedNewName :: NonEmpty.T
+--        } deriving Show
+
+-- makeLensesWith camelCaseFields ''Qualified
+-- makeLensesWith camelCaseFields ''Extended
+
+-- setNewName :: HasNewName b a => b -> a -> b
+-- setNewName ext val = ext |> set newName val
+
+-- qualifyName :: (HasNewName b a, T a) => b -> a -> b
+-- qualifyName = setNewName
+
+-- instance Eq a => Eq (Extended t a) where
+--   n1 == n2 = view newName n1 == view newName n2
+
+-- instance Eq Qualified where
+--   n1 == n2 = view newName n1 == view newName n2
+
+-- instance T Qualified where
+--   toSymbol x = toSymbol (x^.newName)
+--   fromSymbol x = Qual (fromSymbol x) (fromSymbol x)
+--   prefixOf x1 x2 = prefixOf (x1^.newName) (x2^.newName)
+--   -- x2 is the bigger symbol thus the one you're really looking at
+--   takePrefixOf x1 x2 = setNewName x2 <$> takePrefixOf (x1^.newName) (x2^.newName)
+--   cons s = over newName (cons s)
+--   hd x1 = hd (x1^.newName)
+
+-- -- | Extended behavior to talk about
+-- class (Eq t, Show t) => Extended t where
+--   -- | @originalName@ for when we've erased the original
+--   -- name and now we want it back
+--   originalName :: T t1 => t -> t1
+--   -- | @newName@ for when we want to set the new name
+--   newName :: (Eq t1, Show t1) => t -> t1 -> t
