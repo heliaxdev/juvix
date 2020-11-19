@@ -1,0 +1,50 @@
+* Subtyping
+** An argument about the extent of subtyping
+
+Consider the following examples
+
+$f0 : λX_{:> {x : int}} → x1 → x2 → x1$
+#+begin_export latex
+f0 : λX_{:> {x : int}} → x1 → x2 → x1
+#+end_export
+
+#+begin_src ocaml
+  f0 : λX:>{x : int} -> x1 -> x2 -> x1
+  f0 rec1 rec2 = rec1 { x = rec1.x + rec2.x}
+
+
+  f1 : λX:>{x : int} -> X -> X -> X
+  f1 rec1 rec2 = rec1 {x = rec1.x + rec2.x}
+
+
+  -- bad case
+  f2 : λX:>{x : int} -> X -> X -> X
+  f2 rec1 rec2 = {x = rec1.x + rec2.x}
+  f2 {x = 3} ({x = 4} {x == 4})
+
+
+  sig set : int ->  {x : t,  t : type, add}
+  set v = {t = int,  x = v, add = (+)}
+
+  sig bag : int -> {x : t, t : type}
+  bag v = {t = int,  x = v, add = (+)}
+
+  f1 (set 3) (bag 4)
+
+  foo a b c =
+    let ab = a
+    ...
+
+   foo1 a b c =
+     let ab = new bag
+
+
+  f3 : λX:>{x : int} -> X -> -> X
+  f3 rec1 = rec1 {x = rec1.x + rec1.x}
+
+
+  f3 {x = 3; y = 4}
+
+  f1 {x = 5; y = 3} {x = 1}
+#+end_src
+
