@@ -69,10 +69,10 @@ proposing to do.
   f3 rec1 = rec1 {x = rec1.x + rec1.x}
 #+end_src
 
-- NOTE :: f_0 uses a short hand notation. x1 and x2 are sub types of
+- NOTE :: f_{0} uses a short hand notation. x1 and x2 are sub types of
   {x : int}.
 
-The main functions we wish to discuss are f_0, f_1, and f_2. In an object
+The main functions we wish to discuss are f_{0}, f_{1}, and f_{2}. In an object
 oriented system all three of these are permissible. This is due to in
 a sub typing relation these are all fine, we just end up with some
 subtype of {x : int}.
@@ -80,19 +80,19 @@ subtype of {x : int}.
 However this is a major issue, see [[http://okmij.org/ftp/Computation/Subtyping/][Subtyping, Subclassing, and Trouble
 with OOP]], written by Oleg for how insidious this can make errors.
 
-Thus on <2020-11-19 Thu> we have decided that f_2 signature is invalid
+Thus on <2020-11-19 Thu> we have decided that f_{2} signature is invalid
 as we don't just have a subtype of ={x : int}=, but in fact our return
 type is ={x : int}=. Thus we don't have the issue of the function
 =foo= in the article above.
 
-However what was more contentious was what to do with f_1 vs f_0. Should
+However what was more contentious was what to do with f_{1} vs f_{0}. Should
 we allow
 
 #+begin_src ocaml
   f1 {x = 5; y = 3} {x = 1}
 #+end_src
 
-if f_1 were f_0 then obviously yes, as we know we get two /seperate/
+if f_{1} were f_{0} then obviously yes, as we know we get two /seperate/
 subtypes and return the first.
 
 An argument for allowing this stems on the answer of
@@ -103,7 +103,7 @@ doing subtyping.
 
 Another argument is around the flexibility of functors if we disallow
 the above example. However this argument was also flawed in that we
-still have a subtyping relation so f_3 in our code block can be called
+still have a subtyping relation so f_{3} in our code block can be called
 like
 #+begin_src ocaml
   f3 {x = 3; y = 4}
@@ -117,12 +117,12 @@ other. This explicit system still allows the mixup of =bag= and =set=
 in Oleg's article, however it must be done so explicitly and full
 intention, with the most serious error still being impossible!
 
-Finally the last claim for f_1's legitimacy rests on  flexibility of a
-library user and the incorrect choices of the author. f_1 should really
+Finally the last claim for f_{1}'s legitimacy rests on  flexibility of a
+library user and the incorrect choices of the author. f_{1} should really
 allow different subtypes, it just needs to specify it so! For this we
 can gain back our expressiveness by adding an =coerce= function which
 forgets fields to make the two records the same, and thus legitimate
-in f_1
+in f_{1}
 #+begin_src ocaml
   f1 {x = 5; y = 3} (coerce {x = 1})
 
