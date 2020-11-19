@@ -1,14 +1,34 @@
 * Subtyping
 ** An argument about the extent of subtyping
 
-f0 : λX_{:> {x : int}} → x1 → x2 → x1
+Subtyping is an important part of any module or Object system. The
+rules these systems usually care about revolve around the subtype of
+=Records= and =Records= in relation to functions.
 
-- test
-#+begin_export latex
-f0 : λX_{:> {x : int}} → x1 → x2 → x1
-#+end_export
+*** About Subtyping Rules on Records
+An example of a record subtyping is as follows, we will use =a :> b= to
+mean that =a= is a subtype of =b=
 
-- test 2
+ 1. ∀x, a \dots v : Type. {x : Type, a : Type \dots v : Type} :> {a \dots v : Type}
+ 2. ∀x, a \dots v : Type. ∀ f : {a : Type \dots v : Type} → Type
+    f :> f : {x : Type, a : Type \dots v : Type} → Type
+
+What 1 tells us is that we can /forget/ a field, and thus a record
+with more fields is a sub type of the same record with less fields
+
+What 2 tells us is that a function which accepts a record with fields
+=a= through =v= can also accept a record with those fields /and/ extra
+fields. The intuition is that in functions the sub typing relation is
+reversed, but we still need to forget information to get our
+relationship.
+
+
+*** Implications of Rules and Arguments about Behavior
+
+These implications can be quite worrying, consider the longer form
+example below. We will introduce all the forms first then make an
+argument about what various object systems have done and what we are
+proposing to do.
 
 #+begin_src ocaml
   f0 : λX:>{x : int} -> x1 -> x2 -> x1
@@ -19,17 +39,21 @@ f0 : λX_{:> {x : int}} → x1 → x2 → x1
   f1 rec1 rec2 = rec1 {x = rec1.x + rec2.x}
 
 
-  -- bad case
   f2 : λX:>{x : int} -> X -> X -> X
   f2 rec1 rec2 = {x = rec1.x + rec2.x}
-  f2 {x = 3} ({x = 4} {x == 4})
 
 
-  sig set : int ->  {x : t,  t : type, add}
-  set v = {t = int,  x = v, add = (+)}
+  -- note that the t is opaque
+  sig set : int -> mod {x : t,  type t, add : t -> t -> t}
+  mod set x =
+    type t = int
+    add = (+)
+    x
+  end
 
-  sig bag : int -> {x : t, t : type}
-  bag v = {t = int,  x = v, add = (+)}
+  -- We include the set
+  sig set : int -> mod {x : t,  type t, add : t -> t -> t}
+  mod bag x = include (set x)
 
   f1 (set 3) (bag 4)
 
@@ -43,10 +67,80 @@ f0 : λX_{:> {x : int}} → x1 → x2 → x1
 
   f3 : λX:>{x : int} -> X -> -> X
   f3 rec1 = rec1 {x = rec1.x + rec1.x}
+#+end_src
 
+- NOTE :: f_0 uses a short hand notation. x1 and x2 are sub types of
+  {x : int}.
 
-  f3 {x = 3; y = 4}
+The main functions we wish to discuss are f_0, f_1, and f_2. In an object
+oriented system all three of these are permissible. This is due to in
+a sub typing relation these are all fine, we just end up with some
+subtype of {x : int}.
 
+However this is a major issue, see [[http://okmij.org/ftp/Computation/Subtyping/][Subtyping, Subclassing, and Trouble
+with OOP]], written by Oleg for how insidious this can make errors.
+
+Thus on <2020-11-19 Thu> we have decided that f_2 signature is invalid
+as we don't just have a subtype of ={x : int}=, but in fact our return
+type is ={x : int}=. Thus we don't have the issue of the function
+=foo= in the article above.
+
+However what was more contentious was what to do with f_1 vs f_0. Should
+we allow
+
+#+begin_src ocaml
   f1 {x = 5; y = 3} {x = 1}
 #+end_src
 
+if f_1 were f_0 then obviously yes, as we know we get two /seperate/
+subtypes and return the first.
+
+An argument for allowing this stems on the answer of
+/This is how subtyping relations work/. While a fair argument, we have
+concluded that either way is a valid way of working with sub typing,
+as we can merely check the two arguments are the same, then begin
+doing subtyping.
+
+Another argument is around the flexibility of functors if we disallow
+the above example. However this argument was also flawed in that we
+still have a subtyping relation so f_3 in our code block can be called
+like
+#+begin_src ocaml
+  f3 {x = 3; y = 4}
+#+end_src
+
+thus the argument on functors in a single argument can be
+disregarded. However, for multiple argument the legitimacy of the rest
+of the claim can be discredited by having a mechanism which allows the
+user to specify that the two arguments are really subtypes of each
+other. This explicit system still allows the mixup of =bag= and =set=
+in Oleg's article, however it must be done so explicitly and full
+intention, with the most serious error still being impossible!
+
+Finally the last claim for f_1's legitimacy rests on  flexibility of a
+library user and the incorrect choices of the author. f_1 should really
+allow different subtypes, it just needs to specify it so! For this we
+can gain back our expressiveness by adding an =coerce= function which
+forgets fields to make the two records the same, and thus legitimate
+in f_1
+#+begin_src ocaml
+  f1 {x = 5; y = 3} (coerce {x = 1})
+
+  -- or
+  f1 (coerce {x = 5; y = 3}) {x = 1}
+#+end_src
+
+*** Further Arguments/Unresolved Issues
+As of <2020-11-19 Thu> we still don't have a full answer for the
+following questions
+
+1) How do we handle usages
+   - We have already have some arguments about ω and 0 usage items and
+     how subtyping works there, however we still need to flesh out the
+     mechanism for other usages and how subtyping will work in
+     relation to usages inside records.
+2) How do we handle refinements
+   - What do we do with this information, forget it for the
+     application and allow implicit subtyping of refinements?
+     + Currently we plan on translating refinements to Σ's and thus
+       this will not be the default behavior.
