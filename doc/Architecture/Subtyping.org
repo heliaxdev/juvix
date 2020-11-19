@@ -83,7 +83,7 @@ with OOP]], written by Oleg for how insidious this can make errors.
 Thus on <2020-11-19 Thu> we have decided that f_{2} signature is invalid
 as we don't just have a subtype of ={x : int}=, but in fact our return
 type is ={x : int}=. Thus we don't have the issue of the function
-=foo= in the article above.
+=foo= in the article above, which we have labeled =foo= and =foo1=.
 
 However what was more contentious was what to do with f_{1} vs f_{0}. Should
 we allow
