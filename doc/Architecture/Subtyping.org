@@ -10,7 +10,7 @@ An example of a record subtyping is as follows, we will use =a :> b= to
 mean that =a= is a subtype of =b=
 
  1. ∀x, a \dots v : Type. {x : Type, a : Type \dots v : Type} :> {a \dots v : Type}
- 2. ∀x, a \dots v : Type. ∀ f : {a : Type \dots v : Type} → Type
+ 2. ∀x, a \dots v : Type. ∀ f : {a : Type \dots v : Type} → Type \\
     f :> f : {x : Type, a : Type \dots v : Type} → Type
 
 What 1 tells us is that we can /forget/ a field, and thus a record
