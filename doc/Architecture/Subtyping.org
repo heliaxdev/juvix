@@ -1,12 +1,14 @@
 * Subtyping
 ** An argument about the extent of subtyping
 
-Consider the following examples
+f0 : λX_{:> {x : int}} → x1 → x2 → x1
 
-$f0 : λX_{:> {x : int}} → x1 → x2 → x1$
+- test
 #+begin_export latex
 f0 : λX_{:> {x : int}} → x1 → x2 → x1
 #+end_export
+
+- test 2
 
 #+begin_src ocaml
   f0 : λX:>{x : int} -> x1 -> x2 -> x1
