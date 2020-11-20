@@ -55,8 +55,6 @@ proposing to do.
   sig bag : int -> {x : t,  type t, add : t -> t -> t}
   mod bag x = include (set x)
 
-  f1 (set 3) (bag 4)
-
   foo a b c =
     let ab = a in
     ...
@@ -87,8 +85,20 @@ type is ={x : int}=. Therefore, we don't have the issue of the function
 =foo= in the article above, which we will now quickly detail.
 
 In our code above, =foo= and =foo1= both return a derivative of the
-=ab= bag. 
+=ab= value. In an object oriented language the following type would be
+applicable to both
 
+#+begin_src ocaml
+  λX:>bag X -> X -> X
+#+end_src
+
+The issue is that if we send in a set instead, then =foo= gives us a
+set, while =foo1= would give us a bag. Thus in our type system
+=foo1='s signature would be
+
+#+begin_src ocaml
+  λX:>bag X -> X -> bag
+#+end_src
 
 However what was more contentious was what to do with f_{1} vs f_{0}. Should
 we allow
