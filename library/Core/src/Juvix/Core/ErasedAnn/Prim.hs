@@ -1,39 +1,41 @@
--- |
--- - This module represents the type which will be sent to the
---   parameterisation
--- - the =Take= type is what a parameterisation will take coming in
--- - the =Return= type is what will be handed back to Core to evaluate
---   and decide on the next steps. If this is a =Left= type checking
---   has failed, if it's a =Right= then type checking will continue
-module Juvix.Core.ErasedAnn.Prim where
+module Juvix.Core.ErasedAnn.Prim
+  ( module Juvix.Core.ErasedAnn.Prim,
 
+    -- * Constructors & fields for 'Return'
+    pattern App.Cont,
+    App.fun,
+    App.args,
+    App.numLeft,
+    pattern App.Return,
+    App.retType,
+    App.retTerm,
+
+    -- * Constructors & fields for 'Take'
+    pattern App.Take,
+    App.usage,
+    App.type',
+    App.term,
+  )
+where
+
+import qualified Juvix.Core.Application as App
 import qualified Juvix.Core.ErasedAnn.Types as Types
-import Juvix.Library hiding (Type)
+import qualified Juvix.Core.Parameterisation as P
+import Juvix.Library
 import qualified Juvix.Library.Usage as Usage
 
-data Return primTy primVal
-  = -- arguments left
-    Cont
-      { fun :: Take primTy primVal,
-        args :: [Take primTy primVal],
-        numLeft :: Natural
-      }
-  | Return primVal
-  deriving (Show, Eq, Generic)
+type Return primTy primVal = App.Return (Types.Type primTy) primVal
 
-data Take primTy primVal
-  = Take
-      { usage :: Usage.T,
-        type' :: Types.Type primTy primVal,
-        term :: primVal
-      }
-  deriving (Show, Eq, Generic)
+type Take primTy primVal = App.Take (Types.Type primTy) primVal
 
 fromAnn :: Types.AnnTerm primTy primVal -> Maybe (Take primTy primVal)
-fromAnn (Types.Ann usage type' p) =
-  case p of
-    Types.Prim p -> Just (Take usage type' p)
-    _ -> Nothing
+fromAnn (Types.Ann usage type' (Types.Prim p)) = Just $ App.Take usage type' p
+fromAnn _ = Nothing
 
 toAnn :: Take primTy primVal -> Types.AnnTerm primTy primVal
-toAnn (Take usage type' term) = Types.Ann usage type' (Types.Prim term)
+toAnn (App.Take usage type' term) = Types.Ann usage type' $ Types.Prim term
+
+fromPrimType :: P.PrimType primTy -> Types.Type primTy
+fromPrimType (t :| []) = Types.PrimTy t
+fromPrimType (t :| (u : us)) =
+  Types.Pi Usage.Omega (Types.PrimTy t) (fromPrimType (u :| us))

@@ -19,22 +19,22 @@ exampleBracket =
   RBang
     0
     ( RLam
-        (intern "y")
+        "y"
         ( RBang
             0
             ( RLam
-                (intern "z")
+                "z"
                 ( RBang
                     1
                     ( RApp
                         ( RBang
                             0
                             ( RApp
-                                (RBang (- 1) (RVar (intern "y")))
-                                (RBang (- 1) (RVar (intern "y")))
+                                (RBang (- 1) (RVar "y"))
+                                (RBang (- 1) (RVar "y"))
                             )
                         )
-                        (RBang (- 1) (RVar (intern "z")))
+                        (RBang (- 1) (RVar "z"))
                     )
                 )
             )

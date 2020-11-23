@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Juvix.Core.Types
   ( module Juvix.Core.Types,
     module Juvix.Core.Parameterisation,
@@ -19,7 +21,15 @@ data PipelineError primTy primVal compErr
   | EACError (EAC.Errors primTy primVal)
   | ErasureError (Erasure.Error primTy primVal)
   | PrimError compErr
-  deriving (Show, Generic)
+  deriving (Generic)
+
+deriving instance
+  ( Show primTy,
+    Show primVal,
+    Show compErr,
+    Show (ApplyErrorExtra (TC.TypedPrim primTy primVal))
+  ) =>
+  Show (PipelineError primTy primVal compErr)
 
 data PipelineLog primTy primVal
   = LogHRtoIR (HR.Term primTy primVal) (IR.Term primTy primVal)

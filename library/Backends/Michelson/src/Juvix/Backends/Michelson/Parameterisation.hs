@@ -14,11 +14,11 @@ import qualified Juvix.Backends.Michelson.Compilation as Compilation
 import Juvix.Backends.Michelson.Compilation.Types
 import qualified Juvix.Backends.Michelson.Compilation.Types as CompTypes
 import qualified Juvix.Backends.Michelson.Contract as Contract ()
-import qualified Juvix.Backends.Michelson.DSL.Environment as DSL
 import qualified Juvix.Backends.Michelson.DSL.Instructions as Instructions
 import qualified Juvix.Backends.Michelson.DSL.InstructionsEff as Run
 import qualified Juvix.Backends.Michelson.DSL.Interpret as Interpreter
 import qualified Juvix.Core.ErasedAnn.Prim as Prim
+import qualified Juvix.Core.ErasedAnn.Types as ErasedAnn
 import qualified Juvix.Core.Parameterisation as P
 import qualified Juvix.Core.Types as Core
 import Juvix.Library hiding (many, try)
@@ -29,9 +29,9 @@ import qualified Michelson.Parser as M
 import qualified Michelson.Text as M
 import qualified Michelson.Untyped as M
 import qualified Michelson.Untyped.Type as Untyped
-import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec hiding ((<|>))
 import qualified Text.ParserCombinators.Parsec.Token as Token
-import Prelude (String)
+import Prelude (Show (..), String)
 
 -- TODO ∷ refactor this all to not be so bad
 -- DO EXTRA CHECKS
@@ -57,7 +57,7 @@ checkFirst2AndLast (x :| [y, last]) check
   | otherwise = False
 checkFirst2AndLast (_ :| _) _ = False
 
-hasType :: PrimVal -> P.PrimType PrimTy -> Bool
+hasType :: RawPrimVal -> P.PrimType PrimTy -> Bool
 hasType AddTimeStamp ty = check3Equal ty
 hasType AddI ty = check3Equal ty
 hasType AddN ty = check3Equal ty
@@ -89,74 +89,70 @@ hasType (Constant _v) ty
   | otherwise = False
 hasType x ty = ty == undefined
 
--- constructTerm ∷ PrimVal → PrimTy
--- constructTerm (PrimConst v) = (v, Usage.Omega, PrimTy (M.Type (constType v) ""))
+arityRaw :: RawPrimVal -> Natural
+arityRaw (Inst inst) = fromIntegral (Instructions.toNumArgs inst)
+arityRaw (Constant _) = 0
+arityRaw prim = Run.instructionOf prim |> Instructions.toNewPrimErr |> arityRaw
 
--- the arity elsewhere lacks this 'pred'?
--- Arity for constant is BAD, refactor to handle lambda
-arity :: PrimVal -> Int
-arity (Inst inst) = fromIntegral (Instructions.toNumArgs inst)
-arity (Constant _) = 1
-arity prim =
-  Run.instructionOf prim |> Instructions.toNewPrimErr |> arity
+data ApplyError
+  = PipelineError (Core.PipelineError PrimTy RawPrimVal CompilationError)
+  | ReturnTypeNotPrimitive (ErasedAnn.Type PrimTy)
 
-applyProper ::
-  Prim.Take PrimTy PrimVal ->
-  [Prim.Take PrimTy PrimVal] ->
-  Either
-    (Core.PipelineError PrimTy PrimVal CompilationError)
-    (Prim.Return PrimTy PrimVal)
+instance Show ApplyError where
+  show (PipelineError perr) = Prelude.show perr
+  show (ReturnTypeNotPrimitive ty) =
+    "not a primitive type:\n\t" <> Prelude.show ty
+
+instance Core.CanApply PrimVal where
+  type ApplyErrorExtra PrimVal = ApplyError
+
+  arity (Prim.Cont {numLeft}) = numLeft
+  arity (Prim.Return {retTerm}) = arityRaw retTerm
+
+  apply fun' args2'
+    | (fun, args1, ar) <- toTakes fun',
+      Just args2 <- traverse toTake1 args2' =
+      do
+        let argLen = lengthN args2'
+            argsAll = foldr NonEmpty.cons args2 args1
+        case argLen `compare` ar of
+          LT ->
+            Right $
+              Prim.Cont {fun, args = toList argsAll, numLeft = ar - argLen}
+          EQ -> applyProper fun argsAll
+          GT -> Left $ Core.ExtraArguments fun' args2'
+  apply fun args = Left $ Core.InvalidArguments fun args
+
+-- | NB. requires that the right number of args are passed
+applyProper :: Take -> NonEmpty Take -> Either (Core.ApplyError PrimVal) Return
 applyProper fun args =
-  case Prim.term fun of
-    Constant _i ->
-      case length args of
-        0 ->
-          Right (Prim.Return (Prim.term fun))
-        _x ->
-          Left (Core.PrimError AppliedConstantToArgument)
-    Inst instruction ->
-      let inst = Instructions.toNumArgs instruction
-       in case inst `compare` fromIntegral (length args) of
-            -- we should never take more arguments than primitve could handle
-            GT ->
-              Left (Core.PrimError TooManyArguments)
-            LT ->
-              inst - fromIntegral (length args)
-                |> Prim.Cont fun args
-                |> Right
-            -- we have exactly the right number of arguments, call the interpreter!
-            EQ ->
-              let newTerm =
-                    Run.applyPrimOnArgs (Prim.toAnn fun) (Prim.toAnn <$> args)
-                  -- TODO ∷ do something with the logs!?
-                  (compd, _log) = Compilation.compileExpr newTerm
-               in case compd >>= Interpreter.dummyInterpret of
-                    Right x ->
-                      Constant x
-                        |> Prim.Return
-                        |> Right
-                    -- TODO :: promote this error
-                    Left err -> Core.PrimError err |> Left
-    x ->
-      applyProper (fun {Prim.term = Run.newPrimToInstrErr x}) args
-
--- translate our code into a valid form
-
--- can't call it this way need to go through the top level :(
--- let (f, _) = Run.primToFargs fun undefined in
---   undefined (DSL.unFun f (undefined args))
-
--- TODO: Use interpreter for this, or just write it (simple enough).
--- Might need to add curried versions of built-in functions.
--- We should finish this, then we can use it in the tests.
-apply :: PrimVal -> PrimVal -> Maybe PrimVal
-apply t1 _t2 = Nothing
+  case compd >>= Interpreter.dummyInterpret of
+    Right x -> do
+      retType <- toPrimType $ ErasedAnn.type' newTerm
+      pure $ Prim.Return {retType, retTerm = Constant x}
+    Left err -> Left $ Core.Extra $ PipelineError $ Core.PrimError err
   where
-    primTy :| _ = undefined
-    runPrim =
-      DSL.execMichelson $
-        --Prim.primToInstr t1 (CoreErased.PrimTy primTy)
-        do undefined
+    fun' = takeToTerm fun
+    args' = takeToTerm <$> toList args
+    newTerm = Run.applyPrimOnArgs fun' args'
+    -- TODO ∷ do something with the logs!?
+    (compd, _log) = Compilation.compileExpr newTerm
+
+takeToTerm :: Take -> RawTerm
+takeToTerm (Prim.Take {usage, type', term}) =
+  Ann {usage, type' = Prim.fromPrimType type', term = ErasedAnn.Prim term}
+
+toPrimType ::
+  ErasedAnn.Type PrimTy ->
+  Either (Core.ApplyError PrimVal) (P.PrimType PrimTy)
+toPrimType ty = maybe err Right $ go ty
+  where
+    err = Left $ Core.Extra $ ReturnTypeNotPrimitive ty
+    go ty = goPi ty <|> (pure <$> goPrim ty)
+    goPi (ErasedAnn.Pi _ s t) = NonEmpty.cons <$> goPrim s <*> go t
+    goPi _ = Nothing
+    goPrim (ErasedAnn.PrimTy p) = Just p
+    goPrim _ = Nothing
 
 parseTy :: Token.GenTokenParser String () Identity -> Parser PrimTy
 parseTy lexer =
@@ -167,7 +163,7 @@ parseTy lexer =
     )
 
 -- TODO: parse all values.
-parseVal :: Token.GenTokenParser String () Identity -> Parser PrimVal
+parseVal :: Token.GenTokenParser String () Identity -> Parser RawPrimVal
 parseVal lexer =
   try
     ( do
@@ -189,7 +185,7 @@ reservedNames = []
 reservedOpNames :: [String]
 reservedOpNames = []
 
-integerToPrimVal :: Integer -> Maybe PrimVal
+integerToPrimVal :: Integer -> Maybe RawPrimVal
 integerToPrimVal x
   | x >= toInteger (minBound @Int),
     x <= toInteger (maxBound @Int) =
@@ -200,13 +196,17 @@ integerToPrimVal x
 checkStringType :: Text -> PrimTy -> Bool
 checkStringType val (PrimTy (M.Type ty _)) = case ty of
   M.TString -> Text.all M.isMChar val
+  -- TODO other cases?
   _ -> False
+checkStringType _ _ = False
 
 checkIntType :: Integer -> PrimTy -> Bool
 checkIntType val (PrimTy (M.Type ty _)) = case ty of
   M.TNat -> val >= 0 -- TODO max bound
   M.TInt -> True -- TODO bounds?
+    -- TODO other cases?
   _ -> False
+checkIntType _ _ = False
 
 primify :: Untyped.T -> PrimTy
 primify t = PrimTy (Untyped.Type t "")
@@ -230,7 +230,7 @@ builtinTypes =
     |> fmap (NameSymbol.fromSymbol Arr.*** primify)
     |> Map.fromList
 
-builtinValues :: P.Builtins PrimVal
+builtinValues :: P.Builtins RawPrimVal
 builtinValues =
   [ ("Michelson.add", AddI),
     ("Michelson.sub", SubI),
@@ -275,15 +275,12 @@ builtinValues =
     |> fmap (first NameSymbol.fromSymbol)
     |> Map.fromList
 
--- TODO: Figure out what the parser ought to do.
-michelson :: P.Parameterisation PrimTy PrimVal
+michelson :: P.Parameterisation PrimTy RawPrimVal
 michelson =
   P.Parameterisation
     { hasType,
       builtinTypes,
       builtinValues,
-      arity,
-      apply,
       parseTy,
       parseVal,
       reservedNames,

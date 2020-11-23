@@ -8,18 +8,31 @@ module Juvix.Core.IR.Types
     PatternVar,
     BoundVar,
     Universe,
-    Datatype' (..),
-    DataArg' (..),
-    DataCon' (..),
-    Function' (..),
+    DatatypeWith (..),
+    RawDatatype',
+    Datatype',
+    DataArgWith (..),
+    RawDataArg',
+    DataArg',
+    DataConWith (..),
+    RawDataCon',
+    DataCon',
+    FunctionWith (..),
+    RawFunction',
+    Function',
     FunClause' (..),
-    Global' (..),
+    GlobalWith (..),
+    RawGlobal',
+    Global',
+    GlobalsWith,
+    RawGlobals',
     Globals',
   )
 where
 
 import Juvix.Core.IR.Types.Base
 import Juvix.Library hiding (show)
+import qualified Juvix.Library.Usage as Usage
 
 data NoExt deriving (Data)
 
@@ -35,17 +48,31 @@ extendPattern "Pattern" [] [t|NoExt|] $ \_ _ -> defaultExtPattern
 
 type Datatype = Datatype' NoExt
 
+type RawDatatype = RawDatatype' NoExt
+
 type DataArg = DataArg' NoExt
+
+type RawDataArg = RawDataArg' NoExt
 
 type DataCon = DataCon' NoExt
 
+type RawDataCon = RawDataCon' NoExt
+
 type Function = Function' NoExt
+
+type RawFunction = RawFunction' NoExt
 
 type FunClause = FunClause' NoExt
 
+-- (no RawFunClause since a clause contains no types anyway)
+
 type Global = Global' NoExt
 
+type RawGlobal = RawGlobal' NoExt
+
 type Globals primTy primVal = Globals' NoExt primTy primVal
+
+type RawGlobals primTy primVal = RawGlobals' NoExt primTy primVal
 
 -- Quotation: takes a value back to a term
 quote0 :: Value primTy primVal -> Term primTy primVal
@@ -59,6 +86,8 @@ quote (VPi π s t) = Pi π (quote s) (quote t)
 quote (VLam s) = Lam (quote s)
 quote (VSig π s t) = Sig π (quote s) (quote t)
 quote (VPair s t) = Pair (quote s) (quote t)
+quote VUnitTy = UnitTy
+quote VUnit = Unit
 quote (VPrim pri) = Prim pri
 quote (VNeutral n) = Elim $ neutralQuote n
 
@@ -84,3 +113,8 @@ pattern VBound ::
   BoundVar ->
   Value' ext primTy primVal
 pattern VBound n = VNeutral' (NBound' n ()) ()
+
+usageToGlobal :: Usage.T -> Maybe GlobalUsage
+usageToGlobal Usage.Omega = Just GOmega
+usageToGlobal (Usage.SNat 0) = Just GZero
+usageToGlobal _ = Nothing

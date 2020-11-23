@@ -2,6 +2,8 @@
 
 module Juvix.Core.Parameterisations.Naturals where
 
+import qualified Juvix.Core.Application as App
+import qualified Juvix.Core.IR.Typechecker.Types as Typed
 import qualified Juvix.Core.Parameterisation as P
 import Juvix.Library hiding ((<|>), natVal)
 import Text.ParserCombinators.Parsec
@@ -40,17 +42,32 @@ typeOf Mul = Ty :| [Ty, Ty]
 hasType :: Val -> P.PrimType Ty -> Bool
 hasType x ty = ty == typeOf x
 
-arity :: Val -> Int
-arity = pred . length . typeOf
+instance P.CanApply Val where
+  arity = pred . fromIntegral . length . typeOf
+  apply f xs = app f $ toList xs
+    where
+      app Add (Val x : xs) = app (Curried Add x) xs
+      app Sub (Val x : xs) = app (Curried Sub x) xs
+      app Mul (Val x : xs) = app (Curried Mul x) xs
+      app (Curried Add x) (Val y : ys) = app (Val (x + y)) ys
+      app (Curried Sub x) (Val y : ys) = app (Val (x - y)) ys
+      app (Curried Mul x) (Val y : ys) = app (Val (x * y)) ys
+      app n [] = Right n
+      app f (x : xs) = Left $ P.ExtraArguments f (x :| xs)
 
-apply :: Val -> Val -> Maybe Val
-apply Add (Val x) = pure (Curried Add x)
-apply Sub (Val x) = pure (Curried Sub x)
-apply Mul (Val x) = pure (Curried Mul x)
-apply (Curried Add x) (Val y) = pure (Val (x + y))
-apply (Curried Sub x) (Val y) = pure (Val (x - y))
-apply (Curried Mul x) (Val y) = pure (Val (x * y))
-apply _ _ = Nothing
+instance P.CanApply (Typed.TypedPrim Ty Val) where
+  arity (App.Cont {numLeft}) = numLeft
+  arity (App.Return {retTerm}) = P.arity retTerm
+
+  -- partial application handled by Val so Cont should never appear
+  apply (App.Return {retTerm = f}) xs'
+    | Just xs <- traverse unReturn xs' =
+      P.mapApplyErr wrap $ P.apply f xs
+    where
+      unReturn (App.Return {retTerm}) = Just retTerm
+      unReturn _ = Nothing
+      wrap x = App.Return {retTerm = x, retType = typeOf x}
+  apply f' xs' = Left $ P.InvalidArguments f' xs'
 
 parseTy :: Token.GenTokenParser String () Identity -> Parser Ty
 parseTy lexer = do
@@ -97,8 +114,6 @@ t =
     { hasType,
       builtinTypes,
       builtinValues,
-      arity,
-      apply,
       parseTy,
       parseVal,
       reservedNames,

@@ -6,11 +6,12 @@ where
 import qualified Juvix.Core.Erased.Types as Erased
 import Juvix.Library hiding (Map, evaluate)
 import qualified Juvix.Library.HashMap as Map
+import qualified Juvix.Library.NameSymbol as NameSymbol
 
 evaluate ::
   forall primVal m.
   ( HasReader "apply" (primVal -> primVal -> Maybe primVal) m,
-    HasReader "env" (Map.T Symbol (Erased.Term primVal)) m,
+    HasReader "env" (Map.T NameSymbol.T (Erased.Term primVal)) m,
     HasThrow "evaluationError" (Erased.EvaluationError primVal) m
   ) =>
   Erased.Term primVal ->
@@ -25,6 +26,7 @@ evaluate term =
     Erased.Prim p -> pure (Erased.Prim p)
     Erased.Lam s t -> Erased.Lam s |<< evaluate t
     Erased.Pair s t -> Erased.Pair <$> evaluate s <*> evaluate t
+    Erased.Unit -> pure Erased.Unit
     Erased.Let s b t -> do
       b <- evaluate b
       local @"env" (Map.insert s b) $ evaluate t

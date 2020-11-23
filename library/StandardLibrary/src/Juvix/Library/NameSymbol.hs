@@ -1,6 +1,11 @@
-module Juvix.Library.NameSymbol where
+module Juvix.Library.NameSymbol
+  ( module Juvix.Library.NameSymbol,
+    fromString,
+  )
+where
 
 import qualified Data.List.NonEmpty as NonEmpty
+import Data.String (IsString (..))
 import qualified Data.Text as Text
 import Juvix.Library
 import qualified Prelude (foldr1)
@@ -14,6 +19,12 @@ toSymbol =
 fromSymbol :: Symbol -> T
 fromSymbol =
   NonEmpty.fromList . fmap internText . Text.splitOn "." . textify
+
+fromText :: Text -> T
+fromText = fromSymbol . internText
+
+instance IsString T where
+  fromString = fromSymbol . intern
 
 prefixOf :: T -> T -> Bool
 prefixOf smaller larger =
@@ -44,3 +55,21 @@ cons = NonEmpty.cons
 
 hd :: T -> Symbol
 hd = NonEmpty.head
+
+qualify :: Foldable t => t Symbol -> T -> T
+qualify m n = foldr cons n m
+
+qualify1 :: Foldable t => t Symbol -> Symbol -> T
+qualify1 m b = qualify m (b :| [])
+
+split :: T -> ([Symbol], Symbol)
+split n = (NonEmpty.init n, NonEmpty.last n)
+
+modName :: T -> [Symbol]
+modName = fst . split
+
+baseName :: T -> Symbol
+baseName = snd . split
+
+applyBase :: (Symbol -> Symbol) -> T -> T
+applyBase f n = let (m, b) = split n in qualify1 m (f b)

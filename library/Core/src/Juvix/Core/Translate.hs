@@ -4,6 +4,7 @@ import qualified Juvix.Core.HR as HR
 import qualified Juvix.Core.IR as IR
 import Juvix.Core.Utility
 import Juvix.Library
+import qualified Juvix.Library.NameSymbol as NameSymbol
 
 -- contract: no shadowing
 -- TODO - handle this automatically by renaming shadowed vars
@@ -11,7 +12,7 @@ hrToIR :: HR.Term primTy primVal -> IR.Term primTy primVal
 hrToIR = fst . exec . hrToIR'
 
 hrToIR' ::
-  (HasState "symbolStack" [Symbol] m) =>
+  (HasState "symbolStack" [NameSymbol.T] m) =>
   HR.Term primTy primVal ->
   m (IR.Term primTy primVal)
 hrToIR' term =
@@ -32,6 +33,8 @@ hrToIR' term =
       pure (IR.Sig π a b)
     HR.Pair s t -> do
       HR.Pair <$> hrToIR' s <*> hrToIR' t
+    HR.UnitTy -> pure IR.UnitTy
+    HR.Unit -> pure IR.Unit
     HR.Let π n l b -> do
       l <- hrElimToIR' l
       b <- withName n $ hrToIR' b
@@ -39,7 +42,7 @@ hrToIR' term =
     HR.Elim e -> IR.Elim |<< hrElimToIR' e
 
 hrElimToIR' ::
-  (HasState "symbolStack" [Symbol] m) =>
+  (HasState "symbolStack" [NameSymbol.T] m) =>
   HR.Elim primTy primVal ->
   m (IR.Elim primTy primVal)
 hrElimToIR' elim =
@@ -88,6 +91,8 @@ irToHR' term =
       pure $ HR.Sig π n a b
     IR.Pair s t -> do
       HR.Pair <$> irToHR' s <*> irToHR' t
+    IR.UnitTy -> pure HR.UnitTy
+    IR.Unit -> pure HR.Unit
     IR.Let π l b -> do
       l <- irElimToHR' l
       n <- newName
@@ -103,9 +108,9 @@ irElimToHR' ::
   m (HR.Elim primTy primVal)
 irElimToHR' elim =
   case elim of
-    IR.Free n -> pure (HR.Var (intern (show n)))
+    IR.Free n -> pure $ HR.Var $ NameSymbol.fromString $ show n
     IR.Bound i -> do
-      v <- unDeBruijin (fromIntegral i)
+      v <- unDeBruijn (fromIntegral i)
       pure (HR.Var v)
     IR.App f x -> do
       f <- irElimToHR' f
@@ -123,7 +128,7 @@ data Env
   = Env
       { nextName :: Int,
         nameStack :: [Int],
-        symbolStack :: [Symbol]
+        symbolStack :: [NameSymbol.T]
       }
   deriving (Show, Eq, Generic)
 
@@ -142,8 +147,8 @@ newtype EnvElim a = EnvCon (State Env a)
     )
     via StateField "nameStack" (State Env)
   deriving
-    ( HasState "symbolStack" [Symbol],
-      HasSink "symbolStack" [Symbol],
-      HasSource "symbolStack" [Symbol]
+    ( HasState "symbolStack" [NameSymbol.T],
+      HasSink "symbolStack" [NameSymbol.T],
+      HasSource "symbolStack" [NameSymbol.T]
     )
     via StateField "symbolStack" (State Env)
