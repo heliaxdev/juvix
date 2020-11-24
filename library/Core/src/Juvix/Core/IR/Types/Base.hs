@@ -7,11 +7,12 @@ import Data.Kind (Constraint)
 import Extensible
 import Juvix.Library
 import Juvix.Library.HashMap
+import qualified Juvix.Library.NameSymbol as NameSymbol
 import Juvix.Library.Usage
 
 type Universe = Natural
 
-type GlobalName = Symbol
+type GlobalName = NameSymbol.T
 
 type PatternVar = Int
 
@@ -53,6 +54,10 @@ extensible
       | -- | Let binder.
         -- the local definition is bound to de Bruijn index 0.
         Let Usage (Elim primTy primVal) (Term primTy primVal)
+      | -- | Unit type.
+        UnitTy
+      | -- | Unit Value
+        Unit
       | -- | CONV conversion rule. TODO make sure 0Γ ⊢ S≡T
         -- Elim is the constructor that embeds Elim to Term
         Elim (Elim primTy primVal)
@@ -78,6 +83,8 @@ extensible
       | VLam (Value primTy primVal)
       | VSig Usage (Value primTy primVal) (Value primTy primVal)
       | VPair (Value primTy primVal) (Value primTy primVal)
+      | VUnitTy
+      | VUnit
       | VNeutral (Neutral primTy primVal)
       | VPrim primVal
       deriving (Eq, Show, Generic, Data, NFData)
@@ -94,6 +101,7 @@ extensible
     data Pattern primTy primVal
       = PCon GlobalName [Pattern primTy primVal]
       | PPair (Pattern primTy primVal) (Pattern primTy primVal)
+      | PUnit
       | PVar PatternVar
       | PDot (Term primTy primVal)
       | PPrim primVal
@@ -105,110 +113,133 @@ type GlobalAll (c :: * -> Constraint) ext primTy primVal =
     c primVal,
     TermAll c ext primTy primVal,
     ElimAll c ext primTy primVal,
-    ValueAll c ext primTy primVal,
-    NeutralAll c ext primTy primVal,
     PatternAll c ext primTy primVal
   )
 
-data Datatype' ext primTy primVal
+type GlobalAllWith (c :: * -> Constraint) ty ext primTy primVal =
+  ( c (ty ext primTy primVal),
+    c primTy,
+    c primVal,
+    TermAll c ext primTy primVal,
+    ElimAll c ext primTy primVal,
+    PatternAll c ext primTy primVal
+  )
+
+data DatatypeWith ty ext primTy primVal
   = Datatype
       { dataName :: GlobalName,
         -- | the type constructor's arguments
-        dataArgs :: [DataArg' ext primTy primVal],
+        dataArgs :: [DataArgWith ty ext primTy primVal],
         -- | the type constructor's target universe level
         dataLevel :: Natural,
-        dataCons :: [DataCon' ext primTy primVal]
+        dataCons :: [DataConWith ty ext primTy primVal]
       }
   deriving (Generic)
 
-deriving instance
-  GlobalAll Show ext primTy primVal =>
-  Show (Datatype' ext primTy primVal)
+type RawDatatype' = DatatypeWith Term'
+
+type Datatype' = DatatypeWith Value'
 
 deriving instance
-  GlobalAll Eq ext primTy primVal =>
-  Eq (Datatype' ext primTy primVal)
+  GlobalAllWith Show ty ext primTy primVal =>
+  Show (DatatypeWith ty ext primTy primVal)
 
 deriving instance
-  (Data ext, GlobalAll Data ext primTy primVal) =>
-  Data (Datatype' ext primTy primVal)
+  GlobalAllWith Eq ty ext primTy primVal =>
+  Eq (DatatypeWith ty ext primTy primVal)
 
 deriving instance
-  GlobalAll NFData ext primTy primVal =>
-  NFData (Datatype' ext primTy primVal)
+  (Typeable ty, Data ext, GlobalAllWith Data ty ext primTy primVal) =>
+  Data (DatatypeWith ty ext primTy primVal)
 
-data DataArg' ext primTy primVal
+deriving instance
+  GlobalAllWith NFData ty ext primTy primVal =>
+  NFData (DatatypeWith ty ext primTy primVal)
+
+data DataArgWith ty ext primTy primVal
   = DataArg
       { argName :: GlobalName,
         argUsage :: Usage,
-        argType :: Value' ext primTy primVal,
+        argType :: ty ext primTy primVal,
         argIsParam :: Bool
       }
   deriving (Generic)
 
-deriving instance
-  GlobalAll Show ext primTy primVal =>
-  Show (DataArg' ext primTy primVal)
+type RawDataArg' = DataArgWith Term'
+
+type DataArg' = DataArgWith Value'
 
 deriving instance
-  GlobalAll Eq ext primTy primVal =>
-  Eq (DataArg' ext primTy primVal)
+  GlobalAllWith Show ty ext primTy primVal =>
+  Show (DataArgWith ty ext primTy primVal)
 
 deriving instance
-  (Data ext, GlobalAll Data ext primTy primVal) =>
-  Data (DataArg' ext primTy primVal)
+  GlobalAllWith Eq ty ext primTy primVal =>
+  Eq (DataArgWith ty ext primTy primVal)
 
 deriving instance
-  GlobalAll NFData ext primTy primVal =>
-  NFData (DataArg' ext primTy primVal)
+  (Typeable ty, Data ext, GlobalAllWith Data ty ext primTy primVal) =>
+  Data (DataArgWith ty ext primTy primVal)
 
-data DataCon' ext primTy primVal
+deriving instance
+  GlobalAllWith NFData ty ext primTy primVal =>
+  NFData (DataArgWith ty ext primTy primVal)
+
+data DataConWith ty ext primTy primVal
   = DataCon
       { conName :: GlobalName,
-        conType :: Value' ext primTy primVal
+        conType :: ty ext primTy primVal
       }
   deriving (Generic)
 
-deriving instance
-  GlobalAll Show ext primTy primVal =>
-  Show (DataCon' ext primTy primVal)
+type RawDataCon' = DataConWith Term'
+
+type DataCon' = DataConWith Value'
 
 deriving instance
-  GlobalAll Eq ext primTy primVal =>
-  Eq (DataCon' ext primTy primVal)
+  GlobalAllWith Show ty ext primTy primVal =>
+  Show (DataConWith ty ext primTy primVal)
 
 deriving instance
-  (Data ext, GlobalAll Data ext primTy primVal) =>
-  Data (DataCon' ext primTy primVal)
+  GlobalAllWith Eq ty ext primTy primVal =>
+  Eq (DataConWith ty ext primTy primVal)
 
 deriving instance
-  GlobalAll NFData ext primTy primVal =>
-  NFData (DataCon' ext primTy primVal)
+  (Typeable ty, Data ext, GlobalAllWith Data ty ext primTy primVal) =>
+  Data (DataConWith ty ext primTy primVal)
 
-data Function' ext primTy primVal
+deriving instance
+  GlobalAllWith NFData ty ext primTy primVal =>
+  NFData (DataConWith ty ext primTy primVal)
+
+data FunctionWith ty ext primTy primVal
   = Function
       { funName :: GlobalName,
         funUsage :: GlobalUsage,
-        funType :: Value' ext primTy primVal,
+        funType :: ty ext primTy primVal,
         funClauses :: NonEmpty (FunClause' ext primTy primVal)
       }
   deriving (Generic)
 
-deriving instance
-  GlobalAll Show ext primTy primVal =>
-  Show (Function' ext primTy primVal)
+type RawFunction' = FunctionWith Term'
+
+type Function' = FunctionWith Value'
 
 deriving instance
-  GlobalAll Eq ext primTy primVal =>
-  Eq (Function' ext primTy primVal)
+  GlobalAllWith Show ty ext primTy primVal =>
+  Show (FunctionWith ty ext primTy primVal)
 
 deriving instance
-  (Data ext, GlobalAll Data ext primTy primVal) =>
-  Data (Function' ext primTy primVal)
+  GlobalAllWith Eq ty ext primTy primVal =>
+  Eq (FunctionWith ty ext primTy primVal)
 
 deriving instance
-  GlobalAll NFData ext primTy primVal =>
-  NFData (Function' ext primTy primVal)
+  (Typeable ty, Data ext, GlobalAllWith Data ty ext primTy primVal) =>
+  Data (FunctionWith ty ext primTy primVal)
+
+deriving instance
+  GlobalAllWith NFData ty ext primTy primVal =>
+  NFData (FunctionWith ty ext primTy primVal)
 
 data FunClause' ext primTy primVal
   = FunClause [Pattern' ext primTy primVal] (Term' ext primTy primVal)
@@ -223,35 +254,47 @@ deriving instance
   Eq (FunClause' ext primTy primVal)
 
 deriving instance
-  (Data ext, GlobalAll Data ext primTy primVal) =>
+  ( Data ext,
+    GlobalAll Data ext primTy primVal
+  ) =>
   Data (FunClause' ext primTy primVal)
 
 deriving instance
   GlobalAll NFData ext primTy primVal =>
   NFData (FunClause' ext primTy primVal)
 
-data Global' ext primTy primVal
-  = GDatatype (Datatype' ext primTy primVal)
-  | GDataCon (DataCon' ext primTy primVal)
-  | GFunction (Function' ext primTy primVal)
-  | GAbstract GlobalUsage (Value' ext primTy primVal)
+data GlobalWith ty ext primTy primVal
+  = GDatatype (DatatypeWith ty ext primTy primVal)
+  | GDataCon (DataConWith ty ext primTy primVal)
+  | GFunction (FunctionWith ty ext primTy primVal)
+  | GAbstract GlobalUsage (ty ext primTy primVal)
   deriving (Generic)
 
-deriving instance
-  GlobalAll Eq ext primTy primVal =>
-  Eq (Global' ext primTy primVal)
+type RawGlobal' = GlobalWith Term'
+
+type Global' = GlobalWith Value'
 
 deriving instance
-  GlobalAll Show ext primTy primVal =>
-  Show (Global' ext primTy primVal)
+  GlobalAllWith Show ty ext primTy primVal =>
+  Show (GlobalWith ty ext primTy primVal)
 
 deriving instance
-  (Data ext, GlobalAll Data ext primTy primVal) =>
-  Data (Global' ext primTy primVal)
+  GlobalAllWith Eq ty ext primTy primVal =>
+  Eq (GlobalWith ty ext primTy primVal)
 
 deriving instance
-  GlobalAll NFData ext primTy primVal =>
-  NFData (Global' ext primTy primVal)
+  (Typeable ty, Data ext, GlobalAllWith Data ty ext primTy primVal) =>
+  Data (GlobalWith ty ext primTy primVal)
+
+deriving instance
+  GlobalAllWith NFData ty ext primTy primVal =>
+  NFData (GlobalWith ty ext primTy primVal)
+
+type GlobalsWith ty ext primTy primVal =
+  HashMap GlobalName (GlobalWith ty ext primTy primVal)
+
+type RawGlobals' ext primTy primVal =
+  GlobalsWith Term' ext primTy primVal
 
 type Globals' ext primTy primVal =
-  HashMap GlobalName (Global' ext primTy primVal)
+  GlobalsWith Value' ext primTy primVal

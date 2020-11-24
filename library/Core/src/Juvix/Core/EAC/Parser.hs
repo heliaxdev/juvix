@@ -8,6 +8,7 @@ module Juvix.Core.EAC.Parser
   )
 where
 
+import qualified Data.List.NonEmpty as NonEmpty
 import Juvix.Core.EAC.Types hiding (PType, RPT, RPTI, RPTO)
 import qualified Juvix.Core.EAC.Types as EAC
 import qualified Juvix.Core.Parameterisations.Unit as Unit
@@ -20,6 +21,7 @@ import Juvix.Library hiding
     reduce,
     try,
   )
+import qualified Juvix.Library.NameSymbol as NameSymbol
 import Text.Parsec
 import Text.Parsec.Expr as E
 import Text.Parsec.String
@@ -33,8 +35,8 @@ type RPTO = EAC.RPTO Unit.Val
 
 type RPTI = EAC.RPTI Unit.Val
 
-langaugeDef :: Stream s m Char => GenLanguageDef s u m
-langaugeDef =
+languageDef :: Stream s m Char => GenLanguageDef s u m
+languageDef =
   LanguageDef
     { T.reservedNames = ["lambda"],
       T.reservedOpNames =
@@ -60,16 +62,21 @@ langaugeDef =
       nestedComments = True,
       identStart = letter <|> char '_',
       identLetter = alphaNum <|> oneOf "_'",
-      opStart = opLetter langaugeDef,
+      opStart = opLetter languageDef,
       opLetter = oneOf ":#$%&*+./<=>?@\\^|-~",
       commentLine = ""
     }
 
 lexer :: Stream s m Char => T.GenTokenParser s u m
-lexer = T.makeTokenParser langaugeDef
+lexer = T.makeTokenParser languageDef
 
 identifier :: Stream s m Char => ParsecT s u m String
 identifier = T.identifier lexer
+
+qualIdentifier :: Stream s m Char => ParsecT s u m (NonEmpty String)
+qualIdentifier =
+  -- TODO maybe a different separator so that "λ x.x" looks less misleading?
+  NonEmpty.fromList <$> identifier `sepBy1` reservedOp "."
 
 reserved :: Stream s m Char => String -> ParsecT s u m ()
 reserved = T.reserved lexer
@@ -133,8 +140,11 @@ types = buildExpressionParser optable types'
 types' :: Parser PType
 types' = bangs <|> specific
 
-symbol :: Stream s m Char => ParsecT s u m Symbol
-symbol = intern <$> identifier
+symbol :: Stream s m Char => ParsecT s u m NameSymbol.T
+symbol = pure . intern <$> identifier
+
+qualSymbol :: Stream s m Char => ParsecT s u m NameSymbol.T
+qualSymbol = map intern <$> qualIdentifier
 
 lambda :: Parser RPTI
 lambda = do
@@ -153,7 +163,7 @@ application = do
     x : xs -> pure $ foldl (\acc x -> RApp (RBang 0 acc) x) (RApp exp x) xs
 
 term :: Parser RPTI
-term = RVar <$> symbol
+term = RVar <$> qualSymbol
 
 bangs :: Parser PType
 bangs = do

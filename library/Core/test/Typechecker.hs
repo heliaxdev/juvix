@@ -2,6 +2,7 @@
 module Typechecker where
 
 import qualified Juvix.Core.IR as IR
+import qualified Juvix.Core.IR.Evaluator as Eval
 import qualified Juvix.Core.IR.Typechecker as TC
 import qualified Juvix.Core.Parameterisations.All as All
 import qualified Juvix.Core.Parameterisations.Naturals as Nat
@@ -19,7 +20,9 @@ type NatElim = IR.Elim Nat.Ty Nat.Val
 
 type NatValue = IR.Value Nat.Ty Nat.Val
 
-type NatAnnotation = IR.Annotation Nat.Ty Nat.Val
+type NatValueT = IR.ValueT Nat.Ty Nat.Val
+
+type NatAnnotation = IR.AnnotationT Nat.Ty Nat.Val
 
 type UnitTerm = IR.Term Unit.Ty Unit.Val
 
@@ -27,7 +30,9 @@ type UnitElim = IR.Elim Unit.Ty Unit.Val
 
 type UnitValue = IR.Value Unit.Ty Unit.Val
 
-type UnitAnnotation = IR.Annotation Unit.Ty Unit.Val
+type UnitValueT = IR.ValueT Unit.Ty Unit.Val
+
+type UnitAnnotation = IR.AnnotationT Unit.Ty Unit.Val
 
 type AllTerm = IR.Term All.Ty All.Val
 
@@ -35,7 +40,9 @@ type AllElim = IR.Elim All.Ty All.Val
 
 type AllValue = IR.Value All.Ty All.Val
 
-type AllAnnotation = IR.Annotation All.Ty All.Val
+type AllValueT = IR.ValueT All.Ty All.Val
+
+type AllAnnotation = IR.AnnotationT All.Ty All.Val
 
 assertIsRight :: (HasCallStack, Show a) => Either a b -> T.Assertion
 assertIsRight (Right _) = pure ()
@@ -48,13 +55,20 @@ assertIsRight (Left l) =
 
 -- unit test generator for typeTerm
 shouldCheckWith ::
-  forall primTy primVal.
-  (HasCallStack, Show primTy, Show primVal, Eq primTy, Eq primVal) =>
+  ( HasCallStack,
+    Show primTy,
+    Show primVal,
+    Eq primTy,
+    Eq primVal,
+    CanApply (TypedPrim primTy primVal),
+    Eq (ApplyErrorExtra (TypedPrim primTy primVal)),
+    Show (ApplyErrorExtra (TypedPrim primTy primVal))
+  ) =>
   Parameterisation primTy primVal ->
-  IR.Globals primTy primVal ->
+  IR.GlobalsT primTy primVal ->
   IR.Context primTy primVal ->
   IR.Term primTy primVal ->
-  IR.Annotation primTy primVal ->
+  IR.AnnotationT primTy primVal ->
   T.TestTree
 shouldCheckWith param globals ctx term ann =
   -- TODO: take out the logs and put them in an IO monad.
@@ -67,23 +81,37 @@ shouldCheckWith param globals ctx term ann =
         $ assertIsRight res
 
 shouldCheck ::
-  forall primTy primVal.
-  (HasCallStack, Show primTy, Show primVal, Eq primTy, Eq primVal) =>
+  ( HasCallStack,
+    Show primTy,
+    Show primVal,
+    Eq primTy,
+    Eq primVal,
+    CanApply (TypedPrim primTy primVal),
+    Eq (ApplyErrorExtra (TypedPrim primTy primVal)),
+    Show (ApplyErrorExtra (TypedPrim primTy primVal))
+  ) =>
   Parameterisation primTy primVal ->
   IR.Term primTy primVal ->
-  IR.Annotation primTy primVal ->
+  IR.AnnotationT primTy primVal ->
   T.TestTree
 shouldCheck param = shouldCheckWith param mempty []
 
 -- unit test generator for typeElim
 shouldInferWith ::
-  forall primTy primVal.
-  (HasCallStack, Show primTy, Show primVal, Eq primTy, Eq primVal) =>
+  ( HasCallStack,
+    Show primTy,
+    Show primVal,
+    Eq primTy,
+    Eq primVal,
+    CanApply (TypedPrim primTy primVal),
+    Eq (ApplyErrorExtra (TypedPrim primTy primVal)),
+    Show (ApplyErrorExtra (TypedPrim primTy primVal))
+  ) =>
   Parameterisation primTy primVal ->
-  IR.Globals primTy primVal ->
+  IR.GlobalsT primTy primVal ->
   IR.Context primTy primVal ->
   IR.Elim primTy primVal ->
-  IR.Annotation primTy primVal ->
+  IR.AnnotationT primTy primVal ->
   T.TestTree
 shouldInferWith param globals ctx elim ann@(IR.Annotation {annUsage = σ}) =
   let (res, _) = TC.exec globals $ TC.typeElimWith param mempty ctx elim σ
@@ -92,35 +120,38 @@ shouldInferWith param globals ctx elim ann@(IR.Annotation {annUsage = σ}) =
         resTy T.@?= Right ann
 
 shouldInfer ::
-  forall primTy primVal.
-  (HasCallStack, Show primTy, Show primVal, Eq primTy, Eq primVal) =>
+  ( HasCallStack,
+    Show primTy,
+    Show primVal,
+    Eq primTy,
+    Eq primVal,
+    CanApply (TypedPrim primTy primVal),
+    Eq (ApplyErrorExtra (TypedPrim primTy primVal)),
+    Show (ApplyErrorExtra (TypedPrim primTy primVal))
+  ) =>
   Parameterisation primTy primVal ->
   IR.Elim primTy primVal ->
-  IR.Annotation primTy primVal ->
+  IR.AnnotationT primTy primVal ->
   T.TestTree
 shouldInfer param = shouldInferWith param mempty []
 
 -- unit test generator for evalTerm
-shouldEvalWith ::
-  forall primTy primVal.
-  (HasCallStack, Show primTy, Show primVal, Eq primTy, Eq primVal) =>
-  Parameterisation primTy primVal ->
-  IR.Globals primTy primVal ->
-  IR.Term primTy primVal ->
-  IR.Value primTy primVal ->
-  T.TestTree
-shouldEvalWith param globals term res =
-  T.testCase (show term <> " should evaluate to " <> show res) $
-    fst (TC.exec globals (IR.evalTerm param term)) T.@=? Right res
-
 shouldEval ::
-  forall primTy primVal.
-  (HasCallStack, Show primTy, Show primVal, Eq primTy, Eq primVal) =>
-  Parameterisation primTy primVal ->
+  ( HasCallStack,
+    Show primTy,
+    Show primVal,
+    Eq primTy,
+    Eq primVal,
+    CanApply primVal,
+    Eq (Eval.Error IR.NoExt IR.NoExt primTy primVal),
+    Show (Eval.Error IR.NoExt IR.NoExt primTy primVal)
+  ) =>
   IR.Term primTy primVal ->
   IR.Value primTy primVal ->
   T.TestTree
-shouldEval param = shouldEvalWith param mempty
+shouldEval term res =
+  T.testCase (show term <> " should evaluate to " <> show res) $
+    (IR.evalTerm term) T.@=? Right res
 
 infix 1 `ann`
 
@@ -216,12 +247,12 @@ evaluations :: T.TestTree
 evaluations =
   T.testGroup
     "Evaluations"
-    [ shouldEval Nat.t add12 (natV 3),
-      shouldEval Nat.t sub52 (natV 3),
-      shouldEval Nat.t identityApplication (natV 1),
-      shouldEval Nat.t (IR.Elim identityAppINat1) (natV 1),
-      shouldEval Nat.t (IR.Elim identityAppI) videntity,
-      shouldEval Nat.t (IR.Elim kApp1_2) (natV 1)
+    [ shouldEval add12 (natV 3),
+      shouldEval sub52 (natV 3),
+      shouldEval identityApplication (natV 1),
+      shouldEval (IR.Elim identityAppINat1) (natV 1),
+      shouldEval (IR.Elim identityAppI) videntity,
+      shouldEval (IR.Elim kApp1_2) (natV 1)
     ]
   where
     add12 = IR.Elim $ add `IR.App` nat 1 `IR.App` nat 2
@@ -722,7 +753,7 @@ add = IR.Ann Usage.Omega (IR.Prim Nat.Add) addTyT 0
 addTyT :: NatTerm
 addTyT = IR.Pi Usage.Omega natT' $ IR.Pi Usage.Omega natT' $ natT'
 
-addTy :: NatValue
+addTy :: NatValueT
 addTy = IR.VPi Usage.Omega natT $ IR.VPi Usage.Omega natT $ natT
 
 one' :: forall primTy primVal. IR.Term primTy primVal

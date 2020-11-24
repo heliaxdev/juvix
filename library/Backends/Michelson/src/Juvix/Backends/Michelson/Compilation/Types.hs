@@ -6,8 +6,12 @@ module Juvix.Backends.Michelson.Compilation.Types
   )
 where
 
+import qualified Juvix.Core.Application as App
 import qualified Juvix.Core.ErasedAnn.Types as CoreErased
-import Juvix.Library
+import qualified Juvix.Core.Parameterisation as P
+import Juvix.Library hiding (Type)
+import qualified Juvix.Library.NameSymbol as NameSymbol
+import qualified Juvix.Library.Usage as Usage
 import qualified Michelson.TypeCheck as M
 import qualified Michelson.Typed as MT
 import qualified Michelson.Untyped as M
@@ -23,9 +27,9 @@ data PrimTy
   | Option
   | List
   | Set
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Data)
 
-data NewPrim
+data RawPrimVal
   = Constant (M.Value' Op)
   | Inst (Instr.InstrAbstract Op)
   | AddN
@@ -84,15 +88,42 @@ data NewPrim
   | Loop
   | Iter
   | MapOp
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Data)
 
-type NewTerm = CoreErased.AnnTerm PrimTy NewPrim
+type NewPrim = RawPrimVal
 
-type PrimVal = NewPrim
+{-# DEPRECATED NewPrim "use RawPrimVal" #-}
 
-type Term = CoreErased.AnnTerm PrimTy NewPrim
+type Return = App.Return (P.PrimType PrimTy) RawPrimVal
 
-type Type = CoreErased.Type PrimTy NewPrim
+type Take = App.Take (P.PrimType PrimTy) RawPrimVal
+
+type PrimVal = Return
+
+toTake1 :: PrimVal -> Maybe Take
+toTake1 (App.Cont {}) = Nothing
+toTake1 (App.Return {retType, retTerm}) = Just fun
+  where
+    fun = App.Take {usage = Usage.Omega, type' = retType, term = retTerm}
+
+toTakes :: PrimVal -> (Take, [Take], Natural)
+toTakes (App.Cont {fun, args, numLeft}) = (fun, args, numLeft)
+toTakes (App.Return {retType, retTerm}) = (fun, [], 0)
+  where
+    fun = App.Take {usage = Usage.Omega, type' = retType, term = retTerm}
+
+fromReturn :: Return -> PrimVal
+fromReturn = identity
+
+type RawTerm = CoreErased.AnnTerm PrimTy RawPrimVal
+
+type Term = CoreErased.AnnTerm PrimTy PrimVal
+
+type NewTerm = RawTerm
+
+{-# DEPRECATED NewTerm "use RawTerm" #-}
+
+type Type = CoreErased.Type PrimTy
 
 type Value = M.Value' M.ExpandedOp
 
@@ -105,7 +136,7 @@ data CompilationError
   | DidNotTypecheck Instr.ExpandedOp M.TCError
   | DidNotTypecheckAfterOptimisation Instr.ExpandedOp M.TCError
   | NotEnoughArguments
-  | NotInStack Symbol
+  | NotInStack NameSymbol.T
   | -- Should never happen!
     NotEnoughStackSpace
   | OpInMichelsonValue

@@ -4,6 +4,7 @@ import Data.Functor.Identity
 import Juvix.Core.HR.Types
 import Juvix.Core.Types
 import Juvix.Library hiding ((<|>), try)
+import qualified Juvix.Library.NameSymbol as NameSymbol
 import Juvix.Library.Usage
 import Text.Parsec hiding (try)
 import Text.ParserCombinators.Parsec
@@ -122,8 +123,8 @@ generateParser parameterisation =
       pairTerm :: Parser (Term primTy primVal)
       pairTerm = brackets $ Pair <$> term <*> (comma *> term)
       --
-      binder :: Parser Symbol
-      binder = intern |<< identifier
+      binder :: Parser NameSymbol.T
+      binder = NameSymbol.fromString |<< identifier
       --
       term :: Parser (Term primTy primVal)
       term = try termOnly <|> elimTerm
