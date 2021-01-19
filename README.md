@@ -1,6 +1,5 @@
 # Juvix
-
-![Mascot](https://juvix.org/img/mascot.jpg)
+<img src="Juvix_logo.png" width="250" height="250">
 
 ![GitHub](https://img.shields.io/github/license/metastatedev/juvix)
 ![Build status](https://img.shields.io/circleci/build/github/metastatedev/juvix?token=abc123def456)
