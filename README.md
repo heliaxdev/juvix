@@ -137,4 +137,3 @@ We would love to hear what you think of Juvix! Join our community:
 
 <!-- TODO add links to discord, reddit, etc. -->
 
-## License: [GPL 3.0](https://www.gnu.org/licenses/gpl-3.0-standalone.html)
