@@ -5,6 +5,4 @@ position: 3
 
 # Contract Development Lifecycle & Deployment Procedures
 
-```rust
-// TODO
-```
+Coming soon!

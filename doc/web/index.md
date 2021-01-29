@@ -11,8 +11,37 @@ Please see [the README](https://github.com/metastatedev/juvix#installation).
 
 ## Writing your first smart contract
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis. 
+Copy the following to a file named `identity.ju`:
+
+```juvix
+open Prelude
+open Prelude.Michelson
+
+sig cons-pair : list operation -> int -> pair (list operation) int
+let cons-pair = %Michelson.pair
+
+sig nil : list operation
+let nil = %Michelson.nil
+
+sig car : pair int int -> int
+let car = %Michelson.car
+
+sig main : pair int int -> pair (list operation) int
+let main = \params ->
+  cons-pair nil (car params)
+```
+
+Then run:
+
+```bash
+juvix compile identity.ju identity.tz
+```
+
+Open `identity.tz` to inspect your compiled contract; it should look like:
+
+```bash
+```
 
 ## Deploying the contract to Tezos
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis. 
+The `.tz` Michelson output of Juvix can be deployed using standard procedures outlined [in the Tezos documentation](https://tezos.gitlab.io/alpha/cli-commands.html?highlight=originate). Direct integration with the Juvix toolchain is coming soon.
