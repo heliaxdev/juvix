@@ -1,6 +1,6 @@
 ---
 title: Writing Proofs in Juvix
-position: 5
+position: 4
 ---
 
 # Writing proofs in Juvix
