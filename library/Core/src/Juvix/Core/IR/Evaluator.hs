@@ -164,8 +164,8 @@ subst ::
   a
 subst = subst' 0
 
-class HasWeak a => HasSubstElim ext primTy primVal a where
-  substElimWith ::
+class HasWeak a => HasSubstTerm ext primTy primVal a where
+  substTermWith ::
     -- | How many bindings have been traversed so far
     IR.BoundVar ->
     -- | Variable to substitute
@@ -173,30 +173,28 @@ class HasWeak a => HasSubstElim ext primTy primVal a where
     -- | Expression to substitute with
     IR.Elim' ext primTy primVal ->
     a ->
-    IR.Elim' ext primTy primVal
+    IR.Term' ext primTy primVal
 
-substElim' ::
-  HasSubstElim ext primTy primVal a =>
+substTerm' ::
+  HasSubstTerm ext primTy primVal a =>
   IR.BoundVar ->
   IR.Elim' ext primTy primVal ->
   a ->
-  IR.Elim' ext primTy primVal
-substElim' = substElimWith 0
+  IR.Term' ext primTy primVal
+substTerm' = substTermWith 0
 
-substElim ::
-  HasSubstElim ext primTy primVal a =>
+substTerm ::
+  HasSubstTerm ext primTy primVal a =>
   IR.Elim' ext primTy primVal ->
   a ->
-  IR.Elim' ext primTy primVal
-substElim = substElim' 0
+  IR.Term' ext primTy primVal
+substTerm = substTerm' 0
 
 type AllSubst ext primTy primVal =
   ( IR.TermAll (HasSubst ext primTy primVal) ext primTy primVal,
     IR.ElimAll (HasSubst ext primTy primVal) ext primTy primVal,
-    HasSubstElim ext primTy primVal primTy,
-    HasSubstElim ext primTy primVal primVal,
-    IR.XPrimTy ext primTy primVal ~ IR.XElim ext primTy primVal,
-    IR.XPrim ext primTy primVal ~ IR.XElim ext primTy primVal
+    HasSubstTerm ext primTy primVal primTy,
+    HasSubstTerm ext primTy primVal primVal
   )
 
 instance
@@ -205,10 +203,12 @@ instance
   where
   substWith w i e (IR.Star' u a) =
     IR.Star' u (substWith w i e a)
-  substWith w i e (IR.PrimTy' t a) =
-    IR.Elim' (substElimWith w i e t) (substWith w i e a)
-  substWith w i e (IR.Prim' p a) =
-    IR.Elim' (substElimWith w i e p) (substWith w i e a)
+  substWith w i e (IR.PrimTy' t _) =
+    -- FIXME annotation?
+    substTermWith w i e t
+  substWith w i e (IR.Prim' p _) =
+    -- FIXME annotation?
+    substTermWith w i e p
   substWith w i e (IR.Pi' π s t a) =
     IR.Pi' π (substWith w i e s) (substWith (succ w) (succ i) e t) (substWith w i e a)
   substWith w i e (IR.Lam' t a) =
@@ -275,31 +275,29 @@ patSubst ::
   Either IR.PatternVar a
 patSubst = patSubst' 0
 
-class HasWeak a => HasPatSubstElim extT primTy primVal a where
+class HasWeak a => HasPatSubstTerm extT primTy primVal a where
   -- returns either a substituted term or an unbound pattern var
   -- TODO: use @validation@ to return all unbound vars
-  patSubstElim' ::
+  patSubstTerm' ::
     -- | How many bindings have been traversed so far
     Natural ->
     -- | Mapping of pattern variables to matched subterms
     IR.PatternMap (IR.Elim' extT primTy primVal) ->
     a ->
-    Either IR.PatternVar (IR.Elim' extT primTy primVal)
+    Either IR.PatternVar (IR.Term' extT primTy primVal)
 
-patSubstElim ::
-  (HasPatSubstElim extT primTy primVal a) =>
+patSubstTerm ::
+  (HasPatSubstTerm extT primTy primVal a) =>
   IR.PatternMap (IR.Elim' extT primTy primVal) ->
   a ->
-  Either IR.PatternVar (IR.Elim' extT primTy primVal)
-patSubstElim = patSubstElim' 0
+  Either IR.PatternVar (IR.Term' extT primTy primVal)
+patSubstTerm = patSubstTerm' 0
 
 type AllPatSubst ext primTy primVal =
   ( IR.TermAll (HasPatSubst ext primTy primVal) ext primTy primVal,
     IR.ElimAll (HasPatSubst ext primTy primVal) ext primTy primVal,
-    HasPatSubstElim ext primTy primVal primTy,
-    HasPatSubstElim ext primTy primVal primVal,
-    IR.XPrimTy ext primTy primVal ~ IR.XElim ext primTy primVal,
-    IR.XPrim ext primTy primVal ~ IR.XElim ext primTy primVal
+    HasPatSubstTerm ext primTy primVal primTy,
+    HasPatSubstTerm ext primTy primVal primVal
   )
 
 instance
@@ -308,10 +306,12 @@ instance
   where
   patSubst' b m (IR.Star' u a) =
     IR.Star' u <$> patSubst' b m a
-  patSubst' b m (IR.PrimTy' t a) =
-    IR.Elim' <$> patSubstElim' b m t <*> patSubst' b m a
-  patSubst' b m (IR.Prim' p a) =
-    IR.Elim' <$> patSubstElim' b m p <*> patSubst' b m a
+  patSubst' b m (IR.PrimTy' t _) =
+    -- FIXME annotation?
+    patSubstTerm' b m t
+  patSubst' b m (IR.Prim' p _) =
+    -- FIXME annotation?
+    patSubstTerm' b m p
   patSubst' b m (IR.Pi' π s t a) =
     IR.Pi' π <$> patSubst' b m s
       <*> patSubst' (succ b) m t
@@ -563,6 +563,8 @@ data ApplyError primTy primVal
 deriving instance
   ( Eq primTy,
     Eq primVal,
+    Eq (Param.Arg primTy),
+    Eq (Param.Arg primVal),
     Eq (Param.ApplyErrorExtra primTy),
     Eq (Param.ApplyErrorExtra primVal)
   ) =>
@@ -571,6 +573,8 @@ deriving instance
 deriving instance
   ( Show primTy,
     Show primVal,
+    Show (Param.Arg primTy),
+    Show (Param.Arg primVal),
     Show (Param.ApplyErrorExtra primTy),
     Show (Param.ApplyErrorExtra primVal)
   ) =>
@@ -589,6 +593,8 @@ deriving instance
     Eq primVal,
     IR.ValueAll Eq extV primTy primVal,
     IR.NeutralAll Eq extV primTy primVal,
+    Eq (Param.Arg primTy),
+    Eq (Param.Arg primVal),
     Eq (Param.ApplyErrorExtra primTy),
     Eq (Param.ApplyErrorExtra primVal),
     Eq (IR.TermX extT primTy primVal),
@@ -601,6 +607,8 @@ deriving instance
     Show primVal,
     IR.ValueAll Show extV primTy primVal,
     IR.NeutralAll Show extV primTy primVal,
+    Show (Param.Arg primTy),
+    Show (Param.Arg primVal),
     Show (Param.ApplyErrorExtra primTy),
     Show (Param.ApplyErrorExtra primVal),
     Show (IR.TermX extT primTy primVal),
@@ -609,6 +617,7 @@ deriving instance
   Show (Error extV extT primTy primVal)
 
 vapp ::
+  forall extV extT primTy primVal.
   ( AllSubstV extV primTy primVal,
     Monoid (IR.XVNeutral extV primTy primVal),
     Monoid (IR.XVLam extV primTy primVal),
@@ -621,18 +630,47 @@ vapp ::
   -- (if it isn't, then this annotation is unused)
   IR.XNApp extV primTy primVal ->
   Either (Error extV extT primTy primVal) (IR.Value' extV primTy primVal)
-vapp (IR.VLam' t _) s _ =
-  substV s t
-vapp (IR.VNeutral' f _) s b =
-  pure $ IR.VNeutral' (IR.NApp' f s b) mempty
-vapp pp@(IR.VPrimTy' p _) qq@(IR.VPrimTy' q _) _ =
-  bimap (CannotApply pp qq . ApplyErrorT) (\pq -> IR.VPrimTy' pq mempty) $
-    Param.apply1 p q
-vapp pp@(IR.VPrim' p _) qq@(IR.VPrim' q _) _ =
-  bimap (CannotApply pp qq . ApplyErrorV) (\pq -> IR.VPrim' pq mempty) $
-    Param.apply1 p q
-vapp f x _ =
-  Left $ CannotApply f x NoApplyError
+vapp s t ann =
+  case s of
+    IR.VLam' s _ -> substV t s
+    IR.VNeutral' f _ -> pure $ IR.VNeutral' (IR.NApp' f s ann) mempty
+    IR.VPrimTy' p _ -> case t of
+      IR.VPrimTy' q _ ->
+        app' ApplyErrorT IR.VPrimTy' (\_ -> Param.pureArg) p q
+      IR.VNeutral' (IR.NFree' (IR.Global y) _) _ ->
+        -- TODO pattern vars also
+        app' ApplyErrorT IR.VPrimTy' Param.freeArg p y
+      IR.VNeutral' (IR.NBound' i _) _ ->
+        app' ApplyErrorT IR.VPrimTy' Param.boundArg p i
+      _ ->
+        Left $ CannotApply s t NoApplyError
+    IR.VPrim' p _ -> case t of
+      IR.VPrim' q _ ->
+        app' ApplyErrorV IR.VPrim' (\_ -> Param.pureArg) p q
+      IR.VNeutral' (IR.NFree' (IR.Global y) _) _ ->
+        -- TODO pattern vars also
+        app' ApplyErrorV IR.VPrim' Param.freeArg p y
+      IR.VNeutral' (IR.NBound' i _) _ ->
+        app' ApplyErrorV IR.VPrim' Param.boundArg p i
+      _ ->
+        Left $ CannotApply s t NoApplyError
+    _ ->
+      Left $ CannotApply s t NoApplyError
+  where
+    app' ::
+      forall ann arg fun.
+      (Param.CanApply fun, Monoid ann) =>
+      (Param.ApplyError fun -> ApplyError primTy primVal) ->
+      (fun -> ann -> IR.Value' extV primTy primVal) ->
+      (Proxy fun -> arg -> Maybe (Param.Arg fun)) ->
+      fun ->
+      arg ->
+      Either (Error extV extT primTy primVal) (IR.Value' extV primTy primVal)
+    app' err con mkArg p y =
+      case mkArg Proxy y of
+        Nothing -> Left $ CannotApply s t NoApplyError
+        Just y ->
+          Param.apply1 p y |> bimap (CannotApply s t . err) (\r -> con r mempty)
 
 type TermExtFun ty ext' ext primTy primVal =
   LookupFun ty ext' primTy primVal ->
@@ -669,8 +707,8 @@ type EvalPatSubst ext primTy primVal =
   ( HasPatSubst (OnlyExts.T ext) primTy primVal (IR.TermX ext primTy primVal),
     HasPatSubst (OnlyExts.T ext) primTy primVal (IR.ElimX ext primTy primVal),
     -- FIXME?
-    HasPatSubstElim (OnlyExts.T ext) primTy primVal primTy,
-    HasPatSubstElim (OnlyExts.T ext) primTy primVal primVal
+    HasPatSubstTerm (OnlyExts.T ext) primTy primVal primTy,
+    HasPatSubstTerm (OnlyExts.T ext) primTy primVal primVal
   )
 
 -- |
@@ -1105,14 +1143,17 @@ instance
 instance (HasWeak ty, HasWeak term) => HasWeak (App.Take ty term)
 
 instance
-  (HasWeak term, HasWeak (App.ParamVar ext)) =>
-  HasWeak (App.ArgBody' ext term)
+  (HasWeak ty, HasWeak term, HasWeak (App.ParamVar ext)) =>
+  HasWeak (App.Arg' ext ty term)
 
 instance
   (HasWeak ty, HasWeak term, HasWeak (App.ParamVar ext)) =>
   HasWeak (App.Return' ext ty term)
 
-instance HasWeak App.DeBruijn
+instance HasWeak App.DeBruijn where
+  weakBy' b i (App.BoundVar j) =
+    App.BoundVar $ if j >= i then j + b else j
+  weakBy' _ _ (App.FreeVar x) = App.FreeVar x
 
 instance
   (HasSubst ext primTy primVal ty, HasSubst ext primTy primVal term) =>
@@ -1120,9 +1161,10 @@ instance
 
 instance
   ( HasSubst ext primTy primVal term,
+    HasSubst ext primTy primVal ty,
     HasSubst ext primTy primVal (App.ParamVar ext)
   ) =>
-  HasSubst ext primTy primVal (App.ArgBody' ext term)
+  HasSubst ext primTy primVal (App.Arg' ext ty term)
 
 instance
   ( HasSubst ext primTy primVal ty,
@@ -1139,9 +1181,10 @@ instance
 
 instance
   ( HasPatSubst ext primTy primVal term,
+    HasPatSubst ext primTy primVal ty,
     HasPatSubst ext primTy primVal (App.ParamVar ext)
   ) =>
-  HasPatSubst ext primTy primVal (App.ArgBody' ext term)
+  HasPatSubst ext primTy primVal (App.Arg' ext ty term)
 
 instance
   ( HasPatSubst ext primTy primVal ty,
@@ -1152,39 +1195,49 @@ instance
 
 instance
   AllSubst ext primTy primVal =>
-  HasSubstElim ext primTy primVal (IR.Elim' ext primTy primVal)
+  HasSubstTerm ext primTy primVal (IR.Term' ext primTy primVal)
   where
-  substElimWith = substWith
+  substTermWith = substWith
 
 instance
   ( AllSubst ext primTy primVal,
     Monoid (IR.XBound ext primTy primVal),
-    Monoid (IR.XFree ext primTy primVal)
+    Monoid (IR.XFree ext primTy primVal),
+    Monoid (IR.XElim ext primTy primVal)
   ) =>
-  HasSubstElim ext primTy primVal App.DeBruijn
+  HasSubstTerm ext primTy primVal App.DeBruijn
   where
-  substElimWith b i e (App.BoundVar j) =
-    substWith b i e $ IR.Bound' j mempty
-  substElimWith _ _ _ (App.FreeVar x) =
-    IR.Free' (IR.Global x) mempty
+  substTermWith b i e (App.BoundVar j) =
+    IR.Elim' (substWith b i e (IR.Bound' j mempty)) mempty
+  substTermWith _ _ _ (App.FreeVar x) =
+    IR.Elim' (IR.Free' (IR.Global x) mempty) mempty
 
 instance
-  ( HasSubstElim ext primTy primVal (App.ParamVar ext),
-    HasSubstElim ext primTy primVal term
+  ( HasWeak ty,
+    HasSubstTerm ext primTy primVal term
   ) =>
-  HasSubstElim ext primTy primVal (App.ArgBody' ext term)
+  HasSubstTerm ext primTy primVal (App.Take ty term)
   where
-  substElimWith b i e (App.VarArg x) = substElimWith b i e x
-  substElimWith b i e (App.TermArg t) = substElimWith b i e t
+  substTermWith b i e (App.Take {term}) = substTermWith b i e term
+
+instance
+  ( HasSubstTerm ext primTy primVal (App.ParamVar ext),
+    HasWeak ty,
+    HasSubstTerm ext primTy primVal term
+  ) =>
+  HasSubstTerm ext primTy primVal (App.Arg' ext ty term)
+  where
+  substTermWith b i e (App.VarArg x) = substTermWith b i e x
+  substTermWith b i e (App.TermArg t) = substTermWith b i e t
 
 substTake ::
-  HasSubstElim ext primTy primVal term =>
+  HasSubstTerm ext primTy primVal term =>
   IR.BoundVar ->
   IR.BoundVar ->
   IR.Elim' ext primTy primVal ->
   App.Take ty term ->
-  IR.Elim' ext primTy primVal
-substTake b i e (App.Take {term}) = substElimWith b i e term
+  IR.Term' ext primTy primVal
+substTake b i e (App.Take {term}) = substTermWith b i e term
 
 instance
   ( AllSubstV extV primTy primVal,
@@ -1214,10 +1267,19 @@ instance
     pure $ IR.VNeutral' (IR.NFree' (IR.Global x) mempty) mempty
 
 instance
-  ( HasSubstValue ext primTy primVal (App.ParamVar ext),
+  ( HasWeak ty,
     HasSubstValue ext primTy primVal term
   ) =>
-  HasSubstValue ext primTy primVal (App.ArgBody' ext term)
+  HasSubstValue ext primTy primVal (App.Take ty term)
+  where
+  substValueWith b i e (App.Take {term}) = substValueWith b i e term
+
+instance
+  ( HasSubstValue ext primTy primVal (App.ParamVar ext),
+    HasSubstValue ext primTy primVal ty,
+    HasSubstValue ext primTy primVal term
+  ) =>
+  HasSubstValue ext primTy primVal (App.Arg' ext ty term)
   where
   substValueWith b i e (App.VarArg x) = substValueWith b i e x
   substValueWith b i e (App.TermArg t) = substValueWith b i e t
@@ -1252,33 +1314,33 @@ instance
   substValueWith b i e (App.Cont {fun, args}) = do
     let app f x = vapp f x ()
     let fun' = IR.VPrim (App.takeToReturn fun)
-    args' <- traverse (substVWith b i e . argToValue) args
+    args' <- traverse (substValueWith b i e . argToValue) args
     foldlM app fun' args'
-  substValueWith b i e ret@(App.Return {}) =
+  substValueWith _ _ _ ret@(App.Return {}) =
     pure $ IR.VPrim ret
 
 argToValue ::
   App.Arg (Param.PrimType primTy) primVal ->
   IR.Value primTy (Param.TypedPrim primTy primVal)
-argToValue (App.Take {type', term}) =
-  case term of
-    App.TermArg term -> IR.VPrim $ App.Return {retType = type', retTerm = term}
-    App.BoundArg i -> IR.VBound i
-    App.FreeArg x -> IR.VFree $ IR.Global x
+argToValue = \case
+  App.TermArg (App.Take {type', term}) ->
+    IR.VPrim $ App.Return {retType = type', retTerm = term}
+  App.BoundArg i -> IR.VBound i
+  App.FreeArg x -> IR.VFree $ IR.Global x
 
 instance
   ( HasWeak primTy,
     HasWeak primVal
   ) =>
-  HasPatSubstElim (OnlyExts.T ext) primTy
+  HasPatSubstTerm (OnlyExts.T ext) primTy
     (Param.TypedPrim primTy primVal)
     (Param.TypedPrim primTy primVal)
   where
   -- FIXME pat vars can't yet show up here
-  patSubstElim' _ _ (App.Cont {fun, args}) =
-    pure $ foldl IR.App (takeToElim fun) (map argToTerm args)
-  patSubstElim' _ _ (App.Return {retType, retTerm}) =
-    pure $ takeToElim $ App.Take {type' = retType, term = retTerm}
+  patSubstTerm' _ _ (App.Cont {fun, args}) =
+    pure $ IR.Elim $ foldl IR.App (takeToElim fun) (map argToTerm args)
+  patSubstTerm' _ _ ret@(App.Return {}) =
+    pure $ IR.Prim ret
 
 takeToElim ::
   App.Take (Param.PrimType primTy) primVal ->
@@ -1291,11 +1353,11 @@ takeToElim (App.Take {type', term}) =
 argToTerm ::
   App.Arg (Param.PrimType primTy) primVal ->
   IR.Term' (OnlyExts.T ext) primTy (Param.TypedPrim primTy primVal)
-argToTerm (App.Take {type', term}) =
-  case term of
-    App.TermArg term -> IR.Prim $ App.Return {retType = type', retTerm = term}
-    App.BoundArg i -> IR.Elim $ IR.Bound i
-    App.FreeArg x -> IR.Elim $ IR.Free $ IR.Global x
+argToTerm = \case
+  App.TermArg (App.Take {type', term}) ->
+    IR.Prim $ App.Return {retType = type', retTerm = term}
+  App.BoundArg i -> IR.Elim $ IR.Bound i
+  App.FreeArg x -> IR.Elim $ IR.Free $ IR.Global x
 
 typeToTerm ::
   ( Monoid (IR.XPi ext primTy primVal),
