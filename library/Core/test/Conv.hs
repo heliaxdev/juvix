@@ -27,16 +27,20 @@ hrToIrConversion :: T.TestTree
 hrToIrConversion =
   T.testGroup
     "human readable to intermediate representation"
-    [ shouldConvertHR "λx. x"
+    [ shouldConvertHR
+        "λx. x"
         (HR.Lam "x" (HR.Elim (HR.Var "x")))
         (IR.Lam (IR.Elim (IR.Bound 0))),
-      shouldConvertHR "λx y. x"
+      shouldConvertHR
+        "λx y. x"
         (HR.Lam "x" (HR.Lam "y" (HR.Elim (HR.Var "x"))))
         (IR.Lam (IR.Lam (IR.Elim (IR.Bound 1)))),
-      shouldConvertHR "λx y. y"
+      shouldConvertHR
+        "λx y. y"
         (HR.Lam "x" (HR.Lam "y" (HR.Elim (HR.Var "y"))))
         (IR.Lam (IR.Lam (IR.Elim (IR.Bound 0)))),
-      shouldConvertHR "λf. f (λx. x) (λy. y)"
+      shouldConvertHR
+        "λf. f (λx. x) (λy. y)"
         ( HR.Lam "f"
             $ HR.Elim
             $ HR.Var "f"
@@ -55,13 +59,16 @@ irToHrConversion :: T.TestTree
 irToHrConversion =
   T.testGroup
     "intermediate representation to human readable"
-    [ shouldConvertIR "λ. 0"
+    [ shouldConvertIR
+        "λ. 0"
         (IR.Lam (IR.Elim (IR.Bound 0)))
         (HR.Lam "0" (HR.Elim (HR.Var "0"))),
-      shouldConvertIR "λ. λ. 1"
+      shouldConvertIR
+        "λ. λ. 1"
         (IR.Lam (IR.Lam (IR.Elim (IR.Bound 1))))
         (HR.Lam "0" (HR.Lam "1" (HR.Elim (HR.Var "0")))),
-      shouldConvertIR "λ. λ. 0"
+      shouldConvertIR
+        "λ. λ. 0"
         (IR.Lam (IR.Lam (IR.Elim (IR.Bound 0))))
         (HR.Lam "0" (HR.Lam "1" (HR.Elim (HR.Var "1"))))
     ]

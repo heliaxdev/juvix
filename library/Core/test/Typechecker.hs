@@ -35,11 +35,13 @@ type TestCheck primTy primVal =
   )
 
 type TestCheckPrimBase a = (Eq a, Show a)
+
 type TestCheckPrimExt a =
   ( CanApply a,
     TestCheckPrimBase (Arg a),
     TestCheckPrimBase (ApplyErrorExtra a)
   )
+
 type TestCheckPrim a = (TestCheckPrimBase a, TestCheckPrimExt a)
 
 shouldCheckWith' ::
@@ -100,7 +102,6 @@ shouldInferWith ::
   IR.AnnotationT primTy primVal ->
   T.TestTree
 shouldInferWith name = shouldInferWith' $ name <> " can be inferred"
-
 
 shouldInfer ::
   TestCheck primTy primVal =>
@@ -164,15 +165,18 @@ letComp :: T.TestTree
 letComp =
   T.testGroup
     "'let' Computational typing"
-    [ shouldCheck "let 0 x = 0 in 0"
+    [ shouldCheck
+        "let 0 x = 0 in 0"
         Nat.t
         (IR.Let mempty nzero (IR.Elim nzero))
         (Usage.Omega `ann` natT),
-      shouldCheck "let ω x = 0 in x"
+      shouldCheck
+        "let ω x = 0 in x"
         Nat.t
         (IR.Let Usage.Omega nzero (IR.Elim (IR.Bound 0)))
         (Usage.Omega `ann` natT),
-      shouldCheck "λx. let 0 y = 0 in x"
+      shouldCheck
+        "λx. let 0 y = 0 in x"
         Nat.t
         (IR.Lam (IR.Let mempty nzero (IR.Elim (IR.Bound 1))))
         (natToNatTy' one)
@@ -205,7 +209,6 @@ subtype =
       shouldCheckWith' (a <> " <: " <> b) Unit.t typGlobals [] s $ ty t
     shouldSubI a b s t =
       shouldInferWith' (a <> " <: " <> b) Unit.t typGlobals [] s $ ty t
-
 
 dependentPairComp :: T.TestTree
 dependentPairComp =

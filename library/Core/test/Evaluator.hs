@@ -12,8 +12,8 @@ import Juvix.Library.HashMap as Map
 import qualified Juvix.Library.Usage as Usage
 import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as T
-import Typechecker.Types
 import Typechecker.Terms
+import Typechecker.Types
 
 type TestEval primTy primVal =
   ( HasCallStack,
@@ -24,11 +24,12 @@ type TestEval primTy primVal =
   )
 
 type TestEvalPrim primTy primVal a =
-  ( Eq a, Show a, CanApply a,
+  ( Eq a,
+    Show a,
+    CanApply a,
     Eval.HasPatSubstTerm (OnlyExts.T IR.NoExt) primTy primVal a,
     Eval.HasSubstValue IR.NoExt primTy primVal a
   )
-
 
 -- unit test generator for evalTerm
 shouldEval' ::
@@ -39,8 +40,8 @@ shouldEval' ::
   IR.Value primTy primVal ->
   T.TestTree
 shouldEval' name g term res =
-  let look x = Map.lookup x g in
-  T.testCase name $ IR.evalTerm look term T.@=? Right res
+  let look x = Map.lookup x g
+   in T.testCase name $ IR.evalTerm look term T.@=? Right res
 
 shouldEval ::
   TestEval primTy primVal =>
@@ -81,7 +82,6 @@ evalTests =
     name = IR.Elim . IR.Free . IR.Global
     vname = IR.VFree . IR.Global
 
-
 toLambda' ::
   Eval.EvalPatSubst IR.NoExt primTy primVal =>
   IR.Global primTy primVal ->
@@ -90,8 +90,10 @@ toLambda' g =
   TransformExt.extForgetE <$> Eval.toLambda @IR.NoExt g
 
 type TestToLambda primTy primVal =
-  ( Eq primTy, Eq primVal,
-    Show primTy, Show primVal,
+  ( Eq primTy,
+    Eq primVal,
+    Show primTy,
+    Show primVal,
     Eval.EvalPatSubst IR.NoExt primTy primVal
   )
 
@@ -115,7 +117,7 @@ shouldSucceedToLambda ::
   IR.Elim primTy primVal ->
   T.TestTree
 shouldSucceedToLambda name g res =
-    T.testCase msg $ toLambda' (IR.GFunction g) T.@?= Just res
+  T.testCase msg $ toLambda' (IR.GFunction g) T.@?= Just res
   where
     msg = "succeeds on '" <> name <> "'"
 
@@ -153,32 +155,51 @@ toLambdaTests =
         IR.Datatype "void" [] 0 [],
       shouldFailToLambdaN "[constructor]" $ IR.GDataCon $
         IR.DataCon "askfjlad" (IR.VStar 0),
-      shouldSucceedToLambdaN "let const x y = x"
-        (fun1 "const" (natT --> natT --> natT)
-          [IR.PVar 0, IR.PVar 1] (pat 0))
-        (funT
-          (natT' ~~> natT' ~~> natT')
-          (IR.Lam $ IR.Lam $ bv 1)),
-      shouldSucceedToLambdaN "let outer x y = {0}"
-        (fun1 "outer" (natT --> natT --> natT)
-          [IR.PVar 0, IR.PVar 1] (bv 0))
-        (funT
-          (natT' ~~> natT' ~~> natT')
-          (IR.Lam $ IR.Lam $ bv 2)),
-      shouldSucceedToLambdaN "let lam x y = \\z -> x + z"
-        (fun1 "outer" (natT --> natT --> natT --> natT)
-          [IR.PVar 0, IR.PVar 1]
-          (IR.Lam $ IR.Elim $ add @@ pat 0 @@ bv 0))
-        (funT
-          (natT' ~~> natT' ~~> natT' ~~> natT')
-          (IR.Lam $ IR.Lam $ IR.Lam $ IR.Elim $ add @@ bv 2 @@ bv 0)),
-      shouldFailToLambdaN "let f x = x; let f x = 0" $ IR.GFunction $
-        IR.Function "f" IR.GOmega (natT --> natT) $
-          IR.FunClause [IR.PVar 0] (pat 0) :|
-          IR.FunClause [IR.PVar 0] (nat 0) : [],
+      shouldSucceedToLambdaN
+        "let const x y = x"
+        ( fun1
+            "const"
+            (natT --> natT --> natT)
+            [IR.PVar 0, IR.PVar 1]
+            (pat 0)
+        )
+        ( funT
+            (natT' ~~> natT' ~~> natT')
+            (IR.Lam $ IR.Lam $ bv 1)
+        ),
+      shouldSucceedToLambdaN
+        "let outer x y = {0}"
+        ( fun1
+            "outer"
+            (natT --> natT --> natT)
+            [IR.PVar 0, IR.PVar 1]
+            (bv 0)
+        )
+        ( funT
+            (natT' ~~> natT' ~~> natT')
+            (IR.Lam $ IR.Lam $ bv 2)
+        ),
+      shouldSucceedToLambdaN
+        "let lam x y = \\z -> x + z"
+        ( fun1
+            "outer"
+            (natT --> natT --> natT --> natT)
+            [IR.PVar 0, IR.PVar 1]
+            (IR.Lam $ IR.Elim $ add @@ pat 0 @@ bv 0)
+        )
+        ( funT
+            (natT' ~~> natT' ~~> natT' ~~> natT')
+            (IR.Lam $ IR.Lam $ IR.Lam $ IR.Elim $ add @@ bv 2 @@ bv 0)
+        ),
+      shouldFailToLambdaN "let f x = x; let f x = 0" $ IR.GFunction
+        $ IR.Function "f" IR.GOmega (natT --> natT)
+        $ IR.FunClause [IR.PVar 0] (pat 0)
+          :| IR.FunClause [IR.PVar 0] (nat 0) : [],
       shouldFailToLambdaN "let fst (pair x y) = x" $ IR.GFunction $
         -- this isn't the right type but that doesn't matter
-        fun1 "fst" (natT --> natT)
+        fun1
+          "fst"
+          (natT --> natT)
           [IR.PCon "pair" [IR.PVar 0, IR.PVar 1]]
           (pat 0)
     ]

@@ -909,6 +909,7 @@ Tests for the evaluator in Core/IR/Evaluator.hs
 - _Relies on_
   + [[IR]]
   + [[IR/Evaluator]]
+  + [[TransformExt]]
   + [[OnlyExts]]
   + [[Naturals]]
   + [[Core/Types]]
