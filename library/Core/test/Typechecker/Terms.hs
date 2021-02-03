@@ -578,3 +578,15 @@ unit = IR.Prim Unit.Val
 
 unit' :: IR.Term Unit.Ty (TypedPrim Unit.Ty Unit.Val)
 unit' = IR.Prim (TC.Return {retType = [Unit.Ty], retTerm = Unit.Val})
+
+infixr 0 -->
+(-->) :: IR.Value a b -> IR.Value a b -> IR.Value a b
+s --> t = IR.VPi Usage.Omega s t
+
+infixr 0 ~~>
+(~~>) :: IR.Term a b -> IR.Term a b -> IR.Term a b
+s ~~> t = IR.Pi Usage.Omega s t
+
+infixl 9 @@
+(@@) :: IR.Elim a b -> IR.Term a b -> IR.Elim a b
+(@@) = IR.App

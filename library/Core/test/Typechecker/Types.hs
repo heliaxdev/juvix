@@ -8,6 +8,8 @@ import qualified Juvix.Library.Usage as Usage
 
 type NatGlobal = IR.Global Nat.Ty Nat.Val
 
+type NatFunction = IR.Function Nat.Ty Nat.Val
+
 type NatTerm = IR.Term Nat.Ty Nat.Val
 
 type NatElim = IR.Elim Nat.Ty Nat.Val
