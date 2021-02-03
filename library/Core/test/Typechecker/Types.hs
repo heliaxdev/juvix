@@ -6,6 +6,8 @@ import qualified Juvix.Core.Parameterisations.Naturals as Nat
 import qualified Juvix.Core.Parameterisations.Unit as Unit
 import qualified Juvix.Library.Usage as Usage
 
+type NatGlobal = IR.Global Nat.Ty Nat.Val
+
 type NatTerm = IR.Term Nat.Ty Nat.Val
 
 type NatElim = IR.Elim Nat.Ty Nat.Val

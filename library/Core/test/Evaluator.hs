@@ -13,64 +13,55 @@ import qualified Test.Tasty as T
 import qualified Test.Tasty.HUnit as T
 import Typechecker.Terms
 
+type TestEval primTy primVal =
+  ( HasCallStack,
+    TestEvalPrim primTy primVal primTy,
+    TestEvalPrim primTy primVal primVal,
+    Eq (Eval.Error IR.NoExt IR.NoExt primTy primVal),
+    Show (Eval.Error IR.NoExt IR.NoExt primTy primVal)
+  )
+
+type TestEvalPrim primTy primVal a =
+  ( Eq a, Show a, CanApply a,
+    Eval.HasPatSubstTerm (OnlyExts.T IR.NoExt) primTy primVal a,
+    Eval.HasSubstValue IR.NoExt primTy primVal a
+  )
+
+
 -- unit test generator for evalTerm
 shouldEval' ::
-  ( HasCallStack,
-    Show primTy,
-    Show primVal,
-    Eq primTy,
-    Eq primVal,
-    CanApply primVal,
-    CanApply primTy,
-    Eq (Eval.Error IR.NoExt IR.NoExt primTy primVal),
-    Show (Eval.Error IR.NoExt IR.NoExt primTy primVal),
-    Eval.HasPatSubstTerm (OnlyExts.T IR.NoExt) primTy primVal primTy,
-    Eval.HasPatSubstTerm (OnlyExts.T IR.NoExt) primTy primVal primVal,
-    Eval.HasSubstValue IR.NoExt primTy primVal primTy,
-    Eval.HasSubstValue IR.NoExt primTy primVal primVal
-  ) =>
+  TestEval primTy primVal =>
+  T.TestName ->
   IR.Globals primTy primVal ->
   IR.Term primTy primVal ->
   IR.Value primTy primVal ->
   T.TestTree
-shouldEval' g term res =
-  T.testCase (show term <> " should evaluate to " <> show res) $
-    (IR.evalTerm (\x -> Map.lookup x g) term) T.@=? Right res
+shouldEval' name g term res =
+  let look x = Map.lookup x g in
+  T.testCase name $ IR.evalTerm look term T.@=? Right res
 
 shouldEval ::
-  ( HasCallStack,
-    Show primTy,
-    Show primVal,
-    Eq primTy,
-    Eq primVal,
-    CanApply primVal,
-    CanApply primTy,
-    Eq (Eval.Error IR.NoExt IR.NoExt primTy primVal),
-    Show (Eval.Error IR.NoExt IR.NoExt primTy primVal),
-    Eval.HasPatSubstTerm (OnlyExts.T IR.NoExt) primTy primVal primTy,
-    Eval.HasPatSubstTerm (OnlyExts.T IR.NoExt) primTy primVal primVal,
-    Eval.HasSubstValue IR.NoExt primTy primVal primTy,
-    Eval.HasSubstValue IR.NoExt primTy primVal primVal
-  ) =>
+  TestEval primTy primVal =>
+  T.TestName ->
   IR.Term primTy primVal ->
   IR.Value primTy primVal ->
   T.TestTree
-shouldEval = shouldEval' mempty
+shouldEval name = shouldEval' name mempty
 
 evaluatorTests :: T.TestTree
 evaluatorTests =
   T.testGroup
     "Evaluator tests"
-    [ shouldEval add12 (natV 3),
-      shouldEval sub52 (natV 3),
-      shouldEval identityApplication (natV 1),
-      shouldEval (IR.Elim identityAppINat1) (natV 1),
-      shouldEval (IR.Elim identityAppI) videntity,
-      shouldEval (IR.Elim kApp1_2) (natV 1),
-      shouldEval' typGlobals (IR.Elim (IR.Free (IR.Global "ty"))) (IR.VStar 0),
-      shouldEval' typGlobals (name "tz") (vname "tz"),
-      shouldEval' typGlobals (name "B") (vname "A"),
-      shouldEval' typGlobals (name "C") (vname "A")
+    [ shouldEval "1 + 2" add12 (natV 3),
+      shouldEval "5 - 2" sub52 (natV 3),
+      shouldEval "I 1" identityApplication (natV 1),
+      shouldEval "I I 1" (IR.Elim identityAppINat1) (natV 1),
+      shouldEval "I I" (IR.Elim identityAppI) videntity,
+      shouldEval "K 1 2" (IR.Elim kApp1_2) (natV 1),
+      shouldEval' "ty" typGlobals (name "ty") (IR.VStar 0),
+      shouldEval' "tz" typGlobals (name "tz") (vname "tz"),
+      shouldEval' "B" typGlobals (name "B") (vname "A"),
+      shouldEval' "C" typGlobals (name "C") (vname "A")
     ]
   where
     add12 = IR.Elim $ add `IR.App` nat 1 `IR.App` nat 2
