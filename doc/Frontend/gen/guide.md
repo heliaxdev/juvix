@@ -336,6 +336,7 @@ Expressions
         0
 
     -- This is the same function!
+    sig func2 : tree nat -> nat
     let func2 (Branch left ele right) =
       func2 left + ele + func2 right
     let func2 (Leaf ele) =
