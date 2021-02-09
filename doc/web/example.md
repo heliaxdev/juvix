@@ -12,7 +12,7 @@ type tree a = Branch (tree a) a (tree a)
 
 
 -- an example with match!
-sig func : Tree nat -> nat
+sig func : tree nat -> nat
 let func foo =
   case foo of
   | Branch left ele right ->
