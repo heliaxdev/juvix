@@ -414,6 +414,8 @@ lookupGen ::
 lookupGen extraLookup nameSymb T {currentNameSpace} =
   let recurse _ Nothing =
         Nothing
+      recurse [] (Just CurrentNameSpace) =
+        Just $ Record currentNameSpace Nothing
       recurse [] x =
         x
       recurse (x : xs) (Just (Record namespace _)) =
