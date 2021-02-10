@@ -141,7 +141,8 @@ data DataArg primTy
   = DataArg
       { argName :: GlobalName,
         argUsage :: Usage,
-        argType :: Type primTy
+        argType :: Type primTy,
+        argIsParam :: Bool
       }
 
 -- TODO: Figure out how to do this with extensible.

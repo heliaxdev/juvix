@@ -144,7 +144,8 @@ data DataArgWith ty primTy primVal
   = DataArg
       { argName :: GlobalName,
         argUsage :: Usage,
-        argType :: ty primTy primVal
+        argType :: ty primTy primVal,
+        argIsParam :: Bool
       }
   deriving (Eq, Show, Data, NFData, Generic)
 
