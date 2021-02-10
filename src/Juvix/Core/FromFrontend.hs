@@ -571,18 +571,18 @@ lookupSig' q x' = do
   where
     x = Ctx.removeTopName x'
 
-transformType ::
-  ( Data primTy,
-    Data primVal,
-    HasPatVars m,
-    HasThrowFF primTy primVal m,
-    HasParam primTy primVal m,
-    HasCoreSigs primTy primVal m
-  ) =>
-  NameSymbol.Mod ->
-  NameSymbol.T ->
-  FE.Type ->
-  m [IR.RawGlobal primTy primVal]
+-- transformType ::
+--   ( Data primTy,
+--     Data primVal,
+--     HasPatVars m,
+--     HasThrowFF primTy primVal m,
+--     HasParam primTy primVal m,
+--     HasCoreSigs primTy primVal m
+--   ) =>
+--   NameSymbol.Mod ->
+--   NameSymbol.T ->
+--   FE.Type ->
+--   m [IR.RawGlobal primTy primVal]
 transformType q name dat@(FE.Typ {typeForm}) = do
   (ty, hdHR) <- getDataSig q name
   let hd = hrToIR <$> hdHR
@@ -619,8 +619,7 @@ splitDataType x ty0 = go ty0
           IR.DataArg
             { argName = x,
               argUsage = π,
-              argType = hrToIR s,
-              argIsParam = False -- TODO parameter detection
+              argType = hrToIR s
             }
     go (HR.Star ℓ) = pure ([], ℓ)
     go _ = throwFF $ InvalidDatatypeType x ty0

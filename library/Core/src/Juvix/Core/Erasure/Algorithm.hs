@@ -60,9 +60,9 @@ eraseDataArg ::
   ErasureM primTy1 primTy2 primVal1 primVal2 m =>
   IR.DataArg primTy1 primVal1 ->
   m (Erasure.DataArg primTy2)
-eraseDataArg (IR.DataArg name usage ty isParam) = do
+eraseDataArg (IR.DataArg name usage ty) = do
   ty <- eraseType ty
-  pure (Erasure.DataArg name usage ty isParam)
+  pure (Erasure.DataArg name usage ty)
 
 eraseDataCon ::
   ErasureM primTy1 primTy2 primVal1 primVal2 m =>
