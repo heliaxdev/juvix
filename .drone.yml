@@ -9,86 +9,57 @@ environment:
   STACK_ROOT: /drone/workspace/.stack
 
 steps:
-  - name: restore-cache
-    image: meltwater/drone-cache:dev
-    settings:
-      backend: "filesystem"
-      restore: true
-      cache_key: "volume"
-      archive_format: "gzip"
-      mount:
-        - ./.stack-work
-        - ./.stack    
-    volumes:
-      - name: cache
+- name: restore-cache
+  image: drillster/drone-volume-cache
+  volumes:
+  - name: cache
+    path: /cache
+  settings:
+    restore: true
+    mount:
+      - ./.stack-work
+      - ./.stack
 
-  - name: test-suite
-    image: cryptiumlabs/juvix-ci-2
-    pull: if-not-exists
-    commands:
-      - make test
-    depends_on:
-      - restore-cache
+- name: test-suite
+  image: cryptiumlabs/juvix-ci-2
+  commands:
+  - make test
 
-  - name: rebuild-cache
-    image: meltwater/drone-cache:dev
-    volumes:
-      - name: cache
-    settings:
-      backend: "filesystem"
-      archive_format: "gzip"
-      cache_key: "volume"
-      rebuild: true
-      mount:
-        - ./.stack-work
-        - ./.stack
-    depends_on:
-      - test-suite
+- name: rebuild-cache
+  image: drillster/drone-volume-cache
+  volumes:
+  - name: cache
+    path: /cache
+  settings:
+    rebuild: true
+    mount:
+      - ./.stack-work
+      - ./.stack
 
-  - name: check-formatting
-    image: cryptiumlabs/juvix-ci-2
-    pull: if-not-exists
-    failure: fast
-    commands:
-      - sh ./scripts/check-formatting.sh
-    depends_on:
-      - rebuild-cache
+- name: check-formatting
+  image: cryptiumlabs/juvix-ci-2
+  commands:
+  - sh ./scripts/check-formatting.sh
 
-  - name: check-org-gen
-    image: cryptiumlabs/juvix-ci-2
-    pull: if-not-exists
-    failure: fast
-    commands:
-      - sh ./scripts/check-org-gen.sh
-    depends_on:
-      - rebuild-cache
+- name: check-org-gen
+  image: cryptiumlabs/juvix-ci-2
+  commands:
+  - sh ./scripts/check-org-gen.sh
 
-  - name: test-parser
-    image: cryptiumlabs/juvix-ci-2
-    pull: if-not-exists
-    failure: fast
-    commands:
-      - make test-parser
-    depends_on:
-      - rebuild-cache
+- name: test-parser
+  image: cryptiumlabs/juvix-ci-2
+  commands:
+  - make test-parser
 
-  - name: test-typecheck
-    image: cryptiumlabs/juvix-ci-2
-    pull: if-not-exists
-    failure: fast
-    commands:
-      - make test-typecheck
-    depends_on:
-      - rebuild-cache
+- name: test-typecheck
+  image: cryptiumlabs/juvix-ci-2
+  commands:
+  - make test-typecheck
 
-  - name: test-compile
-    image: cryptiumlabs/juvix-ci-2
-    pull: if-not-exists
-    failure: fast
-    commands:
-      - make test-compile
-    depends_on:
-      - rebuild-cache
+- name: test-compile
+  image: cryptiumlabs/juvix-ci-2
+  commands:
+  - make test-compile
 
 volumes:
   - name: cache
@@ -97,4 +68,4 @@ volumes:
 
 trigger:
   event:
-    - push
+  - push
