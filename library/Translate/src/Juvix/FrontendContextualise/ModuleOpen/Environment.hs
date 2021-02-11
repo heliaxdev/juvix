@@ -57,7 +57,8 @@ type Expression tag m =
     HasThrow "error" Error m,
     HasState "modMap" ModuleMap m,
     HasReader "openMap" OpenMap m,
-    ModuleSwitch tag m
+    ModuleSwitch tag m,
+    MonadIO m
   )
 
 --------------------------------------------------------------------------------
@@ -108,10 +109,10 @@ data Open a
   deriving (Show, Eq, Ord)
 
 type ContextAlias =
-  ExceptT Error (State Environment)
+  ExceptT Error (StateT Environment IO)
 
 newtype Context a = Ctx {antiAlias :: ContextAlias a}
-  deriving (Functor, Applicative, Monad)
+  deriving (Functor, Applicative, Monad, MonadIO)
   deriving
     ( HasState "old" (Old Context.T),
       HasSink "old" (Old Context.T),
@@ -145,11 +146,11 @@ newtype Context a = Ctx {antiAlias :: ContextAlias a}
     via ReaderField "openMap" ContextAlias
 
 type SingleAlias term1 ty1 sumRep1 =
-  ExceptT Error (State (SingleEnv term1 ty1 sumRep1))
+  ExceptT Error (StateT (SingleEnv term1 ty1 sumRep1) IO)
 
 newtype SingleCont term1 ty1 sumRep1 a
   = SCtx {aSingle :: SingleAlias term1 ty1 sumRep1 a}
-  deriving (Functor, Applicative, Monad)
+  deriving (Functor, Applicative, Monad, MonadIO)
   deriving
     ( HasState "new" (New Context.T),
       HasSink "new" (New Context.T),
@@ -199,7 +200,9 @@ class Names a where
   inCurrentModule' :: NameConstraint a m => NameSymbol.T -> a -> m Bool
 
 instance Switch (SingleDispatch a b c) where
-  type SwitchConstraint _ m = (SingleMap a b c m, HasThrow "error" Error m)
+  type
+    SwitchConstraint _ m =
+      (SingleMap a b c m, HasThrow "error" Error m, MonadIO m)
   switch sym SingleDispatch = do
     tmp <- get @"new"
     env <- get @"env"
@@ -207,7 +210,9 @@ instance Switch (SingleDispatch a b c) where
     switchContextErr sym env >>= put @"env"
 
 instance Switch EnvDispatch where
-  type SwitchConstraint _ m = (TransitionMap m, HasThrow "error" Error m)
+  type
+    SwitchConstraint _ m =
+      (TransitionMap m, HasThrow "error" Error m, MonadIO m)
   switch sym EnvDispatch = do
     -- no modifyM to remove this pattern
     old <- get @"old"
@@ -265,12 +270,13 @@ inCurrentModule name = Juvix.Library.ask @"dispatch" >>= inCurrentModule' name
 ----------------------------------------
 
 switchContextErr ::
-  HasThrow "error" Error m =>
+  (HasThrow "error" Error m, MonadIO m) =>
   NameSymbol.T ->
   Context.T term ty sumRep ->
   m (Context.T term ty sumRep)
-switchContextErr sym ctx =
-  case Context.switchNameSpace sym ctx of
+switchContextErr sym ctx = do
+  switched <- liftIO $ Context.switchNameSpace sym ctx
+  case switched of
     -- bad Error for now
     Left ____ -> throw @"error" (UnknownModule sym)
     Right map -> pure map
@@ -278,8 +284,8 @@ switchContextErr sym ctx =
 grabList :: NameSymbol.T -> Context.T a b c -> NameSpace.List (Context.Definition a b c)
 grabList name ctx =
   case Context.extractValue <$> Context.lookup name ctx of
-    Just (Context.Record nameSpace _) ->
-      NameSpace.toList nameSpace
+    Just (Context.Record Context.Rec {recordContents}) ->
+      NameSpace.toList recordContents
     Just _ ->
       NameSpace.List [] []
     Nothing ->
@@ -335,19 +341,21 @@ bareRun ::
   Old Context.T ->
   New Context.T ->
   OpenMap ->
-  (Either Error a, Environment)
+  IO (Either Error a, Environment)
 bareRun (Ctx c) old new opens =
   Env old new mempty opens EnvDispatch
-    |> runState (runExceptT c)
+    |> runStateT (runExceptT c)
 
 runEnv ::
-  Context a -> Old Context.T -> [PreQualified] -> (Either Error a, Environment)
-runEnv (Ctx c) old pres =
-  case resolve old pres of
+  Context a -> Old Context.T -> [PreQualified] -> IO (Either Error a, Environment)
+runEnv (Ctx c) old pres = do
+  resolved <- resolve old pres
+  empt <- Context.empty (Context.currentName old)
+  case resolved of
     Right opens ->
-      Env old (Context.empty (Context.currentName old)) mempty opens EnvDispatch
-        |> runState (runExceptT c)
-    Left err -> (Left err, undefined)
+      Env old empt mempty opens EnvDispatch
+        |> runStateT (runExceptT c)
+    Left err -> pure (Left err, undefined)
 
 -- for this function just the first part of the symbol is enough
 qualifyName ::
@@ -435,24 +443,39 @@ populateModMap = do
 -- qualification at this point... we add qualification later as we add
 -- things, as we have to figure out the full resolution of all opens
 
+type RunM =
+  ExceptT Error IO
+
+newtype M a = M (RunM a)
+  deriving (Functor, Applicative, Monad, MonadIO)
+  deriving (HasThrow "left" Error) via MonadError RunM
+
+runM :: M a -> IO (Either Error a)
+runM (M a) = runExceptT a
+
 -- | @resolve@ takes a context and a list of open modules and the modules
 -- they are open in (the module itself, and sub modules, which the opens are
 -- implicit), and fully resolves the opens to their full name.
 -- for example @open Prelude@ in the module Londo translates to
 -- @resolve ctx PreQualified {opens = [Prelude]}@
 -- == @Right (fromList [(TopLevel :| [Londo],[Explicit (TopLevel :| [Prelude])])])@
-resolve :: Context.T a b c -> [PreQualified] -> Either Error OpenMap
-resolve ctx = foldM (resolveSingle ctx) mempty
+resolve :: Context.T a b c -> [PreQualified] -> IO (Either Error OpenMap)
+resolve ctx = runM . foldM (resolveSingle ctx) mempty
 
 resolveSingle ::
-  Context.T a b c -> OpenMap -> PreQualified -> Either Error OpenMap
-resolveSingle ctx openMap Pre {opens, implicitInner, explicitModule} =
-  case Context.switchNameSpace explicitModule ctx of
+  (HasThrow "left" Error m, MonadIO m) =>
+  Context.T a b c ->
+  OpenMap ->
+  PreQualified ->
+  m OpenMap
+resolveSingle ctx openMap Pre {opens, implicitInner, explicitModule} = do
+  switched <- liftIO $ Context.switchNameSpace explicitModule ctx
+  case switched of
     Left (Context.VariableShared err) ->
-      Left (IllegalModuleSwitch err)
+      throw @"left" (IllegalModuleSwitch err)
     Right ctx -> do
-      resolved <- pathsCanBeResolved ctx opens
-      qualifiedNames <- resolveLoop ctx mempty resolved
+      resolved <- liftEither (pathsCanBeResolved ctx opens)
+      qualifiedNames <- liftEither (resolveLoop ctx mempty resolved)
       openMap
         |> Map.insert explicitModule (fmap Explicit qualifiedNames)
         |> ( \map ->
@@ -461,7 +484,7 @@ resolveSingle ctx openMap Pre {opens, implicitInner, explicitModule} =
                  map
                  implicitInner
            )
-        |> Right
+        |> pure
 
 -- this goes off after the checks have passed regarding if the paths
 -- are even possible to resolve
@@ -485,10 +508,10 @@ resolveLoop ctx map Res {resolved, notResolved = cantResolveNow} = do
       fmap snd fullyQualifyRes
     addToModMap map (def, sym) =
       case def of
-        Context.Record cont _ ->
-          let NameSpace.List {publicL} = NameSpace.toList cont
+        Context.Record Context.Rec {recordContents} ->
+          let NameSpace.List {publicL} = NameSpace.toList recordContents
            in foldlM
-                ( \map (x, _) ->
+                ( \map x ->
                     case map Map.!? x of
                       -- this means we already have opened this in another
                       -- module
@@ -501,7 +524,7 @@ resolveLoop ctx map Res {resolved, notResolved = cantResolveNow} = do
                           Nothing -> Right (Map.insert x sym map)
                 )
                 map
-                publicL
+                (fmap fst publicL)
         -- should be updated when we can open expressions
         _ ->
           Left (UnknownModule sym)
@@ -516,6 +539,10 @@ resolveLoop ctx map Res {resolved, notResolved = cantResolveNow} = do
 -- start that any module which tries to open a nested path fails,
 -- yet any previous part succeeds, that an illegal open is happening,
 -- and we can error out immediately
+
+liftEither :: HasThrow "left" e m => Either e a -> m a
+liftEither (Left le) = throw @"left" le
+liftEither (Right x) = pure x
 
 -- | @pathsCanBeResolved@ takes a context and a list of opens,
 -- we then try to resolve if the opens are legal, if so we return

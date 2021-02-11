@@ -563,6 +563,9 @@ Types to support partial application and polymorphic primitives.
 - _Relies on_
   + [[Library]]
   + [[HashMap]]
+****** Open <<Common/Open>>
+- _Relies on_
+  + [[Library]]
 ****** Context <<Core/Common/Context>>
 - Serves as the context for lower level programs of the =Juvix=
   Programming Language
@@ -583,6 +586,7 @@ Types to support partial application and polymorphic primitives.
 - _Relies on_
   + [[Precedence]]
   + [[NameSpace]]
+  + [[Common/Open]]
   + [[Library]]
   + [[HashMap]]
   + [[NameSymbol]]
@@ -936,6 +940,7 @@ Tests for the type checker and evaluator in Core/IR/Typechecker.hs
   + [[NameSpace]]
   + [[Library]]
   + [[HashMap]]
+  + [[NameSymbol]]
 *** IR
 **** Weak <<IR/Weak>>
 Tests that weak works as expected
@@ -1851,14 +1856,13 @@ Calculate mutually-recursive groups of definitions.
   + [[FrontendContextualise]]
   + [[FrontendDesugar]]
   + [[Library]]
-  + [[NameSymbol]]
 **** Infix
 ***** ShuntYard <<Infix/ShuntYard>>
 - _Relies on_
   + [[InfixPrecedence/ShuntYard]]
   + [[Library]]
 **** Module
-***** Open
+***** Open <<Module/Open>>
 - _Relies on_
   + [[Core/Common/Context]]
   + [[NameSpace]]
