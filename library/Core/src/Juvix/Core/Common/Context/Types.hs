@@ -89,6 +89,9 @@ type SymbolMap = STM.Map Symbol SymbolInfo
 
 type ReverseLookup = HashMap.T NameSymbol.T [WhoUses]
 
+-- Note ∷ we don't store the implicit explicit open nature of the symbol
+-- this can be found by querying the reverse map and seeing there
+-- this is sadly O(n) right now... but can be made faster in the future
 data SymbolInfo
   = SymInfo
       { -- | used notes if the symbol is used and if so in what
