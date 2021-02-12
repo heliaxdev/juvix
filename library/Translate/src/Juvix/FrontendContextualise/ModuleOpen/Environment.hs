@@ -1,5 +1,4 @@
 {-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LiberalTypeSynonyms #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 
@@ -39,6 +38,12 @@ type Old f =
 
 type New f =
   f (NonEmpty (New.FunctionLike New.Expression)) New.Signature New.Type
+
+type Old' f =
+  f (NonEmpty (Old.FunctionLike Old.Expression)) Old.Signature
+
+type New' f =
+  f (NonEmpty (New.FunctionLike New.Expression)) New.Signature
 
 type TransitionMap m =
   (HasState "old" (Old Context.T) m, HasState "new" (New Context.T) m)

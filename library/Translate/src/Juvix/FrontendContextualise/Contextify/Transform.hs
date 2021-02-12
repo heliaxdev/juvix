@@ -39,19 +39,27 @@ run = contextify
 
 -- we can't just have a list, we need to have a map with implicit opens as
 -- well...
+-- TODO ∷ update this case to register the constructors!
 updateTopLevel :: Repr.TopLevel -> Type.Context -> IO Type.Pass
-updateTopLevel (Repr.Type t@(Repr.Typ _ name _ _)) ctx =
-  pure $
-    Type.P
-      { ctx = Context.add (NameSpace.Pub name) (Context.TypeDeclar t) ctx,
-        opens = [],
-        modsDefined = []
-      }
+updateTopLevel (Repr.Type t@(Repr.Typ _ name _ dat)) ctx =
+  let constructors = collectConstructors dat
+      addSum con =
+        Context.Sum Nothing name
+          |> Context.SumCon
+          |> Context.add (NameSpace.Pub con)
+      newCtx = foldr addSum ctx constructors
+   in
+    pure $
+      Type.P
+        { ctx = Context.add (NameSpace.Pub name) (Context.TypeDeclar t) newCtx,
+          opens = [],
+          modsDefined = []
+        }
 updateTopLevel (Repr.Function (Repr.Func name f sig)) ctx = do
   let precendent =
         case Context.extractValue <$> Context.lookup (pure name) ctx of
-          Just Context.Def {precedence} ->
-            precedence
+          Just (Context.Def Context.D {defPrecedence}) ->
+            defPrecedence
           Just (Context.Information info) ->
             case Context.precedenceOf info of
               Just pr -> pr
@@ -75,9 +83,13 @@ updateTopLevel (Repr.Declaration (Repr.Infixivity dec)) ctx =
           Repr.NonAssoc n assoc ->
             (n, Context.Pred Context.NonAssoc (fromIntegral assoc))
    in pure $ case Context.extractValue <$> Context.lookup (pure name) ctx of
-        Just def@Context.Def {} ->
+        Just (Context.Def d) ->
           Type.P
-            { ctx = Context.add (NameSpace.Pub name) def {Context.precedence = prec} ctx,
+            { ctx =
+                ctx
+                  |> Context.add
+                    (NameSpace.Pub name)
+                    (Context.Def (d {Context.defPrecedence = prec})),
               opens = [],
               modsDefined = []
             }
@@ -163,7 +175,18 @@ decideRecordOrDef recordName currModName xs pres ty
   where
     len = length xs
     Repr.Like args body = NonEmpty.head xs
-    def = pure (Context.Def Nothing ty xs pres, [])
+    def = pure (Context.Def (Context.D Nothing ty xs pres), [])
+
+collectConstructors :: Repr.Data -> [Symbol]
+collectConstructors dat =
+  let adt' =
+        case dat of
+          Repr.Arrowed _ adt -> adt
+          Repr.NonArrowed adt -> adt
+      constructors (Repr.Sum sum) =
+        NonEmpty.toList (Repr.sumConstructor <$> sum)
+      constructors Repr.Product {} = empty
+   in constructors adt'
 
 ----------------------------------------
 -- Helpers

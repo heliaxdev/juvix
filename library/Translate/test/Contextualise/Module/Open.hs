@@ -36,19 +36,21 @@ prelude = do
   ctx
     |> Context.add
       (NameSpace.Pub "->")
-      ( Context.Def
-          Nothing
-          Nothing
-          (Types.Like [] (Types.Primitive (Types.Prim (pure "Arrow"))) :| [])
-          (Context.Pred Context.Right 0)
+      ( Context.Def $
+          Context.D
+            Nothing
+            Nothing
+            (Types.Like [] (Types.Primitive (Types.Prim (pure "Arrow"))) :| [])
+            (Context.Pred Context.Right 0)
       )
     |> Context.add
       (NameSpace.Pub ":")
-      ( Context.Def
-          Nothing
-          Nothing
-          (Types.Like [] (Types.Primitive (Types.Prim (pure "Colon"))) :| [])
-          (Context.Pred Context.Right 2)
+      ( Context.Def $
+          Context.D
+            Nothing
+            Nothing
+            (Types.Like [] (Types.Primitive (Types.Prim (pure "Colon"))) :| [])
+            (Context.Pred Context.Right 2)
       )
     |> pure
 
@@ -87,11 +89,12 @@ sameSymbolModule = do
 
 defaultDef :: Symbol -> Env.New Context.Definition
 defaultDef symb =
-  Context.Def
-    Nothing
-    Nothing
-    (Types.Like [] (Types.Primitive (Types.Prim (pure symb))) :| [])
-    (Context.Pred Context.Right 10)
+  Context.Def $
+    Context.D
+      Nothing
+      Nothing
+      (Types.Like [] (Types.Primitive (Types.Prim (pure symb))) :| [])
+      (Context.Pred Context.Right 10)
 
 preludeAdded :: IO (Env.New Context.T)
 preludeAdded = do

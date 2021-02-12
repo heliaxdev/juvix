@@ -29,6 +29,12 @@ type Old f =
 type New f =
   f (NonEmpty (New.FunctionLike New.Expression)) New.Signature New.Type
 
+type Old' f =
+  f (NonEmpty (Old.FunctionLike Old.Expression)) Old.Signature
+
+type New' f =
+  f (NonEmpty (New.FunctionLike New.Expression)) New.Signature
+
 type TransitionMap m =
   (HasState "old" (Old Context.T) m, HasState "new" (New Context.T) m)
 
@@ -190,8 +196,8 @@ chooseProperScope Nothing Nothing =
 
 extractInformation ::
   Context.Definition term ty sumRep -> Maybe [Context.Information]
-extractInformation (Context.Def {precedence}) =
-  Just [Context.Prec precedence]
+extractInformation (Context.Def Context.D {defPrecedence}) =
+  Just [Context.Prec defPrecedence]
 extractInformation (Context.Information is) =
   Just is
 extractInformation _ = Nothing

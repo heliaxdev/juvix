@@ -19,7 +19,7 @@ top :: T.TestTree
 top =
   T.testGroup
     "contextify tests:"
-    [infixPlaceTest]
+    [infixPlaceTest, sumConTest]
 
 --------------------------------------------------------------------------------
 -- tests
@@ -31,12 +31,30 @@ infixPlaceTest =
       Right (ctx, _) <-
         Contextualize.contextify (("Foo", desugared) :| [])
       ctx Context.!? "+"
-        |> fmap (Context.precedence . Context.extractValue)
+        |> fmap ((\(Context.Def d) -> Context.defPrecedence d) . Context.extractValue)
         |> (T.@=? Just (Context.Pred Context.Left 5))
-  )
     |> T.testCase
       "infix properly adds precedence"
+   )
   where
     Right desugared =
       Desugar.op . AST.extractTopLevel
         <$> Parser.parseOnly "let (+) = 3 declare infixl (+) 5"
+
+sumConTest :: T.TestTree
+sumConTest =
+  T.testGroup
+    "Sum Constructors are properly added:"
+    [ T.testCase "Bool properly adds True" (test "True"),
+      T.testCase "Bool properly adds False" (test "False")
+    ]
+  where
+    test str = do
+      Right (ctx, _) <-
+        Contextualize.contextify (("Foo", desugared) :| [])
+      ctx Context.!? str
+        |> fmap Context.extractValue
+        |> (T.@=? Just (Context.SumCon (Context.Sum Nothing "bool")))
+    Right desugared =
+      Desugar.op . AST.extractTopLevel
+        <$> Parser.parseOnly "type bool = True | False"

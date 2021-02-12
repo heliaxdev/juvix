@@ -37,12 +37,7 @@ data From b
 -- this will just emit the proper names we need, not any terms to translate
 -- once we hit core, we can then populate it with the actual forms
 data Definition term ty sumRep
-  = Def
-      { definitionUsage :: Maybe Usage.T,
-        definitionMTy :: Maybe ty,
-        definitionTerm :: term,
-        precedence :: Precedence
-      }
+  = Def (Def term ty)
   | Record (Record term ty sumRep)
   | TypeDeclar
       { definitionRepr :: sumRep
@@ -56,7 +51,24 @@ data Definition term ty sumRep
   | -- Signifies that this path is the current module, and that
     -- we should search the currentNameSpace from here
     CurrentNameSpace
+  | SumCon (SumT term ty)
   deriving (Show, Generic, Eq)
+
+data Def term ty
+  = D
+      { defUsage :: Maybe Usage.T,
+        defMTy :: Maybe ty,
+        defTerm :: term,
+        defPrecedence :: Precedence
+      }
+  deriving (Show, Generic, Eq, Data)
+
+data SumT term ty
+  = Sum
+      { sumTDef :: Maybe (Def term ty),
+        sumTName :: Symbol
+      }
+  deriving (Show, Generic, Eq, Data)
 
 data Record term ty sumRep
   = Rec
@@ -119,6 +131,9 @@ instance Eq (STM.Map a b) where
 
 -- not using lenses anymore but leaving this here anyway
 makeLensesWith camelCaseFields ''Definition
+
+
+makeLensesWith camelCaseFields ''Def
 
 makeLensesWith camelCaseFields ''Record
 

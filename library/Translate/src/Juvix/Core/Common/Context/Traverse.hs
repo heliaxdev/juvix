@@ -127,7 +127,7 @@ recGroups' injection ns = do
               fv xs
             Context.TypeDeclar sum ->
               fv sum
-            Context.Def usage mty term prec ->
+            Context.Def (Context.D usage mty term prec) ->
               (\a b c d -> a <> b <> c <> d) <$> fv usage <*> fv mty <*> fv term <*> fv prec
             _ -> pure []
         -- we remove the TopLevel. from fvs as it screws with the

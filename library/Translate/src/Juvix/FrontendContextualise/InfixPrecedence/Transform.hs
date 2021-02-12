@@ -106,7 +106,7 @@ decideRecordOrDef xs ty
   where
     len = length xs
     New.Like args body = NonEmpty.head xs
-    def = pure $ Context.Def Nothing ty xs Context.default'
+    def = pure $ Context.Def $ Context.D Nothing ty xs Context.default'
 
 emptyArgs :: [a] -> Bool
 emptyArgs [] = True
@@ -128,12 +128,14 @@ transformDef ::
   Env.Old Context.Definition ->
   NameSpace.From Symbol ->
   m (Env.New Context.Definition)
-transformDef (Context.Def usage mTy term prec) _ =
-  Context.Def usage
-    <$> traverse transformSignature mTy
-    <*> traverse transformFunctionLike term
-    <*> pure prec
+transformDef (Context.Def def) _ =
+  transformDefinition def >>| Context.Def
 --
+transformDef (Context.SumCon Context.Sum {sumTDef, sumTName}) _ =
+  Context.Sum
+    <$> traverse transformDefinition sumTDef
+    <*> pure sumTName
+    >>| Context.SumCon
 transformDef (Context.TypeDeclar repr) _ =
   Context.TypeDeclar <$> transformType repr
 --
@@ -168,6 +170,14 @@ transformDef (Context.Record Context.Rec {recordMTy}) name' = do
         |> pure
     Nothing -> error "Does not happen: record lookup is nothing"
     Just __ -> error "Does not happen: record lookup is Just not a record!"
+
+transformDefinition ::
+  Env.Expression tag m => Env.Old' Context.Def -> m (Env.New' Context.Def)
+transformDefinition (Context.D usage mTy term prec) =
+  Context.D usage
+    <$> traverse transformSignature mTy
+    <*> traverse transformFunctionLike term
+    <*> pure prec
 
 -- we work on the topMap
 transformC :: Env.WorkingMaps env m => m ()
