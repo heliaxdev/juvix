@@ -18,6 +18,7 @@ import Juvix.Core.Translate (hrToIR)
 import qualified Juvix.FrontendContextualise as FE
 import qualified Juvix.FrontendContextualise.InfixPrecedence.Types as FE
 import Juvix.Library
+import qualified Data.List.NonEmpty as NonEmpty
 import qualified Juvix.Library.NameSymbol as NameSymbol
 import qualified Juvix.Library.Usage as Usage
 
@@ -49,9 +50,9 @@ transformTermIR ::
   ) =>
   NameSymbol.Mod ->
   FE.Expression ->
-  m (IR.Term primTy primVal)
+  m (NonEmpty.NonEmpty (IR.Term primTy primVal))
 transformTermIR q fe = do
-  SYB.everywhereM (SYB.mkM transformPatVar) . hrToIR =<< transformTermHR q fe
+  traverse (SYB.everywhereM (SYB.mkM transformPatVar) . hrToIR) =<< transformTermHR' q fe
 
 transformPatVar :: HasPatVars m => IR.Name -> m IR.Name
 transformPatVar (IR.Global name) =
@@ -62,6 +63,28 @@ transformPatVar p = pure p
 
 -- | N.B. doesn't deal with pattern variables since HR doesn't have them.
 -- 'transformTermIR' does that.
+
+
+-- globalF %gensym (match here)
+-- match ... ...
+-- => %gensym name
+
+uniqueName :: HasCoreSigs primTy primVal m => m NameSymbol.T
+uniqueName = undefined
+
+
+transformTermHR' ::
+  ( Data primTy,
+    Data primVal,
+    HasThrowFF primTy primVal m,
+    HasParam primTy primVal m,
+    HasCoreSigs primTy primVal m
+  ) =>
+  NameSymbol.Mod ->
+  FE.Expression ->
+  m (NonEmpty.NonEmpty (HR.Term primTy primVal))
+transformTermHR' = undefined
+
 transformTermHR ::
   ( Data primTy,
     Data primVal,
@@ -505,7 +528,7 @@ transformNormalDef ::
   m [IR.RawGlobal primTy primVal]
 transformNormalDef q x (Ctx.Def (Ctx.D _ _ def _)) = do
   (π, typ) <- getValSig q x
-  clauses <- traverse (transformClause q) def
+  (clauses :| others) <- traverse (transformClause q) def
   let f =
         IR.Function
           { funName = x,
@@ -646,6 +669,8 @@ transformCon q hd (FE.S name prod) =
   transformCon' q (NameSymbol.qualify1 q name) hd $
     fromMaybe (FE.ADTLike []) prod
 
+-- TODO ∷ now unresolved pattern matching promotion to global functions here....
+
 transformCon' ::
   ( Data primTy,
     Data primVal,
@@ -660,14 +685,17 @@ transformCon' ::
   FE.Product ->
   m (IR.RawDataCon primTy primVal)
 transformCon' _ _ _ (FE.Record r) = throwFF $ RecordUnimplemented r
-transformCon' q name _ (FE.Arrow ty) = IR.DataCon name <$> transformTermIR q ty
+transformCon' q name _ (FE.Arrow ty) =
+  -- TODO ∷ don't drop the extra pattern matching global functions....
+  IR.DataCon name . NonEmpty.head <$> transformTermIR q ty
 transformCon' _ name Nothing k@(FE.ADTLike {}) =
   throwFF $ InvalidConstructor name k
 transformCon' q name (Just hd) (FE.ADTLike tys) =
   IR.DataCon name <$> foldrM makeArr hd tys
   where
     makeArr arg res =
-      IR.Pi (Usage.SNat 1) <$> transformTermIR q arg <*> pure res
+      -- TODO ∷ don't drop the extra pattern matching global functions....
+      IR.Pi (Usage.SNat 1) . NonEmpty.head <$> transformTermIR q arg <*> pure res
 
 transformClause ::
   ( Data primTy,
@@ -680,11 +708,14 @@ transformClause ::
   ) =>
   NameSymbol.Mod ->
   FE.FunctionLike FE.Expression ->
-  m (IR.FunClause primTy primVal)
+  m (NonEmpty.NonEmpty (IR.FunClause primTy primVal))
 transformClause q (FE.Like args body) = do
   put @"patVars" mempty
   put @"nextPatVar" 0
-  IR.FunClause <$> traverse transformArg args <*> transformTermIR q body
+  (actual NonEmpty.:| aditional) <- transformTermIR q body
+  generateClauses <- traverse undefined aditional
+  args <- traverse transformArg args
+  pure (IR.FunClause args actual NonEmpty.:| generateClauses)
 
 transformArg ::
   ( HasNextPatVar m,
