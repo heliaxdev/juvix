@@ -1380,6 +1380,10 @@ Can be added to via core translation
 - _Relies on_
   + [[Library]]
   + [[Library/Sexp]]
+**** SimplifiedPasses
+- _Relies on_
+  + [[Library]]
+  + [[Library/Sexp]]
 * Translate
 ** Setup <<Translate/Setup>>
 ** src
@@ -1403,6 +1407,27 @@ Calculate mutually-recursive groups of definitions.
   + [[Context/Types]]
   + [[Library]]
   + [[NameSymbol]]
+**** Desugar <<Juvix/Desugar>>
+Desugar takes the frontend syntax and through the =desugar=
+function, removes all extra parts of syntax that can be boiled down
+to simple macro expansion (simplification of the frontend syntax
+from the syntax alone with no extra information needed!)
+- _Relies on_
+  + [[Passes]]
+  + [[Library]]
+  + [[Library/Sexp]]
+***** Passes
+Passes contains a list of passes on the frontend syntax that can be
+done with no extra information needed. Thus we export the following passes
+- Removing Explicit Module declarations
+- Removing Guards
+- Conds ⟶ If ⟶ Match
+- Combining signatures to functions
+- Removing punned record arguments
+- Remvoing Do syntax
+- _Relies on_
+  + [[Library]]
+  + [[Library/Sexp]]
 **** FrontendContextualise
 - order of Passes
   1. =ModuleOpen=
@@ -1925,13 +1950,6 @@ Calculate mutually-recursive groups of definitions.
   + [[RemoveSignature/Extend]]
   + [[Library]]
 ** test
-*** Desugar
-- _Relies on_
-  + [[Frontend/Parser]]
-  + [[FrontendDesugar]]
-  + [[RemoveDo/Types]]
-  + [[Library]]
-  + [[NameSymbol]]
 *** Golden
 - _Relies on_
   + [[Frontend/Parser]]
@@ -1973,3 +1991,18 @@ Calculate mutually-recursive groups of definitions.
   + [[ModuleOpen/Environment]]
   + [[Library]]
   + [[HashMap]]
+*** Desugar <<test/Desugar>>
+- _Relies on_
+  + [[Frontend/Parser]]
+  + [[FrontendDesugar]]
+  + [[RemoveDo/Types]]
+  + [[Library]]
+  + [[NameSymbol]]
+**** Sexp <<Desugar/Sexp>>
+- _Relies on_
+  + [[Passes]]
+  + [[Frontend/Parser]]
+  + [[Frontend/Sexp]]
+  + [[Frontend/Types]]
+  + [[Library]]
+  + [[Library/Sexp]]
