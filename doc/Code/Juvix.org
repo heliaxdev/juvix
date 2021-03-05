@@ -23,6 +23,7 @@
   + [[Environment]]
   + [[Library]]
   + [[NameSymbol]]
+  + [[Parser]]
 ** Core
 - _Relies on_
   + [[Erasure]]

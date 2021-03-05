@@ -13,11 +13,12 @@ import qualified Juvix.Frontend as Frontend
 import qualified Juvix.FrontendContextualise.InfixPrecedence.Environment as Target
 import Juvix.Library
 import qualified Juvix.Library.NameSymbol as NameSymbol
+import Juvix.Library.Parser (ParserError)
 import Prelude (String)
 
 data Error
   = PipeLine Core.Error
-  | ParseErr String
+  | ParseErr ParserError
   deriving (Show)
 
 toCore :: [FilePath] -> IO (Either Error Target.FinalContext)
