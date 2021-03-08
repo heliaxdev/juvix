@@ -3,6 +3,7 @@ resolver: lts-15.16
 packages:
 - .
 - ../../StandardLibrary
+- ../../Frontend
 - ../../Core
 
 extra-deps:
