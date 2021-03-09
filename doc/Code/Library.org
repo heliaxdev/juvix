@@ -1419,6 +1419,21 @@ Can be added to via core translation
 ** Setup <<Translate/Setup>>
 ** src
 *** Juvix
+**** Conversion
+***** ML <<Juvix/Conversion/ML>>
+This module is responsible for converting back S-expressions back
+- into the ML form. Currently this goes until the end of desugared
+- This module is best read along side the sexpression document in
+  doc/Aricheture/Sexp.org, looking at the forms to see they are the
+  same.
+  + Note they aren't all the same, as many forms like the top level
+    let/=defun= are desugared and thus need to look at the current
+    forms of that
+- _Relies on_
+  + [[RemoveDo/Types]]
+  + [[Library]]
+  + [[NameSymbol]]
+  + [[Library/Sexp]]
 **** Core
 ***** Common
 ****** Context
@@ -1700,15 +1715,11 @@ done with no extra information needed. Thus we export the following passes
   6. =RemovePunned=
   7. =RemoveDo=
 - _Relies on_
+  + [[Juvix/Conversion/ML]]
+  + [[Juvix/Desugar]]
+  + [[Frontend/Sexp]]
   + [[Frontend/Types]]
-  + [[CombineMultiple/Transform]]
-  + [[RemoveCond/Transform]]
-  + [[RemoveDo/Transform]]
   + [[RemoveDo/Types]]
-  + [[RemoveGuard/Transform]]
-  + [[RemoveModules/Transform]]
-  + [[RemovePunned/Transform]]
-  + [[RemoveSignature/Transform]]
   + [[Library]]
 ***** Abstractions
 - _Relies on_
@@ -2022,6 +2033,19 @@ done with no extra information needed. Thus we export the following passes
   + [[ModuleOpen/Environment]]
   + [[Library]]
   + [[HashMap]]
+*** Conversion
+**** ML <<test/Conversion/ML>>
+Temporary conversion from the Sexpression syntax to the ML syntax
+- _Relies on_
+  + [[Juvix/Conversion/ML]]
+  + [[Juvix/Desugar]]
+  + [[Frontend/Parser]]
+  + [[Frontend/Sexp]]
+  + [[Frontend/Types/Base]]
+  + [[FrontendDesugar]]
+  + [[RemoveDo/Types]]
+  + [[Library]]
+  + [[Library/Sexp]]
 *** Desugar <<test/Desugar>>
 - _Relies on_
   + [[Frontend/Parser]]
@@ -2032,8 +2056,5 @@ done with no extra information needed. Thus we export the following passes
 **** Sexp <<Desugar/Sexp>>
 - _Relies on_
   + [[Passes]]
-  + [[Frontend/Parser]]
-  + [[Frontend/Sexp]]
-  + [[Frontend/Types]]
   + [[Library]]
   + [[Library/Sexp]]
