@@ -226,15 +226,15 @@ newtype ExprM f a = ExprM {runExprM :: State (S f) a}
     via StateField "sVarNum" (State (S f))
 
 execCircuitBuilder :: ExprM f a -> ArithCircuit f
-execCircuitBuilder m = reverseCircuit . sCircuit . execState . runExprM $ m (ArithCircuit [], 0)
+execCircuitBuilder m = reverseCircuit . sCircuit $ execState (runExprM m) (S (ArithCircuit []) 0)
   where
     reverseCircuit = \(ArithCircuit cs) -> ArithCircuit $ reverse cs
 
 evalCircuitBuilder :: ExprM f a -> a
-evalCircuitBuilder = sCircuit . runCircuitBuilder
+evalCircuitBuilder = fst . runCircuitBuilder
 
 runCircuitBuilder :: ExprM f a -> (a, ArithCircuit f)
-runCircuitBuilder m = second (reverseCircuit . sCircuit) . runState . runExprM $ m (ArithCircuit [], 0)
+runCircuitBuilder m = second (reverseCircuit . sCircuit) $ runState (runExprM m) (S (ArithCircuit []) 0)
   where
     reverseCircuit = \(ArithCircuit cs) -> ArithCircuit $ reverse cs
 
@@ -267,7 +267,8 @@ mulToImm l r = do
 
 -- | Add a Mul and its output to the ArithCircuit
 emit :: Gate Wire f -> ExprM f ()
-emit c = modify $ first (\(ArithCircuit cs) -> ArithCircuit (c : cs))
+emit c = modify 
+    @"sCircuit" (\(ArithCircuit cs) -> ArithCircuit (c : cs))
 
 -- | Rotate a list to the right
 rotateList :: Int -> [a] -> [a]
