@@ -1,6 +1,6 @@
 cradle:
   stack:
     - path: ./src
-      component: "michelson"
+      component: "plonk"
     - path: ./test
-      component: "michelson:test:michelson-test"
+      component: "plonk:test:plonk-test"

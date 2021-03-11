@@ -2,7 +2,6 @@
 
 module Juvix.Backends.Plonk.Expr where
 
-import Data.Bifunctor (first, second)
 import Juvix.Backends.Plonk.Circuit
 import Juvix.Library
 import Text.PrettyPrint.Leijen.Text hiding ((<$>))
@@ -86,17 +85,18 @@ data BinOp f a where
   BOr :: BinOp f Bool
   BXor :: BinOp f Bool
 
+-- | Comparing operators
 data CompOp f where
   -- gt
-  BGt :: CompOp f
+  CGt :: CompOp f
   -- gte
-  BGte :: CompOp f
+  CGte :: CompOp f
   -- lt
-  BLt :: CompOp f
+  CLt :: CompOp f
   -- lte
-  BLte :: CompOp f
+  CLte :: CompOp f
   -- eq
-  BEq :: CompOp f
+  CEq :: CompOp f
 
 opPrecedence :: BinOp f a -> Int
 opPrecedence BOr = 5
@@ -105,6 +105,7 @@ opPrecedence BAnd = 5
 opPrecedence BSub = 6
 opPrecedence BAdd = 6
 opPrecedence BDiv = 7
+opPrecedence BMod = 7
 opPrecedence BMul = 8
 
 -- | Expression data type of (arithmetic) expressions over a field @f@
@@ -117,6 +118,7 @@ data Expr i f ty where
   ECompOp :: CompOp f -> Expr i f f -> Expr i f f -> Expr i f Bool
   EAcc :: [Expr i f ty] -> [ty] -> Expr i f ty
   EIf :: Expr i f Bool -> Expr i f ty -> Expr i f ty -> Expr i f ty
+  EEccAdd :: Expr i f (f, f) -> Expr i f (f, f) -> Expr i f (f, f)
 
 deriving instance (Show i, Show f, Show ty) => Show (Expr i f ty)
 
@@ -131,13 +133,32 @@ instance Pretty (BinOp f a) where
     BAdd -> text "+"
     BSub -> text "-"
     BMul -> text "*"
-    BAnd -> text "&&"
-    BOr -> text "||"
-    BXor -> text "xor"
+    BAnd -> text "&"
+    BOr -> text "|"
+    BXor -> text "^"
+    BDiv -> text "/"
+    BMod -> text "%"
+
+instance Pretty (CompOp f) where
+  pretty op = case op of
+    CGt -> text ">"
+    CGte -> text ">="
+    CLt -> text "<"
+    CLte -> text "<="
+    CEq -> text "=="
+
 
 instance Pretty (UnOp f a) where
   pretty op = case op of
     UNot -> text "!"
+    UDup -> text "dup"
+    UIsZero -> text "0?"
+    UShL _ -> text "<<"
+    UShR _ -> text ">>"
+    URotL _ -> text "<<<"
+    URotR _ -> text ">>>"
+    UAssertEq -> text "!"
+    UAssertIt -> text "!"
 
 instance (Pretty f, Pretty i, Pretty ty) => Pretty (Expr i f ty) where
   pretty = prettyPrec 0
@@ -324,17 +345,17 @@ compile expr = case expr of
         emit $ MulGate e1Out e2Out tmp1
         pure . Right $ Add (Add e1Out e2Out) (ScalarMul (-2) (Var tmp1))
 
--- IF(cond, true, false) = (cond*true) + ((!cond) * false)
--- EIf cond true false -> do
---   condOut <- addVar <$> compile cond
---   trueOut <- addVar <$> compile true
---   falseOut <- addVar <$> compile false
---   tmp1 <- imm
---   tmp2 <- imm
---   emit $ Mul condOut trueOut tmp1
---   emit $ Mul (Add (ConstGate 1) (ScalarMul (-1) condOut)) falseOut tmp2
---   pure . Right $ Add (Var tmp1) (Var tmp2)
--- -- EQ(lhs, rhs) = (lhs - rhs == 1)
+      -- IF(cond, true, false) = (cond*true) + ((!cond) * false)
+      EIf cond true false -> do
+        condOut <- addVar <$> compile cond
+        trueOut <- addVar <$> compile true
+        falseOut <- addVar <$> compile false
+        tmp1 <- imm
+        tmp2 <- imm
+        emit $ MulGate condOut trueOut tmp1
+        emit $ MulGate (Add (ConstGate 1) (ScalarMul (-1) condOut)) falseOut tmp2
+        pure . Right $ Add (Var tmp1) (Var tmp2)
+-- EQ(lhs, rhs) = (lhs - rhs == 1)
 -- EEq lhs rhs -> do
 --   lhsSubRhs <- compile (EBinOp BSub lhs rhs)
 --   eqIni <- addi lhsSubRhs
