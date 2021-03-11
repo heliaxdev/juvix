@@ -316,11 +316,6 @@ compile expr = case expr of
     e1Out <- compile e1
     case op of
       UNot -> pure . Right $ Add (ConstGate 1) (ScalarMul (-1) (addVar e1Out))
-  -- URot truncBits rotBits -> do
-  --   inp <- addi e1Out
-  --   outputs <- replicateM truncBits imm
-  --   emit $ Split inp outputs
-  --   pure . Right $ unsplit (rotateList rotBits outputs)
   EBinOp op e1 e2 -> do
     e1Out <- addVar <$> compile e1
     e2Out <- addVar <$> compile e2
@@ -346,15 +341,15 @@ compile expr = case expr of
         pure . Right $ Add (Add e1Out e2Out) (ScalarMul (-2) (Var tmp1))
 
       -- IF(cond, true, false) = (cond*true) + ((!cond) * false)
-      EIf cond true false -> do
-        condOut <- addVar <$> compile cond
-        trueOut <- addVar <$> compile true
-        falseOut <- addVar <$> compile false
-        tmp1 <- imm
-        tmp2 <- imm
-        emit $ MulGate condOut trueOut tmp1
-        emit $ MulGate (Add (ConstGate 1) (ScalarMul (-1) condOut)) falseOut tmp2
-        pure . Right $ Add (Var tmp1) (Var tmp2)
+  EIf cond true false -> do
+    condOut <- addVar <$> compile cond
+    trueOut <- addVar <$> compile true
+    falseOut <- addVar <$> compile false
+    tmp1 <- imm
+    tmp2 <- imm
+    emit $ MulGate condOut trueOut tmp1
+    emit $ MulGate (Add (ConstGate 1) (ScalarMul (-1) condOut)) falseOut tmp2
+    pure . Right $ Add (Var tmp1) (Var tmp2)
 -- EQ(lhs, rhs) = (lhs - rhs == 1)
 -- EEq lhs rhs -> do
 --   lhsSubRhs <- compile (EBinOp BSub lhs rhs)
