@@ -104,33 +104,6 @@ packages:
   original:
     url: https://github.com/cwgoes/haskell-z3/archive/889597234bcdf5620c5a69d3405ab4d607ba4d71.tar.gz
 - completed:
-    hackage: morley-1.2.0@sha256:d49219c792e303160e2af7d404d46ee88ef8a41332ce8696442b9acd3a8d61f9,11421
-    pantry-tree:
-      size: 10983
-      sha256: 94aaca1080f3195d057274f65dbfdf0035468b459052d88f970ca1d462b44b07
-  original:
-    hackage: morley-1.2.0
-- completed:
-    hackage: morley-prelude-0.3.0@sha256:9e9473ac14cfa206adf0a3700764c0251de05042f1fe45daf9cb8556079ae663,2085
-    pantry-tree:
-      size: 270
-      sha256: 402cd467a690373ca891fa31650376312be351244c6d7e187ca9961d3708de0a
-  original:
-    hackage: morley-prelude-0.3.0@sha256:9e9473ac14cfa206adf0a3700764c0251de05042f1fe45daf9cb8556079ae663,2085
-- completed:
-    subdir: tezos-bake-monitor-lib
-    name: tezos-bake-monitor-lib
-    version: 0.1.0.0
-    git: https://gitlab.com/obsidian.systems/tezos-bake-monitor-lib.git
-    pantry-tree:
-      size: 8709
-      sha256: 1ccdb32989e9a6eec693bcb3b4af2c5e29f4f5805e876545679a3612a3e578fb
-    commit: 9356f64a6dfc5cf9b108ad84d1f89bcdc1f08174
-  original:
-    subdir: tezos-bake-monitor-lib
-    git: https://gitlab.com/obsidian.systems/tezos-bake-monitor-lib.git
-    commit: 9356f64a6dfc5cf9b108ad84d1f89bcdc1f08174
-- completed:
     hackage: constraints-extras-0.3.0.2@sha256:bf6884be65958e9188ae3c9e5547abfd6d201df021bff8a4704c2c4fe1e1ae5b,1784
     pantry-tree:
       size: 594
