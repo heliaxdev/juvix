@@ -30,18 +30,6 @@ extra-deps:
   commit: 889597234bcdf5620c5a69d3405ab4d607ba4d71
 
 
-################################################################################
-# morley deps
-################################################################################
-
-- morley-1.2.0
-- morley-prelude-0.3.0@sha256:9e9473ac14cfa206adf0a3700764c0251de05042f1fe45daf9cb8556079ae663,2085
-
-- git: https://gitlab.com/obsidian.systems/tezos-bake-monitor-lib.git
-  commit: 9356f64a6dfc5cf9b108ad84d1f89bcdc1f08174
-  subdirs:
-   -  tezos-bake-monitor-lib
-
 ##################################################
 # sub deps of the git
 ##################################################
@@ -51,3 +39,10 @@ extra-deps:
 - dependent-sum-template-0.1.0.3@sha256:0bbbacdfbd3abf2a15aaf0cf2c27e5bdd159b519441fec39e1e6f2f54424adde,1682
 - hashing-0.1.0.1@sha256:98861f16791946cdf28e3c7a6ee9ac8b72d546d6e33c569c7087ef18253294e7,2816
 - monoidal-containers-0.6.0.1@sha256:7d776942659eb4d70d8b8da5d734396374a6eda8b4622df9e61e26b24e9c8e40,2501
+
+- github: adjoint-io/pairing
+  commit: 2ef8ba869608432f55e32afc385b7fa75d4d1742
+- github: adjoint-io/elliptic-curve
+  commit: 52b7eba38db0b3aa3619f2916c518f8f3ee63aaf
+- github: adjoint-io/galois-field
+  commit: 95fc86b61c573518ff6a1ab1b9f23301482b257

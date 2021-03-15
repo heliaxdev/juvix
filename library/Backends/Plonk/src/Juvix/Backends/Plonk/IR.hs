@@ -1,0 +1,205 @@
+{-# LANGUAGE StandaloneDeriving #-}
+
+module Juvix.Backends.Plonk.IR where
+
+import Juvix.Backends.Plonk.Circuit
+import Juvix.Library
+import Text.PrettyPrint.Leijen.Text hiding ((<$>))
+
+-- pub fn add_witness_to_circuit_description(&mut self, value: BlsScalar) -> Variable {
+
+-- pub fn with_expected_size(expected_size: usize) -> Self {
+
+-- pub fn add_input(&mut self, s: BlsScalar) -> Variable {
+
+-- pub fn lookup_gate(
+--     &mut self,
+--     a: Variable,
+--     b: Variable,
+--     c: Variable,
+-- ) -> Result<(), PreProcessingError> {
+
+-- pub fn poly_gate(
+--     &mut self,
+--     a: Variable,
+--     b: Variable,
+--     c: Variable,
+--     q_m: BlsScalar,
+--     q_l: BlsScalar,
+--     q_r: BlsScalar,
+--     q_o: BlsScalar,
+--     q_c: BlsScalar,
+--     pi: BlsScalar,
+-- ) -> (Variable, Variable, Variable) {
+
+--     pub fn constrain_to_constant(&mut self, a: Variable, constant: BlsScalar, pi: BlsScalar) {
+
+--     pub fn assert_equal(&mut self, a: Variable, b: Variable) {
+
+--     pub fn add_one_dummy_constraint(&mut self) {
+
+--     pub fn add_dummy_constraints(&mut self) {
+
+--     pub fn plookup_gate(
+--         &mut self,
+--         a: Variable,
+--         b: Variable,
+--         c: Variable,
+--         d: Option<Variable>,
+--         pi: BlsScalar,
+--     )
+
+-- pub fn range_gate(&mut self, witness: Variable, num_bits: usize) {
+data UnOp f a where
+  UExp :: Int -> UnOp f f
+  UDup :: UnOp f f
+  UIsZero :: UnOp f Bool
+  UNot :: UnOp f Bool
+  UShL :: Int -> UnOp f f
+  UShR :: Int -> UnOp f f
+  URotL :: Int -> UnOp f f
+  URotR :: Int -> UnOp f f
+  UAssertEq :: UnOp f Bool
+  UAssertIt :: UnOp f Bool
+
+-- TODO: setpub
+-- TODO: setpriv
+-- TODO: mload
+-- TODO: mstore
+
+data BinOp f a where
+  BAdd :: BinOp f f
+  BSub :: BinOp f f
+  BMul :: BinOp f f
+  BDiv :: BinOp f f
+  BMod :: BinOp f f
+  BAnd :: BinOp f Bool
+  BOr :: BinOp f Bool
+  BXor :: BinOp f Bool
+
+-- | Comparing operators
+data CompOp f where
+  CGt :: CompOp f
+  CGte :: CompOp f
+  CLt :: CompOp f
+  CLte :: CompOp f
+  CEq :: CompOp f
+
+-- | Intermediate representation of (arithmetic) expressions over a field @f@
+-- with variable names/indices coming from @i@. @ty@ is the resulting value.
+data IR i f ty where
+  IConst :: f -> IR i f f
+  IVar :: i -> IR i f f
+  IUnOp :: UnOp f ty -> IR i f ty -> IR i f ty
+  IBinOp :: BinOp f ty -> IR i f ty -> IR i f ty -> IR i f ty
+  ICompOp :: CompOp f -> IR i f f -> IR i f f -> IR i f Bool
+  IAcc :: [IR i f ty] -> [ty] -> IR i f ty
+  IIf :: IR i f Bool -> IR i f ty -> IR i f ty -> IR i f ty
+  IECAdd :: IR i f (f, f) -> IR i f (f, f) -> IR i f (f, f)
+
+deriving instance (Show i, Show f, Show ty) => Show (IR i f ty)
+
+deriving instance (Show f) => Show (CompOp f)
+
+deriving instance (Show f) => Show (BinOp f a)
+
+deriving instance (Show f) => Show (UnOp f a)
+
+instance Pretty (BinOp f a) where
+  pretty op = case op of
+    BAdd -> text "+"
+    BSub -> text "-"
+    BMul -> text "*"
+    BAnd -> text "&"
+    BOr -> text "|"
+    BXor -> text "^"
+    BDiv -> text "/"
+    BMod -> text "%"
+
+instance Pretty (CompOp f) where
+  pretty op = case op of
+    CGt -> text ">"
+    CGte -> text ">="
+    CLt -> text "<"
+    CLte -> text "<="
+    CEq -> text "=="
+
+instance Pretty (UnOp f a) where
+  pretty op = case op of
+    UExp _ -> text "^"
+    UNot -> text "!"
+    UDup -> text "dup"
+    UIsZero -> text "0?"
+    UShL _ -> text "<<"
+    UShR _ -> text ">>"
+    URotL _ -> text "<<<"
+    URotR _ -> text ">>>"
+    UAssertEq -> text "=?"
+    UAssertIt -> text "==?"
+
+opPrecedence :: BinOp f a -> Int
+opPrecedence BOr = 5
+opPrecedence BXor = 5
+opPrecedence BAnd = 5
+opPrecedence BSub = 6
+opPrecedence BAdd = 6
+opPrecedence BDiv = 7
+opPrecedence BMod = 7
+opPrecedence BMul = 8
+
+instance (Pretty f, Pretty i, Pretty ty) => Pretty (IR i f ty) where
+  pretty = prettyPrec 0
+    where
+      prettyPrec :: (Pretty f, Pretty i, Pretty ty) => Int -> IR i f ty -> Doc
+      prettyPrec p e =
+        case e of
+          IVar v -> pretty v
+          IConst l -> pretty l
+          -- TODO correct precedence
+          IUnOp op e1 -> parens (pretty op <+> pretty e1)
+          IBinOp op e1 e2 ->
+            parensPrec (opPrecedence op) p $
+              prettyPrec (opPrecedence op) e1
+                <+> pretty op
+                <+> prettyPrec (opPrecedence op) e2
+          IIf b true false ->
+            parensPrec 4 p (text "if" <+> pretty b <+> text "then" <+> pretty true <+> text "else" <+> pretty false)
+
+-------------------------------------------------------------------------------
+-- Evaluator
+-------------------------------------------------------------------------------
+
+-- | Evaluate arithmetic expressions directly, given an environment
+evalIR ::
+  (Bits f, Num f) =>
+  -- | variable lookup
+  (i -> vars -> Maybe f) ->
+  -- | expression to evaluate
+  IR i f ty ->
+  -- | input values
+  vars ->
+  -- | resulting value
+  ty
+evalIR lookupVar expr vars = case expr of
+  IConst f -> f
+  IVar i -> case lookupVar i vars of
+    Just v -> v
+    Nothing -> panic "TODO: incorrect var lookup"
+  IUnOp UNot e1 ->
+    not $ evalIR lookupVar e1 vars
+  IUnOp (URotL rotBits) e1 -> notImplemented
+  IUnOp (URotR rotBits) e1 -> notImplemented
+  IBinOp op e1 e2 ->
+    (evalIR lookupVar e1 vars) `apply` (evalIR lookupVar e2 vars)
+    where
+      apply = case op of
+        BAdd -> (+)
+        BSub -> (-)
+        BMul -> (*)
+        BAnd -> (&&)
+        BOr -> (||)
+        BXor -> \x y -> (x || y) && not (x && y)
+  IIf b true false ->
+    if evalIR lookupVar b vars
+      then evalIR lookupVar true vars
+      else evalIR lookupVar false vars

@@ -4,6 +4,8 @@ module Juvix.Backends.Plonk.Lang
     add,
     sub,
     mul,
+    div,
+    mod,
     and_,
     or_,
     xor_,
@@ -13,35 +15,35 @@ module Juvix.Backends.Plonk.Lang
   )
 where
 
-import Juvix.Backends.Plonk.Expr
-import Juvix.Library
+import Juvix.Backends.Plonk.IR
+import Juvix.Library hiding (div, mod)
 
 -- | Convert constant to expression
-c :: f -> Expr i f f
-c = EConst
+c :: f -> IR i f f
+c = IConst
 
 -- | Binary arithmetic operations on expressions
-add, sub, mul, div, mod :: Expr i f f -> Expr i f f -> Expr i f f
-add = EBinOp BAdd
-sub = EBinOp BSub
-mul = EBinOp BMul
-div = EBinOp BDiv
-mod = EBinOp BMod
+add, sub, mul, div, mod :: IR i f f -> IR i f f -> IR i f f
+add = IBinOp BAdd
+sub = IBinOp BSub
+mul = IBinOp BMul
+div = IBinOp BDiv
+mod = IBinOp BMod
 
 -- | Binary logic operations on expressions
-and_, or_, xor_ :: Expr i f Bool -> Expr i f Bool -> Expr i f Bool
-and_ = EBinOp BAnd
-or_ = EBinOp BOr
-xor_ = EBinOp BXor
+and_, or_, xor_ :: IR i f Bool -> IR i f Bool -> IR i f Bool
+and_ = IBinOp BAnd
+or_ = IBinOp BOr
+xor_ = IBinOp BXor
 
 -- | Negate expression
-not_ :: Expr i f Bool -> Expr i f Bool
-not_ = EUnOp UNot
+not_ :: IR i f Bool -> IR i f Bool
+not_ = IUnOp UNot
 
 -- | Convert wire to expression
-deref :: i -> Expr i f f
-deref = EVar
+deref :: i -> IR i f f
+deref = IVar
 
 -- | Conditional statement on expressions
-cond :: Expr i f Bool -> Expr i f ty -> Expr i f ty -> Expr i f ty
-cond = EIf
+cond :: IR i f Bool -> IR i f ty -> IR i f ty -> IR i f ty
+cond = IIf

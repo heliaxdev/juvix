@@ -18,6 +18,8 @@ dependencies:
 - containers
 - text
 - wl-pprint-text
+- elliptic-curve
+- galois-field
 
 
 default-extensions:
@@ -60,7 +62,7 @@ library:
   source-dirs: src
 
 tests:
-  michelson-test:
+  plonk-test:
     main:                Main.hs
     source-dirs:         test
     ghc-options:
