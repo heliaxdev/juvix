@@ -114,7 +114,7 @@ unsafeEvalGlobal ::
   IR.Global primTy primVal
 unsafeEvalGlobal globals g =
   case g of
-    RawGDatatype (RawDatatype n pos a l cons) -> undefined
+    RawGDatatype (RawDatatype n a ps l cons) -> undefined
     RawGDataCon (RawDataCon n t d) -> undefined
     RawGFunction (RawFunction n u t cs) ->
       GFunction $
@@ -127,7 +127,7 @@ convGlobal ::
   IR.RawGlobal Param.PrimTy Param.PrimValIR
 convGlobal g =
   case g of
-    RawGDatatype (RawDatatype n pos a l cons) -> undefined
+    RawGDatatype (RawDatatype n a ps l cons) -> undefined
     RawGDataCon (RawDataCon n t d) -> undefined
     RawGFunction (RawFunction n u t cs) ->
       RawGFunction (RawFunction n u (baseToReturn t) (map funClauseReturn cs))

@@ -38,10 +38,10 @@ type GlobalAll (c :: * -> Constraint) extV extT primTy primVal =
 data RawDatatype' ext primTy primVal
   = RawDatatype
       { rawDataName :: GlobalName,
-        -- | the positivity of its parameters
-        rawDataPos :: [Pos],
         -- | the type constructor's arguments
         rawDataArgs :: [RawDataArg' ext primTy primVal],
+        -- | how many parameters
+        rawDataParams :: Natural,
         -- | the type constructor's target universe level
         rawDataLevel :: Natural,
         rawDataCons :: [RawDataCon' ext primTy primVal]
