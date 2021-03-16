@@ -22,17 +22,6 @@ import qualified Michelson.Untyped.Value as Value
 import qualified Tezos.Core as Core
 import qualified Tezos.Crypto as Crypto
 
-dummyInterpretContract ::
-  Alias.Contract -> Either Interpret.InterpretError Interpret.InterpretResult
-dummyInterpretContract contract = _
-{-
-  Interpret.interpretUntyped
-    contract
-    Value.ValueUnit
-    Value.ValueUnit
-    Contract.dummyContractEnv
--}
-
 
 dummyInterpret ::
   Types.EmptyInstr ->

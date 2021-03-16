@@ -135,7 +135,7 @@ test_constant =
     "constant"
     (int 2, Usage.Omega, intTy)
     mempty
-    (EmptyInstr (MT.Seq (MT.Nested (MT.PUSH (MT.VInt 2))) MT.Nop))
+    (EmptyInstr (MT.Nested (MT.PUSH (MT.VInt 2))))
 
 test_erased_function :: T.TestTree
 test_erased_function =
@@ -143,7 +143,7 @@ test_erased_function =
     "erased function"
     (erasedLamTerm, Usage.Omega, erasedLamTy)
     mempty
-    (EmptyInstr (MT.Seq (MT.Nested (MT.PUSH (MT.VInt 2))) MT.Nop))
+    (EmptyInstr (MT.Nested (MT.PUSH (MT.VInt 2))))
 
 test_real_function_apply :: T.TestTree
 test_real_function_apply =
@@ -151,7 +151,7 @@ test_real_function_apply =
     "real function with application"
     (appLam, Usage.Omega, intTy)
     mempty
-    (EmptyInstr (MT.Seq (MT.Nested (MT.PUSH (MT.VInt 5))) MT.Nop))
+    (EmptyInstr (MT.Nested (MT.PUSH (MT.VInt 5))))
 
 test_partial_erase :: T.TestTree
 test_partial_erase =
@@ -159,7 +159,7 @@ test_partial_erase =
     "real function with partial erase"
     (appLam2, Usage.Omega, intTy)
     mempty
-    (EmptyInstr (MT.Seq (MT.Nested (MT.PUSH (MT.VInt 12))) MT.Nop))
+    (EmptyInstr (MT.Nested (MT.PUSH (MT.VInt 12))))
 
 erasedLamTerm :: P.RawMichelsonTerm
 erasedLamTerm = IR.Lam $ int 2
