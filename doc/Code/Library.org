@@ -836,6 +836,12 @@ Typechecked declarations are added to the signature.
   + [[Typechecker/Env]]
   + [[Typechecker/Types]]
   + [[IR/Types]]
+  + [[Globals]]
+  + [[Library]]
+******* CheckDatatype
+- _Relies on_
+  + [[CheckTerm]]
+  + [[IR/Evaluator]]
   + [[IR/Types/Base]]
   + [[Globals]]
   + [[Library]]
@@ -856,7 +862,6 @@ Typechecked declarations are added to the signature.
   + [[IR/Evaluator]]
   + [[IR/Types]]
   + [[IR/Types/Base]]
-  + [[Globals]]
   + [[Core/Parameterisation]]
   + [[Library]]
   + [[Usage]]
@@ -872,7 +877,6 @@ Quantitative type implementation inspired by
 ******* Base <<IR/Types/Base>>
 - _Relies on_
   + [[Library]]
-  + [[HashMap]]
   + [[NameSymbol]]
   + [[Usage]]
 ******* Globals
@@ -1422,22 +1426,6 @@ Can be added to via core translation
 ** Setup <<Translate/Setup>>
 ** src
 *** Juvix
-**** FrontendDesugar
-- Order of Passes
-  1. =RemoveModule=
-  2. =RemoveGuard=
-  3. =RemoveCond=
-  4. =CombineMultiple=
-  5. =RemoveSignature=
-  6. =RemovePunned=
-  7. =RemoveDo=
-- _Relies on_
-  + [[Juvix/Conversion/ML]]
-  + [[Juvix/Desugar]]
-  + [[Desugar/Types]]
-  + [[Frontend/Sexp]]
-  + [[Frontend/Types]]
-  + [[Library]]
 **** Conversion
 ***** ML <<Juvix/Conversion/ML>>
 This module is responsible for converting back S-expressions back
@@ -1815,6 +1803,22 @@ done with no extra information needed. Thus we export the following passes
 - _Relies on_
   + [[Frontend/Types/Base]]
   + [[ModuleOpen/Extend]]
+  + [[Library]]
+**** FrontendDesugar
+- Order of Passes
+  1. =RemoveModule=
+  2. =RemoveGuard=
+  3. =RemoveCond=
+  4. =CombineMultiple=
+  5. =RemoveSignature=
+  6. =RemovePunned=
+  7. =RemoveDo=
+- _Relies on_
+  + [[Juvix/Conversion/ML]]
+  + [[Juvix/Desugar]]
+  + [[Desugar/Types]]
+  + [[Frontend/Sexp]]
+  + [[Frontend/Types]]
   + [[Library]]
 ** test
 *** Golden

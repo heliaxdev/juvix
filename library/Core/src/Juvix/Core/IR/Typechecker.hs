@@ -13,7 +13,6 @@ where
 import Juvix.Core.IR.Typechecker.Env as Env
 import Juvix.Core.IR.Typechecker.Types as Typed
 import qualified Juvix.Core.IR.Types as IR
-import qualified Juvix.Core.IR.Types.Base as IR
 import qualified Juvix.Core.IR.Types.Globals as IR
 import Juvix.Library hiding (Datatype)
 
