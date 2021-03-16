@@ -686,20 +686,12 @@ Types to support partial application and polymorphic primitives.
   + [[Usage]]
 ***** HR
 - _Relies on_
-  + [[HR/Parser]]
   + [[HR/Types]]
 ****** Extend <<HR/Extend>>
 - _Relies on_
   + [[IR/Types/Base]]
   + [[Library]]
   + [[NameSymbol]]
-****** Parser <<HR/Parser>>
-- _Relies on_
-  + [[HR/Types]]
-  + [[Core/Types]]
-  + [[Library]]
-  + [[NameSymbol]]
-  + [[Usage]]
 ****** Subst <<HR/Subst>>
 - Runs a substitution algorithm over core
 - _Relies on_
