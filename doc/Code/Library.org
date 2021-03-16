@@ -388,7 +388,6 @@ This module provides a default contract environment
   + [[Prim]]
   + [[ErasedAnn/Types]]
   + [[IR/Evaluator]]
-  + [[OnlyExts]]
   + [[Typechecker/Types]]
   + [[IR/Types]]
   + [[IR/Types/Base]]
@@ -409,7 +408,6 @@ This module provides a default contract environment
   + [[Optimisation]]
   + [[ErasedAnn/Types]]
   + [[Library]]
-  + [[Usage]]
 ******** Types <<Michelson/Compilation/Types>>
 - Types used internally by the Michelson backend.
 - _Relies on_
@@ -948,21 +946,6 @@ Quantitative type implementation inspired by
   + [[Core/Types]]
   + [[Library]]
   + [[Usage]]
-*** Typechecker <<test/Typechecker>>
-Tests for the type checker and evaluator in Core/IR/Typechecker.hs
-- _Relies on_
-  + [[IR]]
-  + [[CheckTerm]]
-  + [[IR/Evaluator]]
-  + [[OnlyExts]]
-  + [[IR/Typechecker]]
-  + [[All]]
-  + [[Naturals]]
-  + [[Unit]]
-  + [[Core/Types]]
-  + [[Library]]
-  + [[HashMap]]
-  + [[Usage]]
 *** Common
 **** Context <<test/Common/Context>>
 - _Relies on_
@@ -978,6 +961,21 @@ Tests that weak works as expected
   + [[IR/Evaluator]]
   + [[IR/Types]]
   + [[Library]]
+*** Typechecker <<test/Typechecker>>
+Tests for the type checker and evaluator in Core/IR/Typechecker.hs
+- _Relies on_
+  + [[IR]]
+  + [[CheckTerm]]
+  + [[IR/Evaluator]]
+  + [[OnlyExts]]
+  + [[IR/Typechecker]]
+  + [[All]]
+  + [[Naturals]]
+  + [[Unit]]
+  + [[Core/Types]]
+  + [[Library]]
+  + [[HashMap]]
+  + [[Usage]]
 * Frontend
 ** Setup <<Frontend/Setup>>
 ** src

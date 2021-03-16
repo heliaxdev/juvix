@@ -4,14 +4,15 @@ module Juvix.Backends.Michelson.DSL.Contract
     dummyLevel,
     dummyMaxSteps,
     dummyOrigination,
-  ) where
+  )
+where
 
 import Juvix.Library
 import qualified Michelson.Interpret as Interpret
+import Michelson.Runtime.Dummy as Dummy
 import qualified Michelson.TypeCheck.TypeCheck as Type
 import qualified Tezos.Address as Address
 import qualified Tezos.Core as Core
-import Michelson.Runtime.Dummy as Dummy
 
 dummyStamp :: Core.Timestamp
 dummyStamp = Core.timestampFromSeconds 1234

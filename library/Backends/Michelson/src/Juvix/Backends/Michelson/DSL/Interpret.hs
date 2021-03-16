@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fdefer-typed-holes #-}
-
 {-# LANGUAGE ViewPatterns #-}
 
 module Juvix.Backends.Michelson.DSL.Interpret where
@@ -21,7 +19,6 @@ import qualified Michelson.Untyped.Aliases as Alias
 import qualified Michelson.Untyped.Value as Value
 import qualified Tezos.Core as Core
 import qualified Tezos.Crypto as Crypto
-
 
 dummyInterpret ::
   Types.EmptyInstr ->
