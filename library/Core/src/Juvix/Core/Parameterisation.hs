@@ -23,8 +23,6 @@ data Parameterisation primTy primVal
       { hasType :: primVal -> PrimType primTy -> Bool,
         builtinTypes :: Builtins primTy,
         builtinValues :: Builtins primVal,
-        parseTy :: Token.GenTokenParser String () Identity -> Parser primTy,
-        parseVal :: Token.GenTokenParser String () Identity -> Parser primVal,
         reservedNames :: [String],
         reservedOpNames :: [String],
         stringTy :: Text -> primTy -> Bool,
@@ -37,8 +35,6 @@ data Parameterisation primTy primVal
   deriving (Generic)
 
 {-# DEPRECATED
-  parseTy,
-  parseVal,
   reservedNames,
   reservedOpNames
   "TODO: update parser to not use these"

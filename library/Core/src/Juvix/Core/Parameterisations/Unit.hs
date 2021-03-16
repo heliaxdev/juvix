@@ -82,8 +82,6 @@ t =
     { hasType,
       builtinTypes,
       builtinValues,
-      parseTy,
-      parseVal,
       reservedNames,
       reservedOpNames,
       stringTy = \_ _ -> False,

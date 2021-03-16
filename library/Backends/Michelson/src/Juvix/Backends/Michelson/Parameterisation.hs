@@ -378,8 +378,6 @@ michelson =
     { hasType,
       builtinTypes,
       builtinValues,
-      parseTy,
-      parseVal,
       reservedNames,
       reservedOpNames,
       stringTy = checkStringType,

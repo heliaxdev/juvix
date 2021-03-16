@@ -95,10 +95,10 @@ generateParser parameterisation =
       usage = (reserved "w" >> return Omega) <|> SNat . fromInteger <$> natural
       --
       primTyTerm :: Parser (Term primTy primVal)
-      primTyTerm = PrimTy |<< parseTy parameterisation lexer
+      primTyTerm = PrimTy |<< undefined
       --
       primTerm :: Parser (Term primTy primVal)
-      primTerm = Prim |<< parseVal parameterisation lexer
+      primTerm = Prim |<< undefined
       --
       sortTerm :: Parser (Term primTy primVal)
       sortTerm =
