@@ -422,26 +422,37 @@ deriving instance
   RawGlobalAll NFData ext primTy primVal =>
   NFData (RawFunClause' ext primTy primVal)
 
-type Signature ty ext primTy primVal = Map.Map GlobalName (SigDef ty ext primTy primVal)
+type Signature ext primTy primVal = 
+  Map.Map GlobalName (SigDef ext primTy primVal)
+
+type InnerTCSig ext primTy primVal =
+  StateT (Signature ext primTy primVal)
 
 -- Return type of all type-checking functions.
 -- state monad for global signature
 -- TODO move this somewhere
-type TypeCheck ty ext primTy primVal a =
-  StateT (Signature ty ext primTy primVal) IO a
+newtype TypeCheck ext primTy primVal m a 
+  = TypeCheck (InnerTCSig ext primTy primVal m a)
+  deriving (Functor, Applicative, Monad, MonadIO)
+  deriving 
+    ( HasState "typeSigs" (Signature ext primTy primVal),
+      HasSink "typeSigs" (Signature ext primTy primVal),
+      HasSource "typeSigs" (Signature ext primTy primVal)
+    )
+    via MonadState (StateT (Signature ext primTy primVal) IO)
 
-data SigDef extV extT primTy primVal
+data SigDef ext primTy primVal
   = -- | function constant to its type, clauses
     FunSig
-      (Value' extV primTy primVal)
+      (Value' ext primTy primVal)
       ( Either
-          (NonEmpty (RawFunClause' extT primTy primVal))
-          (NonEmpty (FunClause' extV extT primTy primVal))
+          (NonEmpty (RawFunClause' ext primTy primVal))
+          (NonEmpty (FunClause' ext ext primTy primVal))
       )
   | -- | constructor constant to its type
-    ConSig (Value' extV primTy primVal)
+    ConSig (Value' ext primTy primVal)
   | -- | data type constant to # parameters, positivity of parameters, type
-    DataSig Int [Pos] (Value' extV primTy primVal)
+    DataSig Int [Pos] (Value' ext primTy primVal)
 
 -- | Positivity
 data Pos
