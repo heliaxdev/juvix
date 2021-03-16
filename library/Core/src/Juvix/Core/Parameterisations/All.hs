@@ -169,8 +169,6 @@ t =
     { hasType,
       builtinTypes,
       builtinValues,
-      reservedNames,
-      reservedOpNames,
       stringTy = \_ _ -> False,
       stringVal = const Nothing,
       intTy = \i _ -> Naturals.isNat i,

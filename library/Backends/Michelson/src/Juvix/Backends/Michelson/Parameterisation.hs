@@ -378,8 +378,6 @@ michelson =
     { hasType,
       builtinTypes,
       builtinValues,
-      reservedNames,
-      reservedOpNames,
       stringTy = checkStringType,
       stringVal = Just . Constant . M.ValueString . M.mkMTextUnsafe, -- TODO ?
       intTy = checkIntType,

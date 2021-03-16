@@ -23,8 +23,6 @@ data Parameterisation primTy primVal
       { hasType :: primVal -> PrimType primTy -> Bool,
         builtinTypes :: Builtins primTy,
         builtinValues :: Builtins primVal,
-        reservedNames :: [String],
-        reservedOpNames :: [String],
         stringTy :: Text -> primTy -> Bool,
         stringVal :: Text -> Maybe primVal,
         intTy :: Integer -> primTy -> Bool,
@@ -33,12 +31,6 @@ data Parameterisation primTy primVal
         floatVal :: Double -> Maybe primVal
       }
   deriving (Generic)
-
-{-# DEPRECATED
-  reservedNames,
-  reservedOpNames
-  "TODO: update parser to not use these"
-  #-}
 
 data ApplyError' e a
   = ExtraArguments a (NonEmpty (Arg a))
