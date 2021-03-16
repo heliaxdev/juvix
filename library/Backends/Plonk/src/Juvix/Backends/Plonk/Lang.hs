@@ -6,15 +6,20 @@ module Juvix.Backends.Plonk.Lang
     mul,
     div,
     mod,
+    exp_,
     and_,
     or_,
     xor_,
     not_,
     deref,
     cond,
+    ret,
+    compileWithWire,
   )
 where
 
+import Juvix.Backends.Plonk.Builder
+import Juvix.Backends.Plonk.Circuit
 import Juvix.Backends.Plonk.IR
 import Juvix.Library hiding (div, mod)
 
@@ -29,6 +34,10 @@ sub = IBinOp BSub
 mul = IBinOp BMul
 div = IBinOp BDiv
 mod = IBinOp BMod
+
+-- | Exponent operation
+exp_ :: Int -> IR i f f -> IR i f f
+exp_ i = IUnOp (UExp i)
 
 -- | Binary logic operations on expressions
 and_, or_, xor_ :: IR i f Bool -> IR i f Bool -> IR i f Bool
@@ -47,3 +56,17 @@ deref = IVar
 -- | Conditional statement on expressions
 cond :: IR i f Bool -> IR i f ty -> IR i f ty -> IR i f ty
 cond = IIf
+
+-- | Return compilation of expression into an output wire
+ret :: Num f => IR Wire f f -> IRM f Wire
+ret = compileWithWire freshOutput
+
+compileWithWire :: Num f => IRM f Wire -> IR Wire f f -> IRM f Wire
+compileWithWire freshWire expr = do
+  compileOut <- compile expr
+  case compileOut of
+    Left wire -> pure wire
+    Right circ -> do
+      wire <- freshWire
+      emit $ MulGate (ConstGate 1) circ wire
+      pure wire

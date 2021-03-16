@@ -3,6 +3,7 @@ module FFExample where
 
 import Data.Curve.Weierstrass.BLS12381 (Fr)
 import Juvix.Backends.Plonk (FF (..), FFAnnTerm, FFType, PrimVal (..))
+import qualified Juvix.Backends.Plonk as P
 import Juvix.Core.ErasedAnn
 import Juvix.Library (($), (.), Natural, undefined)
 import Juvix.Library hiding (Type, exp)
@@ -32,8 +33,8 @@ app :: FFAnnTerm Fr -> [FFAnnTerm Fr] -> FFAnnTerm Fr
 app f xs = Ann (SNat 2) (PrimTy FF) $ AppM f xs
 
 -- \x -> x^3 - 2x^2 + 4
-example :: FFAnnTerm Fr
-example =
+erasedExample :: FFAnnTerm Fr
+erasedExample =
   Ann Omega (PrimTy FF) $ LamM [] ["x"] $
     app
       sub
@@ -44,3 +45,10 @@ example =
             val 4
           ]
       ]
+
+plonkExample :: P.IRM Fr P.Wire
+plonkExample = do
+  x <- P.deref <$> P.freshInput
+  let xcube = P.exp_ 3 x
+      xsq = P.mul (P.c 2) (P.exp_ 2 x)
+  P.ret $ P.add (P.sub xcube xsq) (P.c 4)

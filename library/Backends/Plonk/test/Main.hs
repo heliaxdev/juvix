@@ -6,7 +6,6 @@ import Data.Curve.Weierstrass.BLS12381 (Fr)
 -- import Juvix.Core.IR
 
 import FFExample
-import Juvix.Backends.Plonk.Expr
 import Juvix.Core.ErasedAnn
 import Juvix.Library hiding (exp, minus)
 import Juvix.Library.Usage as Usage hiding (minus)
