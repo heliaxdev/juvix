@@ -1438,6 +1438,15 @@ Can be added to via core translation
   + [[Frontend/Sexp]]
   + [[Frontend/Types]]
   + [[Library]]
+**** Context
+***** Sexp <<Context/Sexp>>
+- _Relies on_
+  + [[Core/Common/Context]]
+  + [[FrontendContextualise/Environment]]
+  + [[InfixPrecedence/ShuntYard]]
+  + [[Library]]
+  + [[NameSymbol]]
+  + [[Library/Sexp]]
 **** Conversion
 ***** ML <<Juvix/Conversion/ML>>
 This module is responsible for converting back S-expressions back
@@ -1596,6 +1605,8 @@ done with no extra information needed. Thus we export the following passes
   + [[Core/Common/Context]]
   + [[NameSpace]]
   + [[Common/Open]]
+  + [[InfixPrecedence/ShuntYard]]
+  + [[Library]]
   + [[Library]]
   + [[HashMap]]
   + [[NameSymbol]]

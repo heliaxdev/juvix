@@ -5,7 +5,9 @@ import qualified Data.HashSet as Set
 import qualified Juvix.Core.Common.Context as Context
 import qualified Juvix.Core.Common.NameSpace as NameSpace
 import qualified Juvix.Core.Common.Open as Open
+import qualified Juvix.FrontendContextualise.InfixPrecedence.ShuntYard as Shunt
 import Juvix.Library
+import qualified Juvix.Library as Library
 import qualified Juvix.Library.HashMap as Map
 import qualified Juvix.Library.NameSymbol as NameSymbol
 import qualified Juvix.Library.Sexp as Sexp
@@ -200,7 +202,14 @@ newtype Closure'
   = Closure (Map.T Symbol Information)
   deriving (Show, Eq)
 
-newtype ErrorS = CantResolve [Sexp.T] deriving (Show, Eq)
+data ErrorS
+  = CantResolve [Sexp.T]
+  | UnknownSymbol NameSymbol.T
+  | ImpossibleMoreEles
+  | Clash
+      (Shunt.Precedence Sexp.T)
+      (Shunt.Precedence Sexp.T)
+  deriving (Show, Eq)
 
 type SexpContext = Context.T Sexp.T Sexp.T Sexp.T
 
@@ -209,6 +218,10 @@ type HasClosure m = HasReader "closure" Closure' m
 type ContextS m = HasState "context" SexpContext m
 
 type ErrS m = HasThrow "error" ErrorS m
+
+-----------------------------------------------------------
+-- Closure Functions
+------------------------------------------------------------
 
 addToClosure :: Symbol -> Information -> Closure' -> Closure'
 addToClosure k info (Closure m) =
@@ -221,11 +234,18 @@ genericBind name (Closure m) =
 keys :: Closure' -> Set.HashSet Symbol
 keys (Closure m) = Map.keysSet m
 
+closureLookup :: Symbol -> Closure' -> Maybe Information
+closureLookup k (Closure m) = Map.lookup k m
+
+------------------------------------------------------------
+-- Main Functionality
+------------------------------------------------------------
+
 data Pass m
   = Pass
-      { sumF :: Sexp.Atom -> Sexp.T -> m Sexp.T,
-        termF :: Sexp.Atom -> Sexp.T -> m Sexp.T,
-        tyF :: Sexp.Atom -> Sexp.T -> m Sexp.T
+      { sumF :: SexpContext -> Sexp.Atom -> Sexp.T -> m Sexp.T,
+        termF :: SexpContext -> Sexp.Atom -> Sexp.T -> m Sexp.T,
+        tyF :: SexpContext -> Sexp.Atom -> Sexp.T -> m Sexp.T
       }
 
 -- | @passContextSingle@ Traverses the context firing off sexp
@@ -238,7 +258,7 @@ passContextSingle ::
   -- on. :atom for firing on every atom
   (NameSymbol.T -> Bool) ->
   -- | Our transformation function that is responsible for handling the triggers
-  (Sexp.Atom -> Sexp.T -> m Sexp.T) ->
+  (SexpContext -> Sexp.Atom -> Sexp.T -> m Sexp.T) ->
   m SexpContext
 passContextSingle ctx trigger f =
   passContext ctx trigger (Pass f f f)
@@ -262,7 +282,7 @@ passContext ctx trigger Pass {sumF, termF, tyF} =
     pass func form ctx =
       Sexp.foldSearchPred
         form
-        (trigger, func)
+        (trigger, func ctx)
         (bindingForms, searchAndClosure ctx)
 
 -- | @bindingForms@ is a predicate that answers true for every form
@@ -312,6 +332,38 @@ searchAndClosure ctx a as cont
   where
     named = Sexp.isAtomNamed (Sexp.Atom a)
 searchAndClosure _ _ _ _ = error "imporper closure call"
+
+------------------------------------------------------------
+-- Environment functionality
+------------------------------------------------------------
+extractInformation ::
+  Context.Definition term ty sumRep -> Maybe [Context.Information]
+extractInformation (Context.Def Context.D {defPrecedence}) =
+  Just [Context.Prec defPrecedence]
+extractInformation (Context.Information is) =
+  Just is
+extractInformation _ = Nothing
+
+lookupPrecedence ::
+  (ErrS m, HasClosure m) => NameSymbol.T -> Context.T t y s -> m Context.Precedence
+lookupPrecedence name ctx = do
+  closure <- Library.ask @"closure"
+  let symbolName = NameSymbol.hd name
+  case closureLookup symbolName closure of
+    Just Info {info}
+      | NameSymbol.toSymbol name == symbolName ->
+        pure $ fromMaybe Context.default' (Context.precedenceOf info)
+    Just Info {mOpen = Just prefix} ->
+      contextCase (prefix <> name)
+    Just Info {} ->
+      throw @"error" (UnknownSymbol name)
+    Nothing ->
+      contextCase name
+  where
+    contextCase name =
+      case Context.lookup name ctx >>= extractInformation . Context.extractValue of
+        Nothing -> throw @"error" (UnknownSymbol name)
+        Just pr -> pure (fromMaybe Context.default' (Context.precedenceOf pr))
 
 ------------------------------------------------------------
 -- searchAndClosure function dispatch table

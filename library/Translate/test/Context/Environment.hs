@@ -64,8 +64,8 @@ emptyClosure :: Capture
 emptyClosure = Cap (Env.Closure Map.empty) []
 
 recordClosure ::
-  (HasReader "closure" a m, HasWriter "report" [a] m) => p -> b -> m b
-recordClosure _atom t = do
+  (HasReader "closure" a m, HasWriter "report" [a] m) => c -> p -> b -> m b
+recordClosure _ _atom t = do
   c <- ask @"closure"
   tell @"report" [c]
   -- Just drop the given atom
