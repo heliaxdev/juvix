@@ -1,7 +1,14 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Juvix.Core.Parameterisations.All where
+module Juvix.Core.Parameterisations.All
+  ( Ty (..),
+    Val (..),
+    t,
+    module Naturals,
+    module Unit,
+  )
+where
 
 import Data.Bitraversable
 import Data.Coerce
