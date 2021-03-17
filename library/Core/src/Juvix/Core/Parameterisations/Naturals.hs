@@ -92,27 +92,6 @@ instance Monoid (IR.XVPrim ext ty Val) => E.HasSubstValue ext ty Val Val where
 instance Monoid (IR.XPrim ext Ty Val) => E.HasPatSubstTerm ext Ty Val Val where
   patSubstTerm' _ _ val = pure $ IR.Prim' val mempty
 
-parseTy :: Token.GenTokenParser String () Identity -> Parser Ty
-parseTy lexer = do
-  Token.reserved lexer "Nat"
-  pure Ty
-
-parseVal :: Token.GenTokenParser String () Identity -> Parser Val
-parseVal lexer =
-  parseNat lexer <|> parseAdd lexer <|> parseSub lexer <|> parseMul lexer
-
-parseNat :: Token.GenTokenParser String () Identity -> Parser Val
-parseNat lexer = Val . fromIntegral |<< Token.natural lexer
-
-parseAdd :: Token.GenTokenParser String () Identity -> Parser Val
-parseAdd lexer = Token.reserved lexer "add" >> pure Add
-
-parseSub :: Token.GenTokenParser String () Identity -> Parser Val
-parseSub lexer = Token.reserved lexer "sub" >> pure Sub
-
-parseMul :: Token.GenTokenParser String () Identity -> Parser Val
-parseMul lexer = Token.reserved lexer "mul" >> pure Mul
-
 reservedNames :: [String]
 reservedNames = ["Nat", "add", "sub", "mul"]
 

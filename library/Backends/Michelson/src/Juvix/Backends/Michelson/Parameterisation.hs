@@ -226,31 +226,6 @@ toPrimType ty = maybe err Right $ go ty
     goPrim (ErasedAnn.PrimTy p) = Just p
     goPrim _ = Nothing
 
-parseTy :: Token.GenTokenParser String () Identity -> Parser PrimTy
-parseTy lexer =
-  try
-    ( do
-        ty <- wrapParser lexer M.type_
-        pure (PrimTy ty)
-    )
-
--- TODO: parse all values.
-parseVal :: Token.GenTokenParser String () Identity -> Parser RawPrimVal
-parseVal lexer =
-  try
-    ( do
-        val <- wrapParser lexer M.value
-        pure (Constant (M.expandValue val))
-    )
-
-wrapParser :: Token.GenTokenParser String () Identity -> M.Parser a -> Parser a
-wrapParser lexer p = do
-  str <- many anyChar
-  Token.whiteSpace lexer
-  case M.parseNoEnv p "" (Text.pack str) of
-    Right r -> pure r
-    Left _ -> fail ""
-
 reservedNames :: [String]
 reservedNames = []
 

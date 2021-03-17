@@ -138,15 +138,6 @@ unNatVal :: Val -> Maybe Naturals.Val
 unNatVal (NatVal n) = Just n
 unNatVal _ = Nothing
 
-parseTy :: Token.GenTokenParser String () Identity -> Parser Ty
-parseTy lexer =
-  (natTyToAll <$> Naturals.parseTy lexer) <|> (unitTyToAll <$> Unit.parseTy lexer)
-
-parseVal :: Token.GenTokenParser String () Identity -> Parser Val
-parseVal lexer =
-  (natValToAll <$> Naturals.parseVal lexer)
-    <|> fmap unitValToAll (Unit.parseVal lexer)
-
 reservedNames :: [String]
 reservedNames = Naturals.reservedNames <> Unit.reservedNames
 
