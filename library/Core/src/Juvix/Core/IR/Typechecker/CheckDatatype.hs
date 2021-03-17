@@ -19,26 +19,35 @@ typeCheckConstructor ::
   TypeCheck ext primTy primVal IO ()
 typeCheckConstructor name pos tel (n, ty) = do
   sig <- get @"typeSigs" -- get signatures
-  -- let tt = teleToType tel t
-  --     params = length tel
+  let (n, t) = teleToType tel ty
+      params = length tel
   -- _ <- checkConType 0 [] [] params tt
-  -- let (_, target) = typeToTele tt
+  let (_, target) = typeToTele (n, t)
   -- checkTarget name tel target
   -- vt <- eval [] tt
-  -- -- sposConstructor name 0 pos vt -- strict positivity check
+  -- sposConstructor name 0 pos vt -- strict positivity check
   -- put (addSig sig n (ConSig vt))
   return ()
 
--- teleToType :: Telescope -> Expr -> Expr
--- teleToType [] t            = t
--- teleToType ((n, t):tel) t2 = Pi n t (teleToType tel t2)
+teleToType ::
+  RawTelescope ext primTy primVal ->
+  IR.Term' ext primTy primVal ->
+  (Maybe Name, IR.Term' ext primTy primVal)
+teleToType [] t = (Nothing, t)
+teleToType ((n, t) : tel) t2 = undefined
 
--- typeToTele :: Expr -> (Telescope, Expr)
--- typeToTele t = ttt t []
---   where
---     ttt :: Expr -> Telescope -> (Telescope, Expr)
---     ttt (Pi n t' t2) tel = ttt t2 (tel <> [(n, t')])
---     ttt x tel            = (tel, x)
+-- TODO(Just n, Pi Omega t (snd (teleToType tel t2)) ext?)
+
+typeToTele :: (Maybe Name, IR.Term' ext primTy primVal) -> (RawTelescope ext primTy primVal, IR.Term' ext primTy primVal)
+typeToTele (n, t) = ttt (n, t) []
+  where
+    ttt ::
+      (Maybe Name, IR.Term' ext primTy primVal) ->
+      RawTelescope ext primTy primVal ->
+      (RawTelescope ext primTy primVal, IR.Term' ext primTy primVal)
+    ttt (Just n, Pi usage t' t2 _) tel =
+      ttt (Nothing, t2) (tel <> [(n, t')]) --TODO t2 name?
+    ttt x tel = (tel, snd x)
 
 -- -- | checkDataType takes 5 arguments.
 -- -- 1st argument is the next fresh generic value.
@@ -46,7 +55,7 @@ typeCheckConstructor name pos tel (n, ty) = do
 -- -- 3rd argument is an env that binds the type value corresponding to these generic values.
 -- -- 4th argument is the length of the telescope, or the no. of parameters.
 -- -- 5th argument is the expression that is left to be checked.
--- checkDataType :: Int -> Env -> Env -> Int -> Expr -> TypeCheck ()
+-- checkDataType :: Int -> Env -> Env -> Int -> IR.Term' ext primTy primVal -> TypeCheck ()
 -- checkDataType k rho gamma p (Pi x t1 t2) = do
 --   _ <-
 --     if k < p -- if k < p then we're checking the parameters
@@ -65,7 +74,7 @@ typeCheckConstructor name pos tel (n, ty) = do
 -- -- 3rd argument is an env that binds the type value corresponding to these generic values.
 -- -- 4th argument is the length of the telescope, or the no. of parameters.
 -- -- 5th argument is the expression that is left to be checked.
--- checkConType :: Int -> Env -> Env -> Int -> Expr -> TypeCheck ()
+-- checkConType :: Int -> Env -> Env -> Int -> IR.Term' ext primTy primVal -> TypeCheck ()
 -- checkConType k rho gamma p e =
 --   case e of
 --     Pi x t1 t2 -> do
@@ -84,7 +93,7 @@ typeCheckConstructor name pos tel (n, ty) = do
 
 -- -- check that the data type and the parameter arguments
 -- -- are written down like declared in telescope
--- checkTarget :: Name -> Telescope -> Expr -> TypeCheck ()
+-- checkTarget :: Name -> RawTelescope ext primTy primVal -> IR.Term' ext primTy primVal -> TypeCheck ()
 -- checkTarget name tel tg@(App (Def n) al) =
 --   if n == name
 --     then do
@@ -111,7 +120,7 @@ typeCheckConstructor name pos tel (n, ty) = do
 --   show tel
 
 -- -- check parameters
--- checkParams :: Telescope -> [Expr] -> TypeCheck ()
+-- checkParams :: RawTelescope ext primTy primVal -> [IR.Term' ext primTy primVal] -> TypeCheck ()
 -- checkParams [] [] = return ()
 -- checkParams tel@((n, _t):tl) (Var n':el) =
 --   if n == n'
