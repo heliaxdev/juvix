@@ -51,19 +51,19 @@ contextify ::
 contextify t@((sym, _) :| _) = do
   emptyCtx <- Context.empty sym
   runM $
-    foldM resolveOpensS (emptyCtx, []) (addTop <$> t)
+    foldM resolveOpens (emptyCtx, []) (addTop <$> t)
 
 --------------------------------------------------------------------------------
 -- Helper functions
 --------------------------------------------------------------------------------
 
 -- we get the opens
-resolveOpensS ::
+resolveOpens ::
   (MonadIO m, HasThrow "left" Context.PathError m) =>
   (Contextify.ContextSexp, [ResolveOpen.PreQualified]) ->
   (Context.NameSymbol, [Sexp.T]) ->
   m (Contextify.ContextSexp, [ResolveOpen.PreQualified])
-resolveOpensS (ctx', openList) (sym, xs) = do
+resolveOpens (ctx', openList) (sym, xs) = do
   ctx <- ContextSexp.run ctx' (sym, xs)
   case ctx of
     Right Contextify.PS {ctxS, opensS, modsDefinedS} ->

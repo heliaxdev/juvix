@@ -1616,7 +1616,6 @@ done with no extra information needed. Thus we export the following passes
   + [[Core/Common/Context]]
   + [[Desugar/Types]]
   + [[ResolveOpenInfo]]
-  + [[Contextify/Sexp]]
   + [[Contextify/Transform]]
   + [[Contextify/Types]]
   + [[InfixPrecedence/Environment]]
@@ -1626,7 +1625,6 @@ done with no extra information needed. Thus we export the following passes
   + [[ModuleOpen/Transform]]
   + [[Library]]
   + [[NameSymbol]]
-  + [[Library/Sexp]]
 ***** Environment <<FrontendContextualise/Environment>>
 - _Relies on_
   + [[Core/Common/Context]]
@@ -1879,6 +1877,7 @@ done with no extra information needed. Thus we export the following passes
 *** Contextualise
 **** Contextify <<Contextualise/Contextify>>
 - _Relies on_
+  + [[Juvix/Contextify]]
   + [[Core/Common/Context]]
   + [[Juvix/Desugar]]
   + [[Frontend/Parser]]
