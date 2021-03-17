@@ -1,7 +1,19 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Juvix.Core.Parameterisation where
+module Juvix.Core.Parameterisation
+  ( Parameterisation (..),
+    Builtins,
+    PrimType,
+    TypedPrim,
+    TypedPrim',
+    ApplyError,
+    ApplyError' (..),
+    CanApply (..),
+    apply1,
+    mapApplyErr,
+  )
+where
 
 import qualified Juvix.Core.Application as App
 import Juvix.Core.IR.Types (BoundVar, GlobalName, NoExt)
