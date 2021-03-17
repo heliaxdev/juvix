@@ -2,7 +2,17 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Juvix.Core.Parameterisations.Unit where
+module Juvix.Core.Parameterisations.Unit
+  ( Ty (..),
+    hasType,
+    Val (..),
+    reservedNames,
+    reservedOpNames,
+    builtinTypes,
+    builtinValues,
+    t,
+  )
+where
 
 import qualified Juvix.Core.IR.Evaluator as E
 import qualified Juvix.Core.IR.Types.Base as IR
