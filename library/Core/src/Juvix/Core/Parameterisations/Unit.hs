@@ -6,8 +6,6 @@ module Juvix.Core.Parameterisations.Unit
   ( Ty (..),
     hasType,
     Val (..),
-    reservedNames,
-    reservedOpNames,
     builtinTypes,
     builtinValues,
     t,
@@ -63,12 +61,6 @@ instance Monoid (IR.XVPrim ext ty Val) => E.HasSubstValue ext ty Val Val where
 
 instance Monoid (IR.XPrim ext Ty Val) => E.HasPatSubstTerm ext Ty Val Val where
   patSubstTerm' _ _ val = pure $ IR.Prim' val mempty
-
-reservedNames :: [String]
-reservedNames = ["Unit", "tt"]
-
-reservedOpNames :: [String]
-reservedOpNames = []
 
 builtinTypes :: P.Builtins Ty
 builtinTypes = [(["Unit"], Ty)]
