@@ -19,9 +19,6 @@ import qualified Juvix.Core.Parameterisation as P
 import qualified Juvix.Core.Parameterisations.Naturals as Naturals
 import qualified Juvix.Core.Parameterisations.Unit as Unit
 import Juvix.Library hiding ((<|>))
-import Text.ParserCombinators.Parsec
-import qualified Text.ParserCombinators.Parsec.Token as Token
-import Prelude (String)
 
 -- all primitive types
 data Ty
