@@ -5,8 +5,6 @@ module Juvix.Core.Parameterisations.All
   ( Ty (..),
     Val (..),
     t,
-    module Naturals,
-    module Unit,
   )
 where
 
