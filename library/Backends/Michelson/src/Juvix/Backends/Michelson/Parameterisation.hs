@@ -227,12 +227,6 @@ toPrimType ty = maybe err Right $ go ty
     goPrim (ErasedAnn.PrimTy p) = Just p
     goPrim _ = Nothing
 
-reservedNames :: [String]
-reservedNames = []
-
-reservedOpNames :: [String]
-reservedOpNames = []
-
 integerToPrimVal :: Integer -> Maybe RawPrimVal
 integerToPrimVal x
   | x >= toInteger (minBound @Int),
