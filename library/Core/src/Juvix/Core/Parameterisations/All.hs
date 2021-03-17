@@ -11,7 +11,6 @@ module Juvix.Core.Parameterisations.All
 where
 
 import Data.Bitraversable
-import Data.Coerce
 import qualified Juvix.Core.Application as App
 import qualified Juvix.Core.IR.Evaluator as E
 import qualified Juvix.Core.IR.Types.Base as IR
