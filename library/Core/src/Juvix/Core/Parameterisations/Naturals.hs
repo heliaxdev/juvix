@@ -6,8 +6,6 @@ module Juvix.Core.Parameterisations.Naturals
     hasType,
     typeOf,
     Val (..),
-    reservedNames,
-    reservedOpNames,
     builtinTypes,
     builtinValues,
     isNat,
@@ -104,12 +102,6 @@ instance Monoid (IR.XVPrim ext ty Val) => E.HasSubstValue ext ty Val Val where
 
 instance Monoid (IR.XPrim ext Ty Val) => E.HasPatSubstTerm ext Ty Val Val where
   patSubstTerm' _ _ val = pure $ IR.Prim' val mempty
-
-reservedNames :: [String]
-reservedNames = ["Nat", "add", "sub", "mul"]
-
-reservedOpNames :: [String]
-reservedOpNames = []
 
 isNat :: Integer -> Bool
 isNat i = i >= 0
