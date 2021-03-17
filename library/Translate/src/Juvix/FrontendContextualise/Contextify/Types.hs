@@ -17,12 +17,11 @@ type Context =
 type Definition =
   Repr Context.Definition
 
-data Pass
-  = P
-      { ctx :: Context,
-        opens :: [NameSymbol.T],
-        modsDefined :: [NameSymbol.T]
-      }
+data Pass = P
+  { ctx :: Context,
+    opens :: [NameSymbol.T],
+    modsDefined :: [NameSymbol.T]
+  }
   deriving (Show)
 
 -- Temporary while we have both around
@@ -33,10 +32,9 @@ type ContextSexp =
 type DefinitionSexp =
   Context.Definition Sexp.T Sexp.T Sexp.T
 
-data PassSexp
-  = PS
-      { ctxS :: ContextSexp,
-        opensS :: [NameSymbol.T],
-        modsDefinedS :: [NameSymbol.T]
-      }
+data PassSexp = PS
+  { ctxS :: ContextSexp,
+    opensS :: [NameSymbol.T],
+    modsDefinedS :: [NameSymbol.T]
+  }
   deriving (Show)

@@ -93,26 +93,24 @@ data EnvDispatch = EnvDispatch deriving (Show)
 data SingleDispatch (a :: Type) (b :: Type) (c :: Type) = SingleDispatch
 
 -- | @SingleEnv@ is used when we are trying to convert one function to the next step
-data SingleEnv term1 ty1 sumRep1
-  = Single
-      { env :: Context.T term1 ty1 sumRep1,
-        temp :: New Context.T,
-        disp :: SingleDispatch term1 ty1 sumRep1,
-        exclusionSet :: ExclusionSet,
-        openClosure :: OpenClosure
-      }
+data SingleEnv term1 ty1 sumRep1 = Single
+  { env :: Context.T term1 ty1 sumRep1,
+    temp :: New Context.T,
+    disp :: SingleDispatch term1 ty1 sumRep1,
+    exclusionSet :: ExclusionSet,
+    openClosure :: OpenClosure
+  }
   deriving (Generic)
 
 -- | @Environment@ is the environment used when going from one entire
 -- phase to another
-data Environment
-  = Env
-      { old :: Old Context.T,
-        new :: New Context.T,
-        dispatch :: EnvDispatch,
-        exclusion :: ExclusionSet,
-        closure :: OpenClosure
-      }
+data Environment = Env
+  { old :: Old Context.T,
+    new :: New Context.T,
+    dispatch :: EnvDispatch,
+    exclusion :: ExclusionSet,
+    closure :: OpenClosure
+  }
   deriving (Generic, Show)
 
 data Error

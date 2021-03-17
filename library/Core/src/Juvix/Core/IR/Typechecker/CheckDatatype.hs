@@ -10,13 +10,13 @@ import Juvix.Core.IR.Types.Base as IR
 import Juvix.Core.IR.Types.Globals as IR
 import Juvix.Library
 
-typeCheckConstructor :: 
+typeCheckConstructor ::
   HasState "typeSigs" s IO =>
-    Name -> 
-    [IR.Pos] -> 
-    RawTelescope ext primTy primVal -> 
-    (IR.Name, IR.Term' ext primTy primVal) -> 
-    TypeCheck ext primTy primVal IO ()
+  Name ->
+  [IR.Pos] ->
+  RawTelescope ext primTy primVal ->
+  (IR.Name, IR.Term' ext primTy primVal) ->
+  TypeCheck ext primTy primVal IO ()
 typeCheckConstructor name pos tel (n, ty) = do
   sig <- get @"typeSigs" -- get signatures
   -- let tt = teleToType tel t
@@ -80,8 +80,7 @@ typeCheckConstructor name pos tel (n, ty) = do
 --         p
 --         t2
 --     -- the constructor's type is of type Star(the same type as the data type).
---     _ -> checkExpr k rho gamma e VStar 
-    
+--     _ -> checkExpr k rho gamma e VStar
 
 -- -- check that the data type and the parameter arguments
 -- -- are written down like declared in telescope
