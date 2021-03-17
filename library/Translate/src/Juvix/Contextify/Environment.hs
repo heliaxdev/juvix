@@ -8,6 +8,13 @@ module Juvix.Contextify.Environment
     Pass (..),
     extractInformation,
     lookupPrecedence,
+    Minimal (..),
+    MinimalAlias,
+    MinimalAliasIO,
+    MinimalM (..),
+    MinimalMIO (..),
+    runMIO,
+    runM,
   )
 where
 
@@ -38,6 +45,50 @@ type SexpContext = Context.T Sexp.T Sexp.T Sexp.T
 type HasClosure m = HasReader "closure" Closure.T m
 
 type ErrS m = HasThrow "error" ErrorS m
+
+------------------------------------------------------------
+-- Runner environment
+------------------------------------------------------------
+
+data Minimal
+  = Minimal
+      { closure :: Closure.T
+      }
+  deriving (Generic, Show)
+
+type MinimalAlias =
+  ExceptT ErrorS (State Minimal)
+
+newtype MinimalM a = Ctx {_run :: MinimalAlias a}
+  deriving (Functor, Applicative, Monad)
+  deriving
+    ( HasReader "closure" Closure.T,
+      HasSource "closure" Closure.T
+    )
+    via ReaderField "closure" MinimalAlias
+  deriving
+    (HasThrow "error" ErrorS)
+    via MonadError MinimalAlias
+
+type MinimalAliasIO =
+  ExceptT ErrorS (StateT Minimal IO)
+
+newtype MinimalMIO a = CtxIO {_runIO :: MinimalAliasIO a}
+  deriving (Functor, Applicative, Monad, MonadIO)
+  deriving
+    ( HasReader "closure" Closure.T,
+      HasSource "closure" Closure.T
+    )
+    via ReaderField "closure" MinimalAliasIO
+  deriving
+    (HasThrow "error" ErrorS)
+    via MonadError MinimalAliasIO
+
+runMIO :: MinimalMIO a -> Minimal -> IO (Either ErrorS a, Minimal)
+runMIO (CtxIO c) = runStateT (runExceptT c)
+
+runM :: MinimalM a -> Minimal -> (Either ErrorS a, Minimal)
+runM (Ctx c) = runState (runExceptT c)
 
 ------------------------------------------------------------
 -- Main Functionality
