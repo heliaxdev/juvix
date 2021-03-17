@@ -1,5 +1,6 @@
-module Juvix.Core.IR.Typechecker.CheckDatatype
-  ( module Juvix.Core.IR.Typechecker.CheckDatatype,
+-- | Datatype declarations are typechecked here. Usages are passed along.
+module Juvix.Core.IR.CheckDatatype
+  ( module Juvix.Core.IR.CheckDatatype,
   )
 where
 
@@ -9,6 +10,7 @@ import qualified Juvix.Core.IR.Evaluator as Eval
 import Juvix.Core.IR.Types.Base as IR
 import Juvix.Core.IR.Types.Globals as IR
 import Juvix.Library
+import Prelude (error)
 
 typeCheckConstructor ::
   HasState "typeSigs" s IO =>
@@ -21,7 +23,7 @@ typeCheckConstructor name pos tel (n, ty) = do
   sig <- get @"typeSigs" -- get signatures
   let (n, t) = teleToType tel ty
       params = length tel
-  -- _ <- checkConType 0 [] [] params tt
+  -- _ <- checkConType 0 [] [] params t
   let (_, target) = typeToTele (n, t)
   -- checkTarget name tel target
   -- vt <- eval [] tt
@@ -38,7 +40,9 @@ teleToType ((n, t) : tel) t2 = undefined
 
 -- TODO(Just n, Pi Omega t (snd (teleToType tel t2)) ext?)
 
-typeToTele :: (Maybe Name, IR.Term' ext primTy primVal) -> (RawTelescope ext primTy primVal, IR.Term' ext primTy primVal)
+typeToTele ::
+  (Maybe Name, IR.Term' ext primTy primVal) ->
+  (RawTelescope ext primTy primVal, IR.Term' ext primTy primVal)
 typeToTele (n, t) = ttt (n, t) []
   where
     ttt ::
@@ -49,33 +53,44 @@ typeToTele (n, t) = ttt (n, t) []
       ttt (Nothing, t2) (tel <> [(n, t')]) --TODO t2 name?
     ttt x tel = (tel, snd x)
 
--- -- | checkDataType takes 5 arguments.
--- -- 1st argument is the next fresh generic value.
--- -- 2nd argument is an env that binds fresh generic values to variables.
--- -- 3rd argument is an env that binds the type value corresponding to these generic values.
--- -- 4th argument is the length of the telescope, or the no. of parameters.
--- -- 5th argument is the expression that is left to be checked.
--- checkDataType :: Int -> Env -> Env -> Int -> IR.Term' ext primTy primVal -> TypeCheck ()
--- checkDataType k rho gamma p (Pi x t1 t2) = do
---   _ <-
---     if k < p -- if k < p then we're checking the parameters
---       then checkType k rho gamma t1 -- checks params are valid types
---       else checkSType k rho gamma t1 -- checks arguments Θ are Star types
+-- | checkDataType takes 5 arguments.
+checkDataType ::
+  Int -> -- the next fresh generic value.
+  -- an env that binds fresh generic values to variables.
+  Telescope ext primTy primVal ->
+  -- an env that binds the type value corresponding to these generic values.
+  Telescope ext primTy primVal ->
+  -- the length of the telescope, or the no. of parameters.
+  Int ->
+  -- the expression that is left to be checked.
+  IR.Term' ext primTy primVal ->
+  TypeCheck ext primTy primVal IO ()
+checkDataType k rho gamma p (Pi x t1 t2 _) = undefined
+-- _ <-
+--   if k < p -- if k < p then we're checking the parameters
+--     then checkType k rho gamma t1 -- checks params are valid types
+--     else checkSType k rho gamma t1 -- checks arguments Θ are Star types
 --   v_t1 <- eval rho t1
 --   checkDataType (k + 1) (updateEnv rho x (VGen k)) (updateEnv gamma x v_t1) p t2
--- -- check that the data type is of type Star
--- checkDataType _k _rho _gamma _p Star = return ()
--- checkDataType _k _rho _gamma _p e =
---   error $ "checkDataType: " <> show e <> "doesn't target Star."
+-- check that the data type is of type Star
+checkDataType _k _rho _gamma _p (Star _ _) = return ()
+checkDataType _k _rho _gamma _p e =
+  error $ "checkDataType: " -- <> show e <> "doesn't target Star."
+  --TODO show instance? more proper error throwing?
 
--- -- | checkConType check constructor type
--- -- 1st argument is the next fresh generic value.
--- -- 2nd argument is an env that binds fresh generic values to variables.
--- -- 3rd argument is an env that binds the type value corresponding to these generic values.
--- -- 4th argument is the length of the telescope, or the no. of parameters.
--- -- 5th argument is the expression that is left to be checked.
--- checkConType :: Int -> Env -> Env -> Int -> IR.Term' ext primTy primVal -> TypeCheck ()
--- checkConType k rho gamma p e =
+-- | checkConType check constructor type
+checkConType ::
+  Int -> -- the next fresh generic value.
+  -- an env that binds fresh generic values to variables.
+  Telescope ext primTy primVal ->
+  -- an env that binds the type value corresponding to these generic values.
+  Telescope ext primTy primVal ->
+  -- the length of the telescope, or the no. of parameters.
+  Int ->
+  -- the expression that is left to be checked.
+  IR.Term' ext primTy primVal ->
+  TypeCheck ext primTy primVal IO ()
+checkConType k rho gamma p e = undefined
 --   case e of
 --     Pi x t1 t2 -> do
 --       if k < p
@@ -93,7 +108,7 @@ typeToTele (n, t) = ttt (n, t) []
 
 -- -- check that the data type and the parameter arguments
 -- -- are written down like declared in telescope
--- checkTarget :: Name -> RawTelescope ext primTy primVal -> IR.Term' ext primTy primVal -> TypeCheck ()
+-- checkTarget :: Name -> RawTelescope ext primTy primVal -> IR.Term' ext primTy primVal -> TypeCheck ext primTy primVal IO ()
 -- checkTarget name tel tg@(App (Def n) al) =
 --   if n == name
 --     then do
@@ -120,7 +135,7 @@ typeToTele (n, t) = ttt (n, t) []
 --   show tel
 
 -- -- check parameters
--- checkParams :: RawTelescope ext primTy primVal -> [IR.Term' ext primTy primVal] -> TypeCheck ()
+-- checkParams :: RawTelescope ext primTy primVal -> [IR.Term' ext primTy primVal] -> TypeCheck ext primTy primVal IO ()
 -- checkParams [] [] = return ()
 -- checkParams tel@((n, _t):tl) (Var n':el) =
 --   if n == n'

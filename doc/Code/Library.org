@@ -740,6 +740,14 @@ Types to support partial application and polymorphic primitives.
   + [[IR/Typechecker]]
   + [[IR/Types]]
   + [[Library]]
+****** CheckDatatype
+Datatype declarations are typechecked here. Usages are passed along.
+- _Relies on_
+  + [[CheckTerm]]
+  + [[IR/Evaluator]]
+  + [[IR/Types/Base]]
+  + [[Globals]]
+  + [[Library]]
 ****** CheckTerm
 This file contains the functions and aux functions to typecheck terms.
 @typeTerm@ and @typeElim@ are called by functions for typechecking
@@ -836,13 +844,6 @@ Typechecked declarations are added to the signature.
   + [[Typechecker/Env]]
   + [[Typechecker/Types]]
   + [[IR/Types]]
-  + [[Globals]]
-  + [[Library]]
-******* CheckDatatype
-- _Relies on_
-  + [[CheckTerm]]
-  + [[IR/Evaluator]]
-  + [[IR/Types/Base]]
   + [[Globals]]
   + [[Library]]
 ******* Env <<Typechecker/Env>>
