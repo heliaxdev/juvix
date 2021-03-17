@@ -20,6 +20,8 @@ dependencies:
 - wl-pprint-text
 - elliptic-curve
 - galois-field
+- filepath
+- process-extras
 
 
 default-extensions:

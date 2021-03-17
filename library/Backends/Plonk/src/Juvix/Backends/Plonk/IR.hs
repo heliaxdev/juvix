@@ -51,7 +51,6 @@ import Text.PrettyPrint.Leijen.Text hiding ((<$>))
 
 -- pub fn range_gate(&mut self, witness: Variable, num_bits: usize) {
 data UnOp f a where
-  UExp :: Int -> UnOp f f
   UDup :: UnOp f f
   UIsZero :: UnOp f Bool
   UNot :: UnOp f Bool
@@ -73,6 +72,7 @@ data BinOp f a where
   BMul :: BinOp f f
   BDiv :: BinOp f f
   BMod :: BinOp f f
+  BExp :: BinOp f f
   BAnd :: BinOp f Bool
   BOr :: BinOp f Bool
   BXor :: BinOp f Bool
@@ -115,6 +115,7 @@ instance Pretty (BinOp f a) where
     BXor -> text "^"
     BDiv -> text "/"
     BMod -> text "%"
+    BExp -> text "^"
 
 instance Pretty (CompOp f) where
   pretty op = case op of
@@ -126,7 +127,6 @@ instance Pretty (CompOp f) where
 
 instance Pretty (UnOp f a) where
   pretty op = case op of
-    UExp _ -> text "^"
     UNot -> text "!"
     UDup -> text "dup"
     UIsZero -> text "0?"

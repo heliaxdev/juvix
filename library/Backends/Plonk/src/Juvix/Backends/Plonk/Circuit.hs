@@ -1,7 +1,8 @@
 module Juvix.Backends.Plonk.Circuit where
 
-import Text.PrettyPrint.Leijen.Text hiding ((<$>))
 import Juvix.Library
+import Text.PrettyPrint.Leijen.Text hiding ((<$>))
+
 -- | Arithmetic circuits without multiplication, i.e. circuits
 -- describe affine transformations.
 data AffineCircuit i f
@@ -11,12 +12,17 @@ data AffineCircuit i f
   | Var i
   deriving (Read, Eq, Show, Generic)
 
+fetchVars :: AffineCircuit Wire f -> [Wire]
+fetchVars (Var i) = [i]
+fetchVars (ConstGate _) = []
+fetchVars (ScalarMul _ c) = fetchVars c
+fetchVars (Add l r) = fetchVars l ++ fetchVars r
+
 data Wire
   = InputWire Int
   | IntermediateWire Int
   | OutputWire Int
   deriving (Show, Eq, Ord, Generic)
-
 
 instance Pretty Wire where
   pretty (InputWire v) = text "input_" <> pretty v
@@ -29,41 +35,40 @@ newtype ArithCircuit f = ArithCircuit [Gate Wire f]
 instance Show f => Pretty (ArithCircuit f) where
   pretty (ArithCircuit gs) = vcat . map pretty $ gs
 
-data Gate i f =
-    RangeGate { 
-        rangeVar :: AffineCircuit i f, 
+data Gate i f
+  = RangeGate
+      { rangeVar :: AffineCircuit i f,
         rangeNumBits :: Integer,
         rangeO :: i
-        }
-   | LookupGate { 
-       lookupA :: Integer,
-       lookupB :: Integer,
-       lookupC :: Integer,
-       lookupD :: Maybe Integer,
-       lookupPi :: f,
-       lookupO :: i
-    }  
-   | MulGate
-       { mulL :: AffineCircuit i f,
+      }
+  | LookupGate
+      { lookupA :: Integer,
+        lookupB :: Integer,
+        lookupC :: Integer,
+        lookupD :: Maybe Integer,
+        lookupPi :: f,
+        lookupO :: i
+      }
+  | MulGate
+      { mulL :: AffineCircuit i f,
         mulR :: AffineCircuit i f,
         mulO :: i
       }
-    | BoolGate 
-        { boolVar :: AffineCircuit i f,
-          boolO :: i
-        }
-    | LogicGate
-        { logicL :: i,
-          logicR :: i,
-          logicO :: i
-        }
-    | EqualGate
+  | BoolGate
+      { boolVar :: AffineCircuit i f,
+        boolO :: i
+      }
+  | LogicGate
+      { logicL :: i,
+        logicR :: i,
+        logicO :: i
+      }
+  | EqualGate
       { eqI :: i,
         eqM :: i,
         eqO :: i
       }
   deriving (Eq, Show, Generic)
-
 
 instance (Pretty i, Show f) => Pretty (Gate i f) where
   pretty (MulGate l r o) =
@@ -74,7 +79,6 @@ instance (Pretty i, Show f) => Pretty (Gate i f) where
         text "*",
         parens (pretty r)
       ]
-
 
 instance (Pretty i, Show f) => Pretty (AffineCircuit i f) where
   pretty = prettyPrec 0
@@ -93,7 +97,6 @@ instance (Pretty i, Show f) => Pretty (AffineCircuit i f) where
               prettyPrec 6 e1
                 <+> text "+"
                 <+> prettyPrec 6 e2
-
 
 parensPrec :: Int -> Int -> Doc -> Doc
 parensPrec opPrec p = if p > opPrec then parens else identity

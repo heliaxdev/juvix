@@ -1,6 +1,7 @@
 -- | Surface language
 module Juvix.Backends.Plonk.Lang
   ( c,
+    var,
     add,
     sub,
     mul,
@@ -11,6 +12,11 @@ module Juvix.Backends.Plonk.Lang
     or_,
     xor_,
     not_,
+    eq,
+    gt,
+    gte,
+    lt,
+    lte,
     deref,
     cond,
     ret,
@@ -27,17 +33,18 @@ import Juvix.Library hiding (div, mod)
 c :: f -> IR i f f
 c = IConst
 
+-- | Convert variable to expression
+var :: i -> IR i f f
+var = IVar
+
 -- | Binary arithmetic operations on expressions
-add, sub, mul, div, mod :: IR i f f -> IR i f f -> IR i f f
+add, sub, mul, div, mod, exp_ :: IR i f f -> IR i f f -> IR i f f
 add = IBinOp BAdd
 sub = IBinOp BSub
 mul = IBinOp BMul
 div = IBinOp BDiv
 mod = IBinOp BMod
-
--- | Exponent operation
-exp_ :: Int -> IR i f f -> IR i f f
-exp_ i = IUnOp (UExp i)
+exp_ = IBinOp BExp
 
 -- | Binary logic operations on expressions
 and_, or_, xor_ :: IR i f Bool -> IR i f Bool -> IR i f Bool
@@ -56,6 +63,14 @@ deref = IVar
 -- | Conditional statement on expressions
 cond :: IR i f Bool -> IR i f ty -> IR i f ty -> IR i f ty
 cond = IIf
+
+-- | Compare two expressions
+eq, gt, gte, lt, lte :: IR i f f -> IR i f f -> IR i f Bool
+eq = ICompOp CEq
+gt = ICompOp CGt
+gte = ICompOp CGte
+lt = ICompOp CLt
+lte = ICompOp CLte
 
 -- | Return compilation of expression into an output wire
 ret :: Num f => IR Wire f f -> IRM f Wire

@@ -22,6 +22,7 @@ data BinOp f a where
   BMul :: BinOp f f
   BDiv :: BinOp f f
   BMod :: BinOp f f
+  BExp :: BinOp f f
   BAnd :: BinOp f Bool
   BOr :: BinOp f Bool
   BXor :: BinOp f Bool
@@ -68,7 +69,6 @@ data CompOp f where
 
 ```haskell
 data UnOp f a where
-  UExp :: Int -> UnOp f f
   UDup :: UnOp f f
   UIsZero :: UnOp f Bool
   UNot :: UnOp f Bool

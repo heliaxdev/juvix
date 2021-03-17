@@ -3,6 +3,7 @@ module Juvix.Backends.Plonk.Builder where
 import Juvix.Library
 import Juvix.Backends.Plonk.Circuit
 import Juvix.Backends.Plonk.IR
+
 -------------------------------------------------------------------------------
 -- Circuit Builder
 -------------------------------------------------------------------------------
@@ -88,7 +89,7 @@ addWire (Right c) = do
   pure mulOut
 
 compile :: Num f => IR Wire f ty -> IRM f (Either Wire (AffineCircuit Wire f))
-compile expr = case expr of
+compile ir = case ir of
   IConst n -> pure . Right $ ConstGate n
   IVar v -> pure . Left $ v
   IUnOp op e1 -> do
@@ -141,24 +142,24 @@ compile expr = case expr of
 --   pure . Right $ Add (ConstGate 1) (ScalarMul (-1) (Var eqOuti))
 
 -- | Translate an arithmetic expression to an arithmetic circuit
-exprToArithCircuit ::
+irToArithCircuit ::
   Num f =>
   -- | expression to compile
   IR Int f ty ->
   -- | Wire to assign the output of the expression to
   Wire ->
   IRM f ()
-exprToArithCircuit expr output =
-  exprToArithCircuit' (mapVarsIR InputWire expr) output
+irToArithCircuit ir output =
+  irToArithCircuit' (mapVarsIR InputWire ir) output
 
-exprToArithCircuit' :: Num f => IR Wire f ty -> Wire -> IRM f ()
-exprToArithCircuit' expr output = do
-  exprOut <- compile expr
-  emit $ MulGate (ConstGate 1) (addVar exprOut) output
+irToArithCircuit' :: Num f => IR Wire f ty -> Wire -> IRM f ()
+irToArithCircuit' ir output = do
+  irOut <- compile ir
+  emit $ MulGate (ConstGate 1) (addVar irOut) output
 
 -- | Apply function to variable names.
 mapVarsIR :: (i -> j) -> IR i f ty -> IR j f ty
-mapVarsIR f expr = case expr of
+mapVarsIR f ir = case ir of
   IVar i -> IVar $ f i
   IConst v -> IConst v
   IBinOp op e1 e2 -> IBinOp op (mapVarsIR f e1) (mapVarsIR f e2)
