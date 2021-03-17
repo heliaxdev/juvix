@@ -1,5 +1,7 @@
 module Juvix.Contextify (fullyContextify, contextify, op) where
 
+import qualified Juvix.Contextify.Environment as Environment
+import qualified Juvix.Contextify.Passes as Passes
 import qualified Juvix.Core.Common.Context as Context
 import qualified Juvix.FrontendContextualise.Contextify.ResolveOpenInfo as ResolveOpen
 import qualified Juvix.FrontendContextualise.Contextify.Sexp as ContextSexp
@@ -18,6 +20,7 @@ newtype M a = M (RunM a)
 data ResolveErr
   = Path Context.PathError
   | Resolve ResolveOpen.Error
+  | PassErr Environment.ErrorS
   deriving (Show, Eq)
 
 type PathError t = Either Context.PathError t
@@ -26,7 +29,22 @@ type PathError t = Either Context.PathError t
 -- Main functionality
 --------------------------------------------------------------------------------
 
-op = undefined
+op ::
+  NonEmpty (NameSymbol.T, [Sexp.T]) ->
+  IO (Either ResolveErr (Context.T Sexp.T Sexp.T Sexp.T))
+op names = do
+  context <- fullyContextify names
+  case context of
+    Left err -> pure $ Left err
+    Right ctx -> do
+      (newCtx, _) <- Environment.runMIO (Passes.resolveModule ctx)
+      case newCtx of
+        Left err -> pure $ Left $ jPassErr err
+        Right t ->
+          let (infix', _) = Environment.runM (Passes.inifixSoloPass t)
+           in case infix' of
+                Left err -> pure $ Left $ PassErr err
+                Right x -> pure (Right x)
 
 -- | @fullyContextify@ runs @contextifyS@ along while running the
 -- algorithm that resolves the opens to the modules in which they

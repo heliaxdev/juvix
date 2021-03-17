@@ -1449,6 +1449,8 @@ Can be added to via core translation
   + [[Library]]
 **** Contextify <<Juvix/Contextify>>
 - _Relies on_
+  + [[Contextify/Environment]]
+  + [[Contextify/Passes]]
   + [[Core/Common/Context]]
   + [[ResolveOpenInfo]]
   + [[Contextify/Sexp]]

@@ -41,3 +41,6 @@ keys (T m) = Map.keysSet m
 
 lookup :: Symbol -> T -> Maybe Information
 lookup k (T m) = Map.lookup k m
+
+empty :: T
+empty = T Map.empty

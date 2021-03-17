@@ -28,9 +28,6 @@ import qualified Juvix.Library.NameSymbol as NameSymbol
 import qualified Juvix.Library.Sexp as Sexp
 import Prelude (error)
 
--- Will make things more export friendly when the above code is gone
-
--- TODO ∷ make this a standard data structure
 data ErrorS
   = CantResolve [Sexp.T]
   | UnknownSymbol NameSymbol.T
@@ -84,11 +81,11 @@ newtype MinimalMIO a = CtxIO {_runIO :: MinimalAliasIO a}
     (HasThrow "error" ErrorS)
     via MonadError MinimalAliasIO
 
-runMIO :: MinimalMIO a -> Minimal -> IO (Either ErrorS a, Minimal)
-runMIO (CtxIO c) = runStateT (runExceptT c)
+runMIO :: MinimalMIO a -> IO (Either ErrorS a, Minimal)
+runMIO (CtxIO c) = runStateT (runExceptT c) (Minimal Closure.empty)
 
-runM :: MinimalM a -> Minimal -> (Either ErrorS a, Minimal)
-runM (Ctx c) = runState (runExceptT c)
+runM :: MinimalM a -> (Either ErrorS a, Minimal)
+runM (Ctx c) = runState (runExceptT c) (Minimal Closure.empty)
 
 ------------------------------------------------------------
 -- Main Functionality
