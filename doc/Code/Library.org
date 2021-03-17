@@ -1455,7 +1455,6 @@ Can be added to via core translation
   + [[NameSpace]]
   + [[InfixPrecedence/ShuntYard]]
   + [[Library]]
-  + [[Library]]
   + [[NameSymbol]]
   + [[Library/Sexp]]
 ***** Passes <<Contextify/Passes>>

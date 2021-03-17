@@ -1,4 +1,15 @@
-module Juvix.Contextify.Environment where
+module Juvix.Contextify.Environment
+  ( ErrorS (..),
+    ErrS,
+    SexpContext,
+    HasClosure,
+    passContextSingle,
+    passContext,
+    Pass (..),
+    extractInformation,
+    lookupPrecedence,
+  )
+where
 
 import Control.Lens hiding ((|>))
 import qualified Juvix.Core.Common.Closure as Closure
@@ -6,7 +17,6 @@ import qualified Juvix.Core.Common.Context as Context
 import qualified Juvix.Core.Common.NameSpace as NameSpace
 import qualified Juvix.FrontendContextualise.InfixPrecedence.ShuntYard as Shunt
 import Juvix.Library
-import qualified Juvix.Library as Library
 import qualified Juvix.Library.NameSymbol as NameSymbol
 import qualified Juvix.Library.Sexp as Sexp
 import Prelude (error)
@@ -26,8 +36,6 @@ data ErrorS
 type SexpContext = Context.T Sexp.T Sexp.T Sexp.T
 
 type HasClosure m = HasReader "closure" Closure.T m
-
-type ContextS m = HasState "context" SexpContext m
 
 type ErrS m = HasThrow "error" ErrorS m
 
@@ -141,7 +149,7 @@ extractInformation _ = Nothing
 lookupPrecedence ::
   (ErrS m, HasClosure m) => NameSymbol.T -> Context.T t y s -> m Context.Precedence
 lookupPrecedence name ctx = do
-  closure <- Library.ask @"closure"
+  closure <- ask @"closure"
   let symbolName = NameSymbol.hd name
   case Closure.lookup symbolName closure of
     Just Closure.Info {info}
