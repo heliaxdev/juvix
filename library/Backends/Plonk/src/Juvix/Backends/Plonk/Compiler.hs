@@ -19,7 +19,7 @@ import qualified Juvix.Library.NameSymbol as NameSymbol
 -- convert datatypes to some field element representation
 -- etc
 
-compileBinOp :: (Show f, Num f, Enum f) => Map NameSymbol.T Wire -> BinOp f a -> [FFAnnTerm f] -> IRM f (Either Wire (AffineCircuit Wire f))
+compileBinOp :: (Show f, Num f, Integral f) => Map NameSymbol.T Wire -> BinOp f a -> [FFAnnTerm f] -> IRM f (Either Wire (AffineCircuit Wire f))
 compileBinOp m op args = do
   let e1 = args !! 0
   let e2 = args !! 1
@@ -32,11 +32,10 @@ compileBinOp m op args = do
       pure . Left $ tmp1
     BExp -> do
       let (Ann.Ann _ _ (Ann.Prim (PConst exponent))) = e2
-      tmp1 <- mulToImm (Right e1Out) (Right e2Out)
-      tmp <- foldrM f tmp1 [0 .. exponent]
-      pure . Left $ tmp
+      tmp1 <- mulToImm (Right e1Out) (Right e1Out)
+      Left <$> foldrM f tmp1 (replicate (fromIntegral $ exponent - 2) 0)
       where
-        f n tmp = mulToImm (Left tmp) (Right e2Out)
+        f n tmp = mulToImm (Left tmp) (Right e1Out)
     -- SUB(x, y) = x + (-y)
     BSub -> pure . Right $ Add e1Out (ScalarMul (-1) e2Out)
     BAnd -> do
@@ -53,22 +52,23 @@ compileBinOp m op args = do
       emit $ MulGate e1Out e2Out tmp1
       pure . Right $ Add (Add e1Out e2Out) (ScalarMul (-2) (Var tmp1))
 
-compileCompOp :: (Num f, Enum f, Show f) => Map NameSymbol.T Wire -> CompOp f -> [FFAnnTerm f] -> IRM f (Either Wire (AffineCircuit Wire f))
+compileCompOp :: (Num f, Integral f, Show f) => Map NameSymbol.T Wire -> CompOp f -> [FFAnnTerm f] -> IRM f (Either Wire (AffineCircuit Wire f))
 compileCompOp m op args = do
   let lhs = args !! 0
   let rhs = args !! 1
   case op of
     CEq -> do
       lhsSubRhs <- compileBinOp m BSub [lhs, rhs]
-      eqIni <- addWire lhsSubRhs
-      eqFreei <- imm
-      eqOuti <- imm
-      emit $ EqualGate eqIni eqFreei eqOuti
-      -- eqOuti == 0 if lhs == rhs, so we need to return 1 -
-      -- neqOuti instead.
-      pure . Right $ Add (ConstGate 1) (ScalarMul (-1) (Var eqOuti))
+      eqInWire <- addWire lhsSubRhs
+      eqFreeWire <- imm
+      eqOutWire <- imm
+      traceShowM eqOutWire
+      emit $ EqualGate eqInWire eqFreeWire eqOutWire
+      -- eqOutWire == 0 if lhs == rhs, so we need to return 1 -
+      -- neqOutWire instead.
+      pure . Right $ Add (ConstGate 1) (ScalarMul (-1) (Var eqOutWire))
 
-compilePrim :: (Num f, Enum f, Show f) => PrimVal f -> Map NameSymbol.T Wire -> [FFAnnTerm f] -> IRM f (Either Wire (AffineCircuit Wire f))
+compilePrim :: (Num f, Integral f, Show f) => PrimVal f -> Map NameSymbol.T Wire -> [FFAnnTerm f] -> IRM f (Either Wire (AffineCircuit Wire f))
 compilePrim p m args = case p of
   P.PConst n -> pure . Right $ ConstGate n
   P.PAdd -> compileBinOp m BAdd args
@@ -79,7 +79,7 @@ compilePrim p m args = case p of
 
 -- IBinOp BAdd (termToIR (args !! 1)) (termToIR (args !! 2))
 
-compileTerm :: (Num f, Enum f, Show f) => FFAnnTerm f -> Map NameSymbol.T Wire -> IRM f (Either Wire (AffineCircuit Wire f))
+compileTerm :: (Num f, Integral f, Show f) => FFAnnTerm f -> Map NameSymbol.T Wire -> IRM f (Either Wire (AffineCircuit Wire f))
 compileTerm term@(Ann.Ann _ ty t) m =
   case t of
     Ann.Prim p -> compilePrim p m []

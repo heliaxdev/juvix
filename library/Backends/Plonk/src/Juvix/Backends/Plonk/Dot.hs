@@ -54,15 +54,6 @@ arithCircuitToDot (ArithCircuit gates) =
       where
         gateLabel = dotWire output
 
--- graphGate (Split i outputs) =
---   [ labelNode gateLabel "split",
---     dotArrowLabel (dotWire i) gateLabel (dotWire i)
---   ]
---     ++ map (pointNode . dotWire) outputs
---     ++ map (\output -> dotArrow gateLabel (dotWire output)) outputs
---   where
---     gateLabel = Text.concat . fmap dotWire $ outputs
-
 callDot :: Text -> IO Text
 callDot g = do
   (_, out, err) <- readProcessWithExitCode "dot" ["-Tsvg"] g
