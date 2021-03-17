@@ -433,13 +433,13 @@ type InnerTCSig ext primTy primVal =
 -- TODO move this somewhere
 newtype TypeCheck ext primTy primVal m a 
   = TypeCheck (InnerTCSig ext primTy primVal m a)
-  deriving (Functor, Applicative, Monad, MonadIO)
+  deriving newtype (Functor, Applicative, Monad, MonadIO)
   deriving 
     ( HasState "typeSigs" (Signature ext primTy primVal),
       HasSink "typeSigs" (Signature ext primTy primVal),
       HasSource "typeSigs" (Signature ext primTy primVal)
     )
-    via MonadState (StateT (Signature ext primTy primVal) IO)
+    via MonadState (InnerTCSig ext primTy primVal m)
 
 data SigDef ext primTy primVal
   = -- | function constant to its type, clauses

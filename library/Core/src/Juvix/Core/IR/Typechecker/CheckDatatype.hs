@@ -6,16 +6,19 @@ where
 import Juvix.Core.IR.CheckTerm
 import qualified Juvix.Core.IR.Evaluator as Eval
 -- import SPos ( sposConstructor )
-import Juvix.Core.IR.Types.Base
-import Juvix.Core.IR.Types.Globals
-import qualified Data.Map.Internal as Map
-import Juvix.Library ()
+import Juvix.Core.IR.Types.Base as IR
+import Juvix.Core.IR.Types.Globals as IR
+import Juvix.Library
 
-typeCheckConstructor ::
-     Name -> [Pos] -> RawTelescope ext primTy primVal -> (Name, Term' ext primTy primVal) -> TypeCheck ty ext primTy primVal ()
-typeCheckConstructor name pos tel (n, ty) =
-  pure ()
-  -- sig <- get -- get signatures
+typeCheckConstructor :: 
+  HasState "typeSigs" s IO =>
+    Name -> 
+    [IR.Pos] -> 
+    RawTelescope ext primTy primVal -> 
+    (IR.Name, IR.Term' ext primTy primVal) -> 
+    TypeCheck ext primTy primVal IO ()
+typeCheckConstructor name pos tel (n, ty) = do
+  sig <- get @"typeSigs" -- get signatures
   -- let tt = teleToType tel t
   --     params = length tel
   -- _ <- checkConType 0 [] [] params tt
@@ -24,6 +27,7 @@ typeCheckConstructor name pos tel (n, ty) =
   -- vt <- eval [] tt
   -- -- sposConstructor name 0 pos vt -- strict positivity check
   -- put (addSig sig n (ConSig vt))
+  return ()
 
 -- teleToType :: Telescope -> Expr -> Expr
 -- teleToType [] t            = t
