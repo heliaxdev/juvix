@@ -1,4 +1,4 @@
-module Juvix.Context.Sexp where
+module Juvix.Contextify.Passes (resolveModule, inifixSoloPass) where
 
 import Control.Lens hiding ((|>))
 import qualified Data.List.NonEmpty as NonEmpty
@@ -6,31 +6,33 @@ import qualified Juvix.Core.Common.Context as Context
 import qualified Juvix.FrontendContextualise.Environment as Env
 import qualified Juvix.FrontendContextualise.InfixPrecedence.ShuntYard as Shunt
 import Juvix.Library
+import Prelude (error)
 import qualified Juvix.Library.NameSymbol as NameSymbol
 import qualified Juvix.Library.Sexp as Sexp
 import qualified StmContainers.Map as STM
 
 resolveModule ::
-  (Env.ErrS m, Env.HasClosure m, MonadIO m) => Env.SexpContext -> m Env.SexpContext
+  ExpressionIO m => Env.SexpContext -> m Env.SexpContext
 resolveModule context =
   Env.passContextSingle context (\x -> x == ":atom" || x == ":open-in") openResolution
 
 inifixSoloPass ::
-  (Env.ErrS m, Env.HasClosure m) => Env.SexpContext -> m Env.SexpContext
+  Expression m => Env.SexpContext -> m Env.SexpContext
 inifixSoloPass context =
   Env.passContextSingle context (== ":infix") infixConversion
 
-atomResolution,
-  openResolution ::
-    (Env.ErrS m, Env.HasClosure m, MonadIO m) =>
-    Context.T term ty sumRep ->
-    Sexp.Atom ->
-    Sexp.T ->
-    m Sexp.T
+type ExpressionIO m = (Env.ErrS m, Env.HasClosure m, MonadIO m)
+type Expression m = (Env.ErrS m, Env.HasClosure m)
+
+openResolution ::
+  ExpressionIO m => Context.T term ty sumRep -> Sexp.Atom -> Sexp.T -> m Sexp.T
 openResolution _ctx a (Sexp.List [_open, body])
   | Sexp.isAtomNamed (Sexp.Atom a) ":open-in" =
     pure body
 openResolution ctx a xs = atomResolution ctx a xs
+
+atomResolution ::
+  ExpressionIO m => Context.T term ty sumRep -> Sexp.Atom -> Sexp.T -> m Sexp.T
 atomResolution context atom@Sexp.A {atomName = name} sexpAtom = do
   closure <- ask @"closure"
   let symbolName = NameSymbol.hd name
@@ -46,6 +48,7 @@ atomResolution context atom@Sexp.A {atomName = name} sexpAtom = do
         Just Context.SymInfo {mod = prefix} ->
           pure $ Sexp.addMetaToCar atom (Sexp.atom (prefix <> name))
         Nothing -> pure sexpAtom
+atomResolution _ _ _ = error "malformed atom"
 
 infixConversion ::
   (Env.ErrS m, Env.HasClosure m) => Context.T t y s -> Sexp.Atom -> Sexp.T -> m Sexp.T
@@ -58,6 +61,10 @@ infixConversion context atom list = do
       throw @"error" (Env.Clash pred1 pred2)
     Left Shunt.MoreEles ->
       throw @"error" Env.ImpossibleMoreEles
+
+------------------------------------------------------------
+-- Helpers for infix conversion
+------------------------------------------------------------
 
 groupInfix ::
   (Env.ErrS m, Env.HasClosure m) =>
