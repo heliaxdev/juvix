@@ -1,7 +1,20 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Juvix.Core.Parameterisations.Naturals where
+module Juvix.Core.Parameterisations.Naturals
+  ( Ty (..),
+    hasType,
+    typeOf,
+    Val (..),
+    reservedNames,
+    reservedOpNames,
+    builtinTypes,
+    builtinValues,
+    isNat,
+    natVal,
+    t,
+  )
+where
 
 import qualified Juvix.Core.Application as App
 import qualified Juvix.Core.IR.Evaluator as E
