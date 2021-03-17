@@ -2,14 +2,15 @@ module Juvix.Contextify.Passes (resolveModule, inifixSoloPass) where
 
 import Control.Lens hiding ((|>))
 import qualified Data.List.NonEmpty as NonEmpty
+import qualified Juvix.Contextify.Environment as Env
+import qualified Juvix.Core.Common.Closure as Closure
 import qualified Juvix.Core.Common.Context as Context
-import qualified Juvix.FrontendContextualise.Environment as Env
 import qualified Juvix.FrontendContextualise.InfixPrecedence.ShuntYard as Shunt
 import Juvix.Library
-import Prelude (error)
 import qualified Juvix.Library.NameSymbol as NameSymbol
 import qualified Juvix.Library.Sexp as Sexp
 import qualified StmContainers.Map as STM
+import Prelude (error)
 
 resolveModule ::
   ExpressionIO m => Env.SexpContext -> m Env.SexpContext
@@ -22,6 +23,7 @@ inifixSoloPass context =
   Env.passContextSingle context (== ":infix") infixConversion
 
 type ExpressionIO m = (Env.ErrS m, Env.HasClosure m, MonadIO m)
+
 type Expression m = (Env.ErrS m, Env.HasClosure m)
 
 openResolution ::
@@ -36,11 +38,11 @@ atomResolution ::
 atomResolution context atom@Sexp.A {atomName = name} sexpAtom = do
   closure <- ask @"closure"
   let symbolName = NameSymbol.hd name
-  case Env.closureLookup symbolName closure of
-    Just Env.Info {mOpen = Just prefix} ->
+  case Closure.lookup symbolName closure of
+    Just Closure.Info {mOpen = Just prefix} ->
       -- we qualified it to a module which is already qualified
       pure (Sexp.addMetaToCar atom (Sexp.atom (prefix <> name)))
-    Just Env.Info {} -> pure sexpAtom
+    Just Closure.Info {} -> pure sexpAtom
     Nothing -> do
       let qualified = context ^. Context._currentNameSpace . Context.qualifiedMap
       looked <- liftIO $ atomically $ STM.lookup symbolName qualified

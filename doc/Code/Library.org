@@ -559,6 +559,15 @@ Types to support partial application and polymorphic primitives.
   + [[Library]]
   + [[NameSymbol]]
 ***** Common
+****** Closure
+Closure.T serves as the data structure in which we will store
+temporary lexical bindings as our code encounters binders.
+- _Relies on_
+  + [[Core/Common/Context]]
+  + [[Library]]
+  + [[HashMap]]
+  + [[NameSymbol]]
+  + [[Library/Sexp]]
 ****** NameSpace
 - _Relies on_
   + [[Library]]
@@ -1438,11 +1447,22 @@ Can be added to via core translation
   + [[Frontend/Sexp]]
   + [[Frontend/Types]]
   + [[Library]]
-**** Context
-***** Sexp <<Context/Sexp>>
+**** Contextify
+***** Environment <<Contextify/Environment>>
 - _Relies on_
+  + [[Closure]]
   + [[Core/Common/Context]]
-  + [[FrontendContextualise/Environment]]
+  + [[NameSpace]]
+  + [[InfixPrecedence/ShuntYard]]
+  + [[Library]]
+  + [[Library]]
+  + [[NameSymbol]]
+  + [[Library/Sexp]]
+***** Passes <<Contextify/Passes>>
+- _Relies on_
+  + [[Contextify/Environment]]
+  + [[Closure]]
+  + [[Core/Common/Context]]
   + [[InfixPrecedence/ShuntYard]]
   + [[Library]]
   + [[NameSymbol]]
@@ -1487,7 +1507,7 @@ function, removes all extra parts of syntax that can be boiled down
 to simple macro expansion (simplification of the frontend syntax
 from the syntax alone with no extra information needed!)
 - _Relies on_
-  + [[Passes]]
+  + [[Desugar/Passes]]
   + [[Library]]
   + [[Library/Sexp]]
 ***** Extend <<Desugar/Extend>>
@@ -1564,7 +1584,7 @@ from the syntax alone with no extra information needed!)
   + [[Frontend/Types/Base]]
   + [[Types/Extend]]
   + [[Library]]
-***** Passes
+***** Passes <<Desugar/Passes>>
 Passes contains a list of passes on the frontend syntax that can be
 done with no extra information needed. Thus we export the following passes
 - Removing Explicit Module declarations
@@ -1605,12 +1625,8 @@ done with no extra information needed. Thus we export the following passes
   + [[Core/Common/Context]]
   + [[NameSpace]]
   + [[Common/Open]]
-  + [[InfixPrecedence/ShuntYard]]
   + [[Library]]
-  + [[Library]]
-  + [[HashMap]]
   + [[NameSymbol]]
-  + [[Library/Sexp]]
 ***** Contextify
 ****** ResolveOpenInfo
 - This module is responsible for adding the reverse open
@@ -1839,6 +1855,8 @@ done with no extra information needed. Thus we export the following passes
 *** Context
 **** Environment <<Context/Environment>>
 - _Relies on_
+  + [[Contextify/Environment]]
+  + [[Closure]]
   + [[Core/Common/Context]]
   + [[Juvix/Desugar]]
   + [[Frontend/Parser]]
@@ -1847,7 +1865,6 @@ done with no extra information needed. Thus we export the following passes
   + [[FrontendContextualise]]
   + [[ResolveOpenInfo]]
   + [[Contextify/Types]]
-  + [[FrontendContextualise/Environment]]
   + [[Library]]
   + [[HashMap]]
   + [[NameSymbol]]
@@ -1901,6 +1918,6 @@ Temporary conversion from the Sexpression syntax to the ML syntax
   + [[NameSymbol]]
 **** Sexp <<Desugar/Sexp>>
 - _Relies on_
-  + [[Passes]]
+  + [[Desugar/Passes]]
   + [[Library]]
   + [[Library/Sexp]]
