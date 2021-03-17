@@ -1,6 +1,7 @@
 module Context.Environment (top) where
 
 import qualified Data.HashSet as Set
+import qualified Juvix.Contextify as Contextify
 import qualified Juvix.Contextify.Environment as Env
 import qualified Juvix.Core.Common.Closure as Closure
 import qualified Juvix.Core.Common.Context as Context
@@ -8,7 +9,6 @@ import qualified Juvix.Desugar as Desugar
 import qualified Juvix.Frontend.Parser as Parser
 import qualified Juvix.Frontend.Sexp as SexpTrans
 import qualified Juvix.Frontend.Types.Base as Frontend
-import qualified Juvix.FrontendContextualise as Contextualize
 import qualified Juvix.FrontendContextualise.Contextify.ResolveOpenInfo as Contextify
 import qualified Juvix.FrontendContextualise.Contextify.Types as Contextify
 import Juvix.Library
@@ -204,7 +204,7 @@ openTest =
     "open Tests"
     [ T.testCase "open properly adds symbols" $ do
         Right (ctx, _) <-
-          Contextualize.contextifyS
+          Contextify.contextify
             ( ("Foo", parseDesugarSexp "let f = open A in print-closure 2")
                 :| [("A", parseDesugarSexp "let bar = 3")]
             )
@@ -238,7 +238,7 @@ contextualizeFoo ::
         (Contextify.ContextSexp, [Contextify.PreQualified])
     )
 contextualizeFoo byte =
-  Contextualize.contextifyS (("Foo", parseDesugarSexp byte) :| [])
+  Contextify.contextify (("Foo", parseDesugarSexp byte) :| [])
 
 parseDesugarSexp :: ByteString -> [Sexp.T]
 parseDesugarSexp = Desugar.op . parsedSexp

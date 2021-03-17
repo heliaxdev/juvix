@@ -1447,7 +1447,15 @@ Can be added to via core translation
   + [[Frontend/Sexp]]
   + [[Frontend/Types]]
   + [[Library]]
-**** Contextify
+**** Contextify <<Juvix/Contextify>>
+- _Relies on_
+  + [[Core/Common/Context]]
+  + [[ResolveOpenInfo]]
+  + [[Contextify/Sexp]]
+  + [[Contextify/Types]]
+  + [[Library]]
+  + [[NameSymbol]]
+  + [[Library/Sexp]]
 ***** Environment <<Contextify/Environment>>
 - _Relies on_
   + [[Closure]]
@@ -1854,6 +1862,7 @@ done with no extra information needed. Thus we export the following passes
 *** Context
 **** Environment <<Context/Environment>>
 - _Relies on_
+  + [[Juvix/Contextify]]
   + [[Contextify/Environment]]
   + [[Closure]]
   + [[Core/Common/Context]]
@@ -1861,7 +1870,6 @@ done with no extra information needed. Thus we export the following passes
   + [[Frontend/Parser]]
   + [[Frontend/Sexp]]
   + [[Frontend/Types/Base]]
-  + [[FrontendContextualise]]
   + [[ResolveOpenInfo]]
   + [[Contextify/Types]]
   + [[Library]]
@@ -1869,7 +1877,7 @@ done with no extra information needed. Thus we export the following passes
   + [[NameSymbol]]
   + [[Library/Sexp]]
 *** Contextualise
-**** Contextify
+**** Contextify <<Contextualise/Contextify>>
 - _Relies on_
   + [[Core/Common/Context]]
   + [[Juvix/Desugar]]
