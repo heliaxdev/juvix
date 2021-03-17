@@ -145,12 +145,6 @@ unNatVal :: Val -> Maybe Naturals.Val
 unNatVal (NatVal n) = Just n
 unNatVal _ = Nothing
 
-reservedNames :: [String]
-reservedNames = Naturals.reservedNames <> Unit.reservedNames
-
-reservedOpNames :: [String]
-reservedOpNames = Naturals.reservedOpNames <> Unit.reservedOpNames
-
 builtinTypes :: P.Builtins Ty
 builtinTypes =
   fmap NatTy Naturals.builtinTypes
